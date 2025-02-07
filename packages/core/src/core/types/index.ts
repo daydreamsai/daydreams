@@ -409,6 +409,10 @@ export interface VectorDB {
         tags: string[],
         limit?: number
     ): Promise<Documentation[]>;
+    searchDocumentsByCategory(
+        category: string,
+        limit?: number
+    ): Promise<Documentation[]>;
     updateDocument(id: string, updates: Partial<Documentation>): Promise<void>;
 
     purge(): Promise<void>;

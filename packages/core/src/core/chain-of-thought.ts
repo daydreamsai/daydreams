@@ -329,14 +329,14 @@ export class ChainOfThought extends EventEmitter {
 
       <relevant_context>
       ${relevantDocs
-          .map((doc) => `Document: ${doc.title}\n${doc.content}`)
-          .join("\n\n")}
+                .map((doc) => `Document: ${doc.title}\n${doc.content}`)
+                .join("\n\n")}
       </relevant_context>
 
       <relevant_experiences>
       ${relevantExperiences
-          .map((exp) => `Experience: ${exp.action}\n${exp.outcome}`)
-          .join("\n\n")}
+                .map((exp) => `Experience: ${exp.action}\n${exp.outcome}`)
+                .join("\n\n")}
       </relevant_experiences>
 
       <current_game_state>
@@ -465,14 +465,14 @@ export class ChainOfThought extends EventEmitter {
       
       <relevant_context>
       ${relevantDocs
-          .map((doc) => `Document: ${doc.title}\n${doc.content}`)
-          .join("\n\n")}
+                .map((doc) => `Document: ${doc.title}\n${doc.content}`)
+                .join("\n\n")}
       </relevant_context>
 
       <relevant_experiences>
       ${relevantExperiences
-          .map((exp) => `Experience: ${exp.action}\n${exp.outcome}`)
-          .join("\n\n")}
+                .map((exp) => `Experience: ${exp.action}\n${exp.outcome}`)
+                .join("\n\n")}
       </relevant_experiences>
 
       <current_game_state>
@@ -1106,10 +1106,10 @@ export class ChainOfThought extends EventEmitter {
             const formattedResult =
                 typeof result === "object"
                     ? `${action.type} completed successfully:\n${JSON.stringify(
-                          result,
-                          null,
-                          2
-                      )}`
+                        result,
+                        null,
+                        2
+                    )}`
                     : result;
 
             // Update the action step
@@ -1336,11 +1336,22 @@ ${availableOutputsSchema}
 
                     const completion = await validateLLMResponseSchema({
                         prompt: `${this.buildPrompt({ result })}
-            ${JSON.stringify({
-                query: userQuery,
-                currentSteps: this.stepManager.getSteps(),
-                lastAction: currentAction.toString() + " RESULT:" + result,
-            })}
+                        ${JSON.stringify({
+                            query: userQuery,
+                            currentSteps: this.stepManager.getSteps(),
+                            lastAction: currentAction.toString() + " RESULT:" + result,
+                        })}
+
+                        
+            <current_pending_actions>
+                ${pendingActions
+                                .map(
+                                    (a, index) =>
+                                        `Action ${index + 1}: ${JSON.stringify(a, null, 2)}`
+                                )
+                                .join("\n")}
+            </current_pending_actions>
+            
             <verification_rules>
              # Chain of Verification Analysis
 
@@ -1407,8 +1418,7 @@ ${availableOutputsSchema}
 
                         if (isComplete || !completion.shouldContinue) {
                             this.recordReasoningStep(
-                                `Goal ${isComplete ? "achieved" : "failed"}: ${
-                                    completion.reason
+                                `Goal ${isComplete ? "achieved" : "failed"}: ${completion.reason
                                 }`,
                                 "system",
                                 ["completion"]
@@ -1466,35 +1476,39 @@ ${availableOutputsSchema}
         action: string,
         result: string | Record<string, any>
     ): Promise<string> {
-        return await validateLLMResponseSchema({
+        const response = await validateLLMResponseSchema({
             prompt: `
-    # Action Result Summary
-    Summarize this action result in a clear, concise way
+            # Action Result Summary
+            Summarize this action result in a clear, concise way
+            
+            # Action taken
+            ${action}
     
-    # Action taken
-    ${action}
-
-    # Result of action
-    ${typeof result === "string" ? result : JSON.stringify(result, null, 2)}
-
-    # Rules for summary:
-    1. Be concise but informative (1-2 lines max)
-    2. All values from the result to make the summary more informative
-    3. Focus on the key outcomes or findings
-    4. Use neutral, factual language
-    5. Don't include technical details unless crucial
-    6. Make it human-readable
+            # Result of action
+            ${typeof result === "string" ? result : JSON.stringify(result, null, 2)}
     
-    # Rules for output
-    Return only the summary text, no additional formatting.
-    `,
-            schema: z.any(),
+            # Rules for summary:
+            1. Be concise but informative (1-2 lines max)
+            2. All values from the result to make the summary more informative
+            3. Focus on the key outcomes or findings
+            4. Use neutral, factual language
+            5. Don't include technical details unless crucial
+            6. Make it human-readable
+            
+            # Rules for output
+            Return only the summary text, no additional formatting.
+            `,
+            schema: z.object({
+                summary: z.string(),
+            }),
             systemPrompt:
                 "You are a result summarizer. Create clear, concise summaries of action results.",
             maxRetries: 3,
             llmClient: this.llmClient,
             logger: this.logger,
-        }).toString();
+        });
+
+        return response.summary;
     }
 
     /**
@@ -1641,14 +1655,14 @@ ${availableOutputsSchema}
      */
     async getBlackboardState(): Promise<Record<string, any>> {
         try {
-            // Use findDocumentsByCategory to get all blackboard documents
-            const blackboardDocs = await this.memory.searchDocumentsByTag([
-                "blackboard",
-            ]);
+            // Retrieve blackboard documents
+            const blackboardDocs = await this.memory.searchDocumentsByCategory("blackboard");
 
-            // Build current state by applying updates in order
             const state: Record<string, any> = {};
 
+            console.log("blackboardDocs", blackboardDocs);
+
+            // Sort by timestamp (oldest first)
             blackboardDocs
                 .sort((a, b) => {
                     const aContent = JSON.parse(a.content);
@@ -1657,10 +1671,14 @@ ${availableOutputsSchema}
                 })
                 .forEach((doc) => {
                     const update = JSON.parse(doc.content);
-                    if (!state[update.type]) {
-                        state[update.type] = {};
+                    if (update.type === "state") {
+                        state[update.key] = update.value;
+                    } else {
+                        if (!state[update.type]) {
+                            state[update.type] = {};
+                        }
+                        state[update.type][update.key] = update.value;
                     }
-                    state[update.type][update.key] = update.value;
                 });
 
             this.logger.info("getBlackboardState", "Found blackboard state", {
@@ -1669,13 +1687,7 @@ ${availableOutputsSchema}
 
             return state;
         } catch (error) {
-            this.logger.error(
-                "getBlackboardState",
-                "Failed to get blackboard state",
-                {
-                    error,
-                }
-            );
+            this.logger.error("getBlackboardState", "Failed to get blackboard state", { error });
             return {};
         }
     }

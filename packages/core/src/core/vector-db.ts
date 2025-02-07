@@ -1464,6 +1464,40 @@ export class ChromaVectorDB implements VectorDB {
     }
 
     /**
+     * Searches documents by exact match on category.
+     */
+    public async searchDocumentsByCategory(
+        category: string,
+        limit = 5
+    ): Promise<Documentation[]> {
+        const coll = await this.getDocumentationCollection();
+        const results: any = await coll.get({
+            where: {
+                $and: [
+                    { type: { $eq: "documentation" } },
+                    { category: { $eq: category } },
+                ],
+            },
+            limit,
+        });
+
+        if (!results.ids?.length) return [];
+
+        return results.ids.map((id: string, idx: number) => {
+            const meta = results.metadatas[idx];
+            return {
+                id,
+                content: results.documents[idx] || "",
+                title: String(meta.title),
+                category: String(meta.category),
+                tags: String(meta.tags || "").split(","),
+                lastUpdated: new Date(String(meta.lastUpdated)),
+                relatedIds: String(meta.relatedIds || "").split(","),
+            };
+        });
+    }
+
+    /**
      * Updates an existing documentation record by ID.
      */
     public async updateDocument(
