@@ -1,27 +1,19 @@
 import { z } from "zod";
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { createDreams } from "../../packages/core/src/core/v1/dreams";
 import {
   action,
-  expert,
   input,
   output,
   splitTextIntoChunks,
 } from "../../packages/core/src/core/v1/utils";
 import { Telegraf } from "telegraf";
-import {
-  createMemoryStore,
-  defaultContext,
-} from "../../packages/core/src/core/v1/memory";
+import { createMemoryStore } from "../../packages/core/src/core/v1/memory";
 import { createGroq } from "@ai-sdk/groq";
 import { tavily, TavilyClient } from "@tavily/core";
-import {
-  InferContextFromHandler,
-  InferMemoryFromHandler,
-  LogLevel,
-  WorkingMemory,
-} from "../../packages/core/src/core/v1/types";
+import { LogLevel, WorkingMemory } from "../../packages/core/src/core/v1/types";
 import createContainer from "@daydreamsai/core/src/core/v1/container";
+import { service } from "@daydreamsai/core/src/core/v1/serviceProvider";
+import { context } from "@daydreamsai/core/src/core/v1/context";
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -30,23 +22,45 @@ const groq = createGroq({
 const model = groq("deepseek-r1-distill-llama-70b");
 const memory = createMemoryStore();
 
-const container = createContainer()
-  .instance("groq", groq)
-  .instance("model", model)
-  .instance("memory", memory)
-  .singleton("tavily", () =>
-    tavily({
-      apiKey: process.env.TAVILY_API_KEY!,
-    })
-  )
-  .singleton("telegraf", () => new Telegraf(process.env.TELEGRAM_TOKEN!));
+const container = createContainer().singleton("tavily", () =>
+  tavily({
+    apiKey: process.env.TAVILY_API_KEY!,
+  })
+);
 
-createDreams<WorkingMemory>({
+const telegramChat = context({
+  type: "telegram:chat",
+  key: ({ chatId }) => chatId.toString(),
+  schema: z.object({ chatId: z.number() }),
+  async setup(args, { container }) {
+    console.log("setup", args);
+    const tg = container.resolve<Telegraf>("telegraf").telegram;
+    return { tg };
+  },
+});
+
+const tgService = service({
+  register(container) {
+    container.singleton(
+      "telegraf",
+      () => new Telegraf(process.env.TELEGRAM_TOKEN!)
+    );
+  },
+  async boot(container) {
+    const telegraf = container.resolve<Telegraf>("telegraf");
+    console.log("starting..");
+    telegraf.launch({ dropPendingUpdates: true });
+    const telegrafInfo = await telegraf.telegram.getMe();
+    console.log(telegrafInfo);
+  },
+});
+
+const agent = createDreams<WorkingMemory>({
   logger: LogLevel.DEBUG,
   container,
   model,
   memory,
-  experts: {},
+  services: [tgService],
   inputs: {
     "user:message": input({
       schema: z.object({ user: z.string(), text: z.string() }),
@@ -79,18 +93,22 @@ createDreams<WorkingMemory>({
 
         return true;
       },
-      subscribe(send, agent) {
-        agent.container.resolve<Telegraf>("telegraf").on("message", (ctx) => {
+      subscribe(send, { container }) {
+        container.resolve<Telegraf>("telegraf").on("message", (ctx) => {
           const chat = ctx.chat;
           const user = ctx.msg.from;
 
           if ("text" in ctx.message) {
-            send(`tg:${chat.id}`, {
-              user: {
-                id: user.id,
-              },
-              text: ctx.message.text,
-            });
+            send(
+              telegramChat,
+              { chatId: chat.id },
+              {
+                user: {
+                  id: user.id,
+                },
+                text: ctx.message.text,
+              }
+            );
           }
         });
 
@@ -187,11 +205,4 @@ createDreams<WorkingMemory>({
   ],
 });
 
-const telegraf = container.resolve<Telegraf>("telegraf");
-// input()
-console.log("starting..");
-telegraf.launch({ dropPendingUpdates: true });
-
-const telegrafInfo = await telegraf.telegram.getMe();
-
-console.log(telegrafInfo);
+await agent.start();

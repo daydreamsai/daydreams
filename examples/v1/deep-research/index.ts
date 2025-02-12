@@ -1,6 +1,8 @@
 import {
+  AnyAgent,
   InferMemoryFromHandler,
   LogLevel,
+  WorkingMemory,
 } from "@daydreamsai/core/src/core/v1/types";
 import { createDreams } from "@daydreamsai/core/src/core/v1/dreams";
 import {
@@ -18,6 +20,8 @@ import { tavily } from "@tavily/core";
 import { formatXml } from "@daydreamsai/core/src/core/v1/xml";
 import createContainer from "@daydreamsai/core/src/core/v1/container";
 import { service } from "@daydreamsai/core/src/core/v1/serviceProvider";
+import { formatResearch } from "./prompts";
+import { DiscordClient } from "../../../packages/core/src/core/v0/io/discord";
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -30,20 +34,13 @@ const container = createContainer()
   .instance("groq", groq)
   .instance("model", model)
   .instance("memory", memory)
-  .singleton("tavily", () =>
+  .singleton(tavily, () =>
     tavily({
       apiKey: process.env.TAVILY_API_KEY!,
     })
   );
 
-const myProvider = service({
-  register(container) {
-    console.log("registering my service");
-  },
-  async boot(container) {
-    console.log("booting my service");
-  },
-});
+container.resolve(tavily);
 
 const contextHandler = createContextHandler(
   () => ({
@@ -53,13 +50,7 @@ const contextHandler = createContextHandler(
   (memory) => {
     return [
       ...defaultContextRender(memory),
-      ...memory.researches.map((r) =>
-        formatXml({
-          tag: "research",
-          params: { id: r.id },
-          content: JSON.stringify(r),
-        })
-      ),
+      ...memory.researches.map(formatResearch),
     ];
   }
 );
@@ -71,7 +62,6 @@ const agent = createDreams<Memory, Handler>({
   logger: LogLevel.INFO,
   memory,
   container,
-  services: [myProvider],
   context: contextHandler,
   debugger: async (contextId, keys, data) => {
     const [type, id] = keys;
@@ -101,40 +91,15 @@ const agent = createDreams<Memory, Handler>({
   outputs: {
     message: output({
       description: "",
-      schema: z.object({
-        content: z.string(),
-      }),
-      async install(agent) {
-        console.log("instaling output");
-      },
-      handler(params, ctx) {
-        console.log("Agent:" + params.content);
+      schema: z.string(),
+      handler(content, ctx) {
+        console.log("Agent:" + content);
         return true;
       },
+      examples: ["Hi!"],
     }),
   },
-  events: {},
-  experts: {},
   actions: [...researchDeepActions],
 });
 
 await agent.start();
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-while (true) {
-  const input = await rl.question(">");
-
-  const contextId = "my-research-" + Date.now();
-
-  await agent.send(contextId, {
-    type: "message",
-    data: {
-      user: "Galego",
-      text: input,
-    },
-  });
-}

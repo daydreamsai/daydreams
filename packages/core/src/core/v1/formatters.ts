@@ -1,5 +1,12 @@
 import zodToJsonSchema from "zod-to-json-schema";
-import type { Action, InputRef, Log, Output, OutputRef } from "./types";
+import type {
+  Action,
+  InputRef,
+  Log,
+  Output,
+  OutputRef,
+  XMLElement,
+} from "./types";
 import { formatXml } from "./xml";
 import { formatValue } from "./utils";
 
@@ -43,12 +50,17 @@ export function formatOutputInterface(output: Output) {
     tag: "output",
     params: { name: output.type },
     content: [
-      { tag: "instructions", content: output.description },
+      output.description
+        ? { tag: "description", content: output.description }
+        : null,
+      output.instructions
+        ? { tag: "instructions", content: output.instructions }
+        : null,
       {
         tag: "schema",
         content: JSON.stringify(zodToJsonSchema(output.schema, "output")),
       },
-    ],
+    ].filter((c) => !!c),
   });
 }
 
@@ -73,7 +85,40 @@ export function formatAction(action: Action<any, any, any>) {
   });
 }
 
-export function formatContext(i: Log) {
+export function formatContext({
+  type,
+  key,
+  description,
+  instructions,
+  content,
+}: {
+  type: string;
+  key: string;
+  description?: string;
+  instructions?: string | string[];
+  content: XMLElement["content"];
+}) {
+  return formatXml({
+    tag: "context",
+    params: { type, key },
+    content: [
+      description
+        ? formatXml({ tag: "description", content: description })
+        : "",
+      instructions
+        ? formatXml({
+            tag: "instructions",
+            content: instructions,
+          })
+        : "",
+      content,
+    ]
+      .filter((t) => !!t)
+      .flat(),
+  });
+}
+
+export function formatContextLog(i: Log) {
   switch (i.ref) {
     case "input":
       return formatXml({

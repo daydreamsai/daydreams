@@ -10,7 +10,7 @@ import {
 import {
   createContextHandler,
   createMemoryStore,
-  defaultContext,
+  defaultContextMemory,
   defaultContextRender,
 } from "@daydreamsai/core/src/core/v1/memory";
 
@@ -19,6 +19,7 @@ import { formatXml } from "@daydreamsai/core/src/core/v1/xml";
 import { tavily } from "@tavily/core";
 import { Events, Message } from "discord.js";
 import createContainer from "@daydreamsai/core/src/core/v1/container";
+import { context } from "@daydreamsai/core/src/core/v1/context";
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -54,7 +55,7 @@ console.log(container.resolve(tavily));
 
 const contextHandler = createContextHandler(
   () => ({
-    ...defaultContext(),
+    ...defaultContextMemory(),
     researches: [] as Research[],
   }),
   (memory) => {
@@ -73,6 +74,21 @@ const contextHandler = createContextHandler(
 
 type Handler = typeof contextHandler;
 type Memory = InferMemoryFromHandler<Handler>;
+
+const discordChannelContext = context({
+  type: "discord:channel",
+  key: ({ channelId }) => channelId,
+  schema: z.object({ channelId: z.string() }),
+  async setup(args, agent) {
+    const channel = await container
+      .resolve<DiscordClient>("discord")
+      .client.channels.fetch(args.channelId);
+
+    if (!channel) throw new Error("Invalid channel");
+
+    return { channel };
+  },
+});
 
 const agent = createDreams<Memory, Handler>({
   logger: LogLevel.DEBUG,
@@ -117,17 +133,20 @@ const agent = createDreams<Memory, Handler>({
             );
             return;
           }
-
-          send(`discord:${message.channelId}`, {
-            chat: {
-              id: message.channelId,
-            },
-            user: {
-              id: message.member!.id || message.author.id,
-              name: message.member!.displayName || message.author.username,
-            },
-            text: message.content,
-          });
+          send(
+            discordChannelContext,
+            { channelId: message.channelId },
+            {
+              chat: {
+                id: message.channelId,
+              },
+              user: {
+                id: message.member!.id,
+                name: message.member!.displayName,
+              },
+              text: message.content,
+            }
+          );
         }
 
         const discord = agent.container.resolve<DiscordClient>("discord");

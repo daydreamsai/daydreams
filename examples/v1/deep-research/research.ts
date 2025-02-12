@@ -7,7 +7,8 @@ import {
   searchResultsPrompt,
 } from "./prompts";
 import { researchSchema, searchResultsSchema } from "./schemas";
-import { action, Debugger } from "@daydreamsai/core/src/core/v1";
+import { action, Debugger, task } from "@daydreamsai/core/src/core/v1";
+import { randomUUIDv7 } from "bun";
 
 export type Research = {
   id: string;
@@ -50,6 +51,129 @@ async function retry<T>(
   }
 }
 
+type SearchQueryParams = {
+  model: LanguageModelV1;
+  contextId: string;
+  research: Research;
+  tavilyClient: TavilyClient;
+  query: Research["queries"][number];
+};
+
+const researchQueryTask = task(
+  "deep-research:query",
+  async (
+    { model, contextId, tavilyClient, research, query }: SearchQueryParams,
+    { callId, debug }
+  ) => {
+    const { results } = await tavilyClient.search(query.query, {
+      maxResults: 5,
+      searchDepth: "advanced",
+    });
+
+    debug(
+      contextId,
+      ["research-query-results-data", callId],
+      JSON.stringify(
+        {
+          research,
+          goal: query.goal,
+          query: query.query,
+          results: results,
+        },
+        null,
+        2
+      )
+    );
+
+    const system = searchResultsPrompt({
+      research,
+      goal: query.goal,
+      query: query.query,
+      results: results,
+      schema: searchResultsSchema,
+    });
+
+    debug(contextId, ["research-query-results-prompt", callId], system);
+
+    const res = await generateText({
+      model,
+      abortSignal: AbortSignal.timeout(60_000),
+      system,
+      messages: [
+        {
+          role: "assistant",
+          content: "<think>",
+        },
+      ],
+    });
+
+    const text = "<think>" + res.text;
+
+    debug(contextId, ["research-query-results-response", callId], text);
+
+    try {
+      const { think, output } = searchResultsParser(text);
+      if (output) {
+        return {
+          think,
+          learnings: output.learnings,
+          followUpQueries: output.followUpQueries,
+        };
+      } else {
+        throw new Error("test");
+      }
+    } catch (error) {
+      console.log("failed parsing");
+      throw error;
+    }
+  }
+);
+
+const generateResearchReport = task(
+  "deep-research:generate-report",
+  async (
+    {
+      model,
+      contextId,
+      research,
+    }: { model: LanguageModelV1; contextId: string; research: Research },
+    { callId, debug }
+  ) => {
+    const reportPrompt = finalReportPrompt({ research });
+
+    debug(
+      contextId,
+      ["research-report-data", callId],
+      JSON.stringify(research, null, 2)
+    );
+
+    debug(contextId, ["research-report-prompt", callId], reportPrompt);
+
+    const res = await generateText({
+      model,
+      system: reportPrompt,
+      messages: [
+        {
+          role: "assistant",
+          content: "<think>",
+        },
+      ],
+    });
+
+    console.log("====FINAL REPORT=====");
+    console.log("<think>" + res.text);
+    debug(
+      contextId,
+      ["research-report-response", callId],
+      "<think>" + res.text
+    );
+
+    const report = res.text.slice(res.text.lastIndexOf("</think>"));
+
+    return report;
+  }
+);
+
 export async function startDeepResearch({
   contextId,
   model,
@@ -90,98 +214,16 @@ export async function startDeepResearch({
 
     await Promise.allSettled(
       _queries.map((query) =>
-        limit(async () => {
-          console.log("Executing query:", query);
-
-          const id = Date.now().toString();
-
-          reportProgress({
-            currentQuery: query.query,
-            currentDepth: depth,
-          });
-
-          try {
-            const { results } = await tavilyClient.search(query.query, {
-              maxResults: 5,
-              searchDepth: "advanced",
-            });
-
-            await retry(
-              "research:results",
-              async () => {
-                debug(
-                  contextId,
-                  ["research-query-results-data", id],
-                  JSON.stringify(
-                    {
-                      research,
-                      goal: query.goal,
-                      query: query.query,
-                      results: results,
-                    },
-                    null,
-                    2
-                  )
-                );
-
-                const system = searchResultsPrompt({
-                  research,
-                  goal: query.goal,
-                  query: query.query,
-                  results: results,
-                  schema: searchResultsSchema,
-                });
-
-                debug(contextId, ["research-query-results-prompt", id], system);
-
-                const res = await generateText({
-                  model,
-                  abortSignal: AbortSignal.timeout(60_000),
-                  system,
-                  messages: [
-                    {
-                      role: "assistant",
-                      content: "<think>",
-                    },
-                  ],
-                });
-
-                const text = "<think>" + res.text;
-
-                debug(contextId, ["research-query-results-response", id], text);
-
-                try {
-                  const { think, output } = searchResultsParser(text);
-                  if (output) {
-                    // console.log(output);
-                    research.learnings.push(
-                      ...output.learnings.map((l) => l.content)
-                    );
-
-                    if (depth < maxDepth) {
-                      queries.push(...output.followUpQueries);
-                    }
-                  } else {
-                    console.log(text);
-                  }
-                } catch (error) {
-                  console.log("failed parsing");
-                  throw error;
-                }
-              },
-              3
-            );
-
-            reportProgress({
-              completedQueries: progress.completedQueries + 1,
-            });
-          } catch (error) {
-            console.error("Error processing query:", query.query, error);
-            reportProgress({
-              completedQueries: progress.completedQueries + 1,
-            });
-          }
-        })
+        researchQueryTask(
+          {
+            contextId,
+            model,
+            query,
+            research,
+            tavilyClient,
+          },
+          { debug }
+        )
       )
     );
 
@@ -193,36 +235,15 @@ export async function startDeepResearch({
     });
   }
 
-  console.log(research);
-
-  const id = Date.now().toString();
-
-  const reportPrompt = finalReportPrompt({ research });
-
-  debug(
-    contextId,
-    ["research-report-data", id],
-    JSON.stringify(research, null, 2)
+  const report = await generateResearchReport(
+    {
+      contextId,
+      model,
+      research,
+    },
+    { debug }
   );
 
-  debug(contextId, ["research-report-prompt", id], reportPrompt);
-
-  const res = await generateText({
-    model,
-    system: reportPrompt,
-    messages: [
-      {
-        role: "assistant",
-        content: "<think>",
-      },
-    ],
-  });
-
-  console.log("====FINAL REPORT=====");
-  console.log("<think>" + res.text);
-  debug(contextId, ["research-report-response", id], "<think>" + res.text);
-
-  const report = res.text.slice(res.text.lastIndexOf("</think>"));
   console.log({ report });
   return report;
 }
@@ -256,6 +277,8 @@ const startDeepResearchAction = action({
           timestamp: Date.now(),
           processed: false,
         });
+
+        research.status = "done";
 
         return agent.run(ctx.id);
       })

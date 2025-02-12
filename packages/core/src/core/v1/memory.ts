@@ -1,4 +1,4 @@
-import { formatContext } from "./formatters";
+import { formatContextLog } from "./formatters";
 import type { MemoryStore, WorkingMemory } from "./types";
 
 export function createContextHandler<T>(
@@ -22,7 +22,7 @@ export function createContextHandler<T>(
   };
 }
 
-export function defaultContext(): WorkingMemory {
+export function defaultContextMemory(): WorkingMemory {
   return {
     inputs: [],
     outputs: [],
@@ -38,11 +38,11 @@ export function defaultContextRender(memory: WorkingMemory) {
     ...memory.outputs,
     ...memory.calls,
     ...memory.results.filter((i) => i.processed === true),
-  ].map((i) => formatContext(i));
+  ].map((i) => formatContextLog(i));
 }
 
 export const getOrCreateConversationMemory = createContextHandler(
-  defaultContext,
+  defaultContextMemory,
   defaultContextRender
 );
 

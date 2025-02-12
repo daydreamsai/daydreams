@@ -9,7 +9,7 @@ import { Research } from "./research";
 import { TavilySearchResponse } from "@tavily/core";
 import { SearchResultSchema, searchResultsSchema } from "./schemas";
 
-function formatResearch(research: Research) {
+export function formatResearch(research: Research) {
   return formatXml({
     tag: "research",
     params: { id: research.id },

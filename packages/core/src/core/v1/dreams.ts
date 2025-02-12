@@ -3,6 +3,7 @@ import {
   type Action,
   type ActionCall,
   type Agent,
+  type AnyAgent,
   type Config,
   type ContextHandler,
   type Debugger,
@@ -14,21 +15,28 @@ import {
 } from "./types";
 import {
   createContextHandler,
-  defaultContext,
+  defaultContextMemory,
   defaultContextRender,
 } from "./memory";
 import { Logger } from "./logger";
 import {
   formatAction,
   formatContext,
+  formatContextLog,
   formatOutputInterface,
 } from "./formatters";
-import { generateText } from "ai";
+import { generateText, type LanguageModelV1 } from "ai";
 import { randomUUID } from "crypto";
 import { createParser, createPrompt } from "./prompt";
 import createContainer from "./container";
 import { createServiceManager } from "./serviceProvider";
-import { _ } from "ajv";
+import {
+  type Context,
+  type InferContextCtx,
+  type InferContextMemory,
+} from "./context";
+import type { z } from "zod";
+import { task, type TaskContext } from "./task";
 
 const promptTemplate = `
 You are tasked with analyzing messages, formulating responses, and initiating actions based on a given context. 
@@ -56,7 +64,6 @@ Now, analyze the following new context:
 </context>
 
 Here's how you structure your response:
-
 <response>
 <reasoning>
 [Your reasoning of the context, think, messages, and planned actions]
@@ -69,23 +76,7 @@ Here's how you structure your response:
 </output>
 </response>
 
-Example for output with schema string:
-<response>
-<reasoning>...</reasoning>
-<output type="message">
-Hello! How can I assist you today?
-</output>
-</response>
-
-Example for output with schema json:
-<response>
-<reasoning>...</reasoning>
-<output type="message">
-{
-  "content": "Hello! How can I assist you today?"
-}
-</output>
-</response>
+{{examples}}
 `;
 
 type AnyAction = Action<any, any, any>;
@@ -106,7 +97,8 @@ const prompt = createPrompt(
     context: context,
     outputs: outputs.map(formatOutputInterface),
     actions: actions.map(formatAction),
-    updates: updates.map(formatContext),
+    updates: updates.map(formatContextLog),
+    examples: [],
   })
 );
 
@@ -161,8 +153,116 @@ const parse = createParser<
 );
 
 const defaultContextHandler: ContextHandler = createContextHandler(
-  defaultContext,
+  defaultContextMemory,
   defaultContextRender
+);
+
+const runGenerate = task(
+  "agent:run:generate",
+  async <TContext extends Context<WorkingMemory, any, any, any>>(
+    {
+      context,
+      contextId,
+      key,
+      args,
+      memory,
+      outputs,
+      actions,
+      ctx,
+      logger,
+      model,
+    }: {
+      context: TContext;
+      args: z.infer<TContext["schema"]>;
+      contextId: string;
+      key: string;
+      memory: WorkingMemory;
+      outputs: Output[];
+      actions: Action[];
+      ctx: InferContextCtx<TContext>;
+      logger: Logger;
+      model: LanguageModelV1;
+    },
+    { callId, debug }: TaskContext
+  ) => {
+    const newInputs = memory.inputs.filter((i) => i.processed !== true);
+
+    debug(contextId, ["memory", callId], JSON.stringify(memory, null, 2));
+
+    const system = prompt({
+      context: formatContext({
+        type: context.type ?? "system",
+        key: key,
+        description: context.description,
+        instructions:
+          typeof context.instructions === "function"
+            ? context.instructions({ key, args }, ctx)
+            : context.instructions,
+        content: context.render
+          ? context.render(memory, ctx)
+          : defaultContextRender(memory),
+      }),
+
+      outputs: outputs,
+      actions: actions.filter((action) =>
+        action.enabled ? action.enabled(ctx as any) : true
+      ),
+      updates: [
+        ...newInputs,
+        ...memory.results.filter((i) => i.processed !== true),
+      ],
+    });
+
+    debug(contextId, ["prompt", callId], system);
+
+    logger.debug("agent:system", system);
+
+    const result = await generateText({
+      model,
+      system,
+      messages: [
+        {
+          role: "assistant",
+          content: "<think>",
+        },
+      ],
+      stopSequences: ["</response>"],
+    });
+
+    const text = "<think>" + result.text + "</response>";
+
+    debug(contextId, ["response", callId], text);
+
+    logger.debug("agent:response", text);
+
+    return parse(text);
+  },
+  {}
+);
+
+const runAction = task(
+  "agent:run:action",
+  async ({
+    action,
+    call,
+    ctx,
+    agent,
+    logger,
+  }: {
+    action: Action;
+    call: ActionCall;
+    ctx: any;
+    agent: AnyAgent;
+    logger: Logger;
+  }) => {
+    try {
+      const result = await action.handler(call, ctx, agent);
+      return result;
+    } catch (error) {
+      logger.error("agent:action", "ACTION_FAILED", { error });
+      throw error;
+    }
+  }
 );
 
 export function createDreams<
@@ -176,6 +276,8 @@ export function createDreams<
     enableTimestamp: true,
     enableColors: true,
   });
+
+  const contexts = new Map<string, { ctx: any }>();
 
   const {
     inputs = {},
@@ -211,6 +313,32 @@ export function createDreams<
     serviceManager.register(service);
   }
 
+  async function getContext<
+    TContext extends Context<WorkingMemory, any, any, any>,
+  >(contextHandler: TContext, args: z.infer<TContext["schema"]>) {
+    const key = contextHandler.key(args);
+    const contextId = [contextHandler.type, key].join(":");
+
+    const ctx = contexts.has(contextId)
+      ? contexts.get(contextId)
+      : contextHandler.setup
+        ? await contextHandler.setup(args, agent)
+        : {};
+
+    const memory =
+      (await agent.memory.get(contextId)) ??
+      (contextHandler.create
+        ? contextHandler.create({ key, args }, ctx)
+        : defaultContextMemory());
+
+    return {
+      id: contextId,
+      key,
+      ctx,
+      memory: memory as InferContextMemory<TContext>,
+    };
+  }
+
   const agent: Agent<Memory, Handler> = {
     inputs,
     outputs,
@@ -240,12 +368,14 @@ export function createDreams<
 
       for (const [key, input] of Object.entries(agent.inputs)) {
         if (input.subscribe) {
-          const subscription = input.subscribe((conversationId, data) => {
-            logger.info("agent", "input", { conversationId, data });
-            agent.send(conversationId, { type: key, data }).catch((err) => {
-              console.error(err);
-              // logger.error("agent", "input", err);
-            });
+          const subscription = input.subscribe((contextHandler, args, data) => {
+            logger.info("agent", "input", { contextHandler, args, data });
+            agent
+              .send(contextHandler, args, { type: key, data })
+              .catch((err) => {
+                console.error(err);
+                // logger.error("agent", "input", err);
+              });
           }, agent);
 
           inputSubscriptions.set(key, subscription);
@@ -263,16 +393,20 @@ export function createDreams<
 
     async stop() {},
 
-    run: async (contextId: string) => {
+    run: async (contextHandler, args) => {
       if (!booted) await agent.start();
+
+      const {
+        key,
+        id: contextId,
+        ctx,
+        memory,
+      } = await getContext(contextHandler, args);
 
       if (contextsRunning.has(contextId)) return;
       contextsRunning.add(contextId);
 
-      const context = contextHandler(agent.memory);
-      const ctx = await context.get(contextId);
-
-      const outputEntries = Object.entries(agent.outputs)
+      const outputsEntries = Object.entries(agent.outputs)
         .filter(([_, output]) =>
           output.enabled ? output.enabled(ctx as any) : true
         )
@@ -281,53 +415,26 @@ export function createDreams<
           ...output,
         }));
 
-      const { memory } = ctx;
+      // const { memory } = ctx;
 
       const maxSteps = 5;
       let step = 1;
 
-      const newInputs = memory.inputs.filter((i) => i.processed !== true);
-
       while (true) {
-        const id = Date.now().toString();
-
-        debug(contextId, ["memory", id], JSON.stringify(ctx.memory, null, 2));
-
-        const system = prompt({
-          context: context.render(ctx.memory),
-          outputs: outputEntries,
+        const data = await runGenerate({
+          context: contextHandler,
+          args,
+          contextId,
+          ctx,
+          key,
+          logger,
+          memory,
+          model: config.reasoningModel ?? config.model,
+          outputs: outputsEntries,
           actions: actions.filter((action) =>
             action.enabled ? action.enabled(ctx as any) : true
           ),
-          updates: [
-            ...newInputs,
-            ...memory.results.filter((i) => i.processed !== true),
-          ],
         });
-
-        debug(contextId, ["prompt", id], system);
-
-        logger.debug("agent:system", system);
-
-        const result = await generateText({
-          model: config.reasoningModel ?? config.model,
-          system,
-          messages: [
-            {
-              role: "assistant",
-              content: "<think>",
-            },
-          ],
-          stopSequences: ["</response>"],
-        });
-
-        const text = "<think>" + result.text + "</response>";
-
-        debug(contextId, ["response", id], text);
-
-        logger.debug("agent:response", text);
-
-        const data = parse(text);
 
         logger.debug("agent:parsed", "data", data);
 
@@ -393,11 +500,14 @@ export function createDreams<
               };
 
               memory.calls.push(call);
-              const result = await action.handler(
+
+              const result = await runAction({
+                action,
                 call,
-                ctx as InferContextFromHandler<Handler>,
-                agent
-              );
+                ctx,
+                agent,
+                logger,
+              });
 
               memory.results.push({
                 ref: "action_result",
@@ -413,23 +523,23 @@ export function createDreams<
             }
           })
         );
-
         break;
       }
 
-      await context.save(contextId, memory);
+      await agent.memory.set(contextId, memory);
 
       contextsRunning.delete(contextId);
     },
 
-    send: async (
-      conversationId: string,
-      input: { type: string; data: any }
-    ) => {
+    send: async (contextHandler, args, input: { type: string; data: any }) => {
       if (input.type in agent.inputs === false) return;
-      const context = contextHandler(agent.memory);
 
-      const { memory } = await context.get(conversationId);
+      const {
+        key,
+        id: contextId,
+        ctx,
+        memory,
+      } = await getContext(contextHandler, contextHandler.schema.parse(args));
 
       const processor = agent.inputs[input.type];
 
@@ -438,20 +548,24 @@ export function createDreams<
       const shouldContinue = await processor.handler(
         data,
         {
-          id: conversationId,
+          type: contextHandler.type,
+          key,
           memory,
-        } as InferContextFromHandler<Handler>,
+          ctx,
+        } as any,
         agent
       );
 
       await agent.evaluator({
-        id: conversationId,
+        type: contextHandler.type,
+        key,
         memory,
+        ctx,
       } as any);
 
-      await agent.memory.set(conversationId, memory);
+      await agent.memory.set(contextId, memory);
 
-      if (shouldContinue) await agent.run(conversationId);
+      if (shouldContinue) await agent.run(contextHandler, args);
     },
 
     evaluator: async (ctx) => {
