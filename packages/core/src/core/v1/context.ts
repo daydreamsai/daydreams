@@ -12,21 +12,28 @@ import { memory } from "./utils";
  * @param ctx - Context configuration object
  * @returns Typed context configuration
  */
+
 export function context<
-  Memory extends WorkingMemory = WorkingMemory,
-  Args extends z.ZodTypeAny = any,
+  Memory = any,
+  Args extends z.ZodTypeAny = z.ZodTypeAny,
   Ctx = any,
   Exports = any,
->(ctx: Context<Memory, Args, Ctx, Exports>) {
+>(
+  ctx: Context<Memory, Args, Ctx, Exports>
+): Context<Memory, Args, Ctx, Exports> {
   return ctx;
 }
 
-export function defaultContextRender(memory: WorkingMemory) {
+export function defaultContextRender({
+  memory,
+}: {
+  memory: Partial<WorkingMemory>;
+}) {
   return [
-    ...memory.inputs.filter((i) => i.processed === true),
-    ...memory.outputs,
-    ...memory.calls,
-    ...memory.results.filter((i) => i.processed === true),
+    ...(memory.inputs ?? []),
+    ...(memory.outputs ?? []),
+    ...(memory.calls ?? []),
+    ...(memory.results ?? []),
   ]
     .sort((a, b) => (a.timestamp > b.timestamp ? 1 : -1))
     .map((i) => formatContextLog(i))
@@ -43,8 +50,8 @@ export function createDefaultContextMemory(): WorkingMemory {
   };
 }
 
-export const defaultContextMemory = memory<WorkingMemory>({
-  key: "default",
+export const defaultWorkingMemory = memory<WorkingMemory>({
+  key: "working-memory",
   create: createDefaultContextMemory,
 });
 
@@ -52,5 +59,10 @@ export const defaultContext = context({
   type: "default",
   schema: z.string(),
   key: (key) => key,
-  render: defaultContextRender,
+  create(state) {
+    return {
+      test: true,
+    };
+  },
+  // render: defaultContextRender,
 });

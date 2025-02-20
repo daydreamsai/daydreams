@@ -38,7 +38,7 @@ const discordChannelContext = context({
     return { channel };
   },
 
-  description(params, { channel }) {
+  description({ options: { channel } }) {
     return `Channel ID: ${channel.id}`;
   },
 });

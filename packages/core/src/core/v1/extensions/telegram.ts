@@ -33,7 +33,7 @@ const telegramChat = context({
       chat: chat as Chat,
     };
   },
-  description(params, { chat }) {
+  description({ options: { chat } }) {
     if (chat.type === "private") {
       return `You are in private telegram chat with ${chat.username} id: ${chat.id}`;
     }

@@ -6,6 +6,7 @@ import {
   seachWebAction,
   getWeatherAction,
 } from "@daydreamsai/core/v1";
+import { deepResearch } from "./deep-research/research";
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY!,
@@ -14,6 +15,6 @@ const groq = createGroq({
 createDreams({
   logger: LogLevel.DEBUG,
   model: groq("deepseek-r1-distill-llama-70b"),
-  extensions: [telegram],
+  extensions: [telegram, deepResearch],
   actions: [seachWebAction, getWeatherAction],
 }).start();
