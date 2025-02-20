@@ -2,6 +2,7 @@
   "name": "daydreams",
   "version": "0.0.0",
   "workspaces": [
+    "clients/*",
     "packages/*",
     "examples/*",
     "docs"

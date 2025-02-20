@@ -14,7 +14,7 @@ export function formatXml({ tag, params, content }: XMLElement): string {
         .join("")
     : "";
   try {
-    return `<${tag}${p}>${typeof content === "string" ? content : "\n" + content.map((el) => (typeof el === "string" ? el : formatXml(el))).join("\n") + "\n"}</${tag}>`;
+    return `<${tag}${p}>${typeof content === "string" ? content : Array.isArray(content) ? "\n" + content.map((el) => (typeof el === "string" ? el : formatXml(el))).join("\n") + "\n" : ""}</${tag}>`;
   } catch (error) {
     console.log("failed to format", { tag, params, content });
     throw error;

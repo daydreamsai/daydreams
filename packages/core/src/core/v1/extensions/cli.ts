@@ -44,18 +44,32 @@ export const cli = extension({
       // Subscribe to CLI input
       async subscribe(send, { container }) {
         const rl = container.resolve<readline.Interface>("readline");
-        while (true) {
-          const question = await rl.question("> ");
-          console.log("User:", question);
-          send(
-            cliContext,
-            { user: "admin" },
-            {
-              user: "admin",
-              text: question,
+
+        const controller = new AbortController();
+
+        new Promise<void>(async (resolve) => {
+          while (!controller.signal.aborted) {
+            const question = await rl.question("> ");
+            if (question === "exit") {
+              break;
             }
-          );
-        }
+            console.log("User:", question);
+            send(
+              cliContext,
+              { user: "admin" },
+              {
+                user: "admin",
+                text: question,
+              }
+            );
+          }
+
+          resolve();
+        });
+
+        return () => {
+          controller.abort();
+        };
       },
     }),
   },

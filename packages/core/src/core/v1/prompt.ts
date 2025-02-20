@@ -80,12 +80,12 @@ export function getZodJsonSchema(schema: ZodType<any>) {
 }
 
 export function createPrompt<
-  Data extends Record<string, any> = Record<string, any>,
   Template extends string = string,
   Variables extends TemplateVariables<Template> = TemplateVariables<Template>,
+  Data extends Record<string, any> = Record<string, any>,
 >(
   prompt: Template,
-  formatter: Formatter<Variables, Data>
+  formatter?: Formatter<Variables, Data>
 ): Prompt<Data, Variables> {
   return (data, customFormatter) => {
     return render(
@@ -113,7 +113,37 @@ export function createParser<
   >,
 >(getOutput: () => Output, visitors: Visitors): Parser<Output> {
   return (content) => {
+    const validTags = new Set(Object.keys(visitors));
+
+    // fix for bad outputs;
+
+    content = content
+      .split("\n")
+      .map((line) => {
+        // Check if line starts with '/'
+        if (line.startsWith("/")) {
+          // Extract the tag name using regex
+          const match = line.match(/^\/([^ >]+)/);
+
+          if (match && match[1]) {
+            const tagName = match[1];
+
+            // Check if this is a valid tag
+            if (validTags.has(tagName)) {
+              console.log("fixing line:\n" + line);
+              // Replace the leading '/' with '<'
+              return line.replace("/", "<");
+            }
+          }
+        }
+
+        // Return original line if no fix needed
+        return line;
+      })
+      .join("\n");
+
     const state = getOutput();
+
     parseXML(content, (node, parse) => {
       if (node.type === "element" && node.name in visitors) {
         visitors[node.name](state, node as ElementNode<any>, parse);

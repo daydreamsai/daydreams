@@ -94,7 +94,7 @@ export function formatContext({
 }: {
   type: string;
   key: string;
-  description?: string;
+  description?: string | string[];
   instructions?: string | string[];
   content: XMLElement["content"];
 }) {
@@ -161,18 +161,19 @@ export function formatContextLog(i: Log) {
       return (
         i.formatted ??
         formatXml({
-          tag: "msg",
+          tag: "output",
           params: {
+            type: i.type,
             ...i.params,
-            role: "assistant",
+            // role: "assistant",
           },
           content: formatValue(i.data),
         })
       );
     case "thought":
       return formatXml({
-        tag: "reflection",
-        params: { role: "assistant" },
+        tag: "reasoning",
+        // params: { role: "assistant" },
         content: i.content,
       });
     case "action_call":
@@ -182,14 +183,11 @@ export function formatContextLog(i: Log) {
         content: JSON.stringify(i.data),
       });
     case "action_result":
-      return (
-        i.formatted ??
-        formatXml({
-          tag: "action_result",
-          params: { name: i.name, callId: i.callId },
-          content: JSON.stringify(i.data),
-        })
-      );
+      return formatXml({
+        tag: "action_result",
+        params: { name: i.name, callId: i.callId },
+        content: i.formatted ?? JSON.stringify(i.data),
+      });
     default:
       throw new Error("invalid context");
   }
