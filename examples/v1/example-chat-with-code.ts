@@ -1,7 +1,68 @@
 import { z } from "zod";
-import { createDreams, LogLevel, action, discord } from "@daydreamsai/core/v1";
+import {
+  createDreams,
+  LogLevel,
+  action,
+  discord,
+  task,
+} from "@daydreamsai/core/v1";
 import { Octokit } from "@octokit/rest";
 import { google } from "@ai-sdk/google";
+
+const fetchRepoContent = task(
+  "github:fetch-repo-content",
+  async ({
+    octokit,
+    owner,
+    repo,
+    path,
+  }: {
+    octokit: Octokit;
+    owner: string;
+    repo: string;
+    path?: string;
+  }) => {
+    const response = await octokit.repos.getContent({
+      owner,
+      repo,
+      path: path ?? "",
+    });
+
+    let contents = "";
+
+    if (Array.isArray(response.data)) {
+      for (const item of response.data) {
+        if (
+          item.type === "file" &&
+          item.name.match(/\.(ts|js|tsx|jsx|md|json)$/)
+        ) {
+          const fileContent = await octokit.repos.getContent({
+            owner,
+            repo,
+            path: item.path,
+          });
+
+          if ("content" in fileContent.data) {
+            contents += `\n--- ${item.path} ---\n`;
+            contents += Buffer.from(
+              fileContent.data.content,
+              "base64"
+            ).toString();
+          }
+        } else if (item.type === "dir") {
+          const subContents = await fetchRepoContent({
+            octokit,
+            owner,
+            repo,
+            path: item.path,
+          });
+          contents += subContents.contents;
+        }
+      }
+    }
+    return { contents };
+  }
+);
 
 const agent = createDreams({
   logger: LogLevel.DEBUG,
@@ -31,45 +92,10 @@ const agent = createDreams({
       async handler({ data }, ctx, app) {
         const octokit = app.container.resolve<Octokit>("octokit");
         try {
-          const response = await octokit.repos.getContent({
-            owner: data.owner,
-            repo: data.repo,
-            path: data.path || "",
+          const contents = await fetchRepoContent({
+            octokit,
+            ...data,
           });
-
-          let contents = "";
-
-          if (Array.isArray(response.data)) {
-            for (const item of response.data) {
-              if (
-                item.type === "file" &&
-                item.name.match(/\.(ts|js|tsx|jsx|md|json)$/)
-              ) {
-                const fileContent = await octokit.repos.getContent({
-                  owner: data.owner,
-                  repo: data.repo,
-                  path: item.path,
-                });
-
-                if ("content" in fileContent.data) {
-                  contents += `\n--- ${item.path} ---\n`;
-                  contents += Buffer.from(
-                    fileContent.data.content,
-                    "base64"
-                  ).toString();
-                }
-              } else if (item.type === "dir") {
-                const subContents = await this.handler({
-                  owner: data.owner,
-                  repo: data.repo,
-                  path: item.path,
-                });
-                contents += subContents.contents;
-              }
-            }
-          } else if ("content" in response.data) {
-            contents = Buffer.from(response.data.content, "base64").toString();
-          }
 
           return {
             contents,
@@ -82,7 +108,7 @@ const agent = createDreams({
         } catch (error) {
           console.error("Error fetching repo contents:", error);
           throw new Error(
-            `Failed to fetch repository contents: ${error.message}`
+            `Failed to fetch repository contents: ${error instanceof Error ? error.message : error}`
           );
         }
       },

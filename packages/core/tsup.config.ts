@@ -4,6 +4,7 @@ import { tsupConfig } from "../../tsup.config";
 
 export default defineConfig({
   ...tsupConfig,
+  entry: ["./src/index.ts", "src/core/v1/extensions/index.ts"],
   dts: true,
   external: [
     "readline/promises",

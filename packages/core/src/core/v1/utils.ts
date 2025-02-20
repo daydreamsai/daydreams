@@ -9,6 +9,7 @@ import type {
   Context,
   ExpertConfig,
   Extension,
+  InferMemoryData,
   InputConfig,
   Memory,
   OutputConfig,
@@ -76,11 +77,8 @@ export function input<
 export function action<
   Schema extends z.AnyZodObject = z.AnyZodObject,
   Result = any,
-  Context extends AgentContext<WorkingMemory, AnyContext> = AgentContext<
-    WorkingMemory,
-    AnyContext
-  >,
-  TAgent extends Agent<any, any> = Agent<any, any>,
+  Context extends AgentContext<any, AnyContext> = AgentContext<any, AnyContext>,
+  TAgent extends AnyAgent = AnyAgent,
   TMemory extends Memory<any> = never,
 >(action: Action<Schema, Result, Context, TAgent, TMemory>) {
   return action;
@@ -95,10 +93,7 @@ export function action<
  */
 export function output<
   Schema extends OutputSchema = OutputSchema,
-  Context extends AgentContext<WorkingMemory, AnyContext> = AgentContext<
-    WorkingMemory,
-    AnyContext
-  >,
+  Context extends AgentContext<any, any> = AgentContext<any, any>,
   TResponse extends OutputResponse = OutputResponse,
 >(config: OutputConfig<Schema, Context, TResponse>) {
   return config;
@@ -110,7 +105,7 @@ export function output<
  * @param config - Expert configuration object
  * @returns Typed expert configuration
  */
-export function expert<Context = any>(config: ExpertConfig<Context>) {
+export function expert(config: ExpertConfig) {
   return config;
 }
 
@@ -168,9 +163,7 @@ export function memory<Data = any>(memory: Memory<Data>) {
 }
 
 export function extension<
-  TMemory extends WorkingMemory = WorkingMemory,
-  TContext extends AnyContext = AnyContext,
-  Contexts extends Record<string, TContext> = Record<string, TContext>,
->(config: Extension<TMemory, TContext, Contexts>) {
+  Contexts extends Record<string, AnyContext> = Record<string, AnyContext>,
+>(config: Extension<AnyContext, Contexts>) {
   return config;
 }

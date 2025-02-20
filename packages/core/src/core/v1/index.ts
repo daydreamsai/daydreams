@@ -11,5 +11,4 @@ export * from "./task";
 export * from "./context";
 export * from "./container";
 export * from "./serviceProvider";
-export * from "./extensions";
 export * from "./actions";

@@ -282,18 +282,18 @@ const startDeepResearchAction = action({
       status: "in_progress",
     };
 
-    ctx.data.researches.push(research);
+    ctx.actionMemory.researches.push(research);
 
     startDeepResearch({
       model: agent.reasoningModel ?? agent.model,
       research,
-      tavilyClient: agent.container.resolve(tavily),
+      tavilyClient: agent.container.resolve("tavily"),
       maxDepth: call.data.maxDepth ?? 2,
       contextId: ctx.id,
       debug: agent.debugger,
     })
       .then((res) => {
-        ctx.memory.results.push({
+        ctx.workingMemory.results.push({
           ref: "action_result",
           callId: call.id,
           data: res,
@@ -316,7 +316,10 @@ const cancelResearchAction = action({
   name: "cancel-deep-research",
   schema: researchSchema,
   memory: researchMemory,
-  enabled: (ctx) => ctx.data.researches.length > 0,
+  enabled: (ctx) => {
+    console.log({ ctx });
+    return ctx.actionMemory.researches.length > 0;
+  },
   async handler(params, ctx) {
     return "Research canceled!";
   },
@@ -326,6 +329,9 @@ const deepResearchContext = context({
   type: "deep-research",
   schema: z.string(),
   key: (id) => id,
+  create(params, ctx) {
+    return researchMemory.create();
+  },
 });
 
 export const deepResearch = extension({
