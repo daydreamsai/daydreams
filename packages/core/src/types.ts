@@ -120,6 +120,8 @@ export interface WorkingMemory {
   results: ActionResult[];
   // chains: Chain[];
   episodicMemory?: EpisodicMemory;
+  /** Current image URL for multimodal context */
+  currentImage?: URL;
 }
 
 export type InferSchema<T> = T extends {

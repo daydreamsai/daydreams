@@ -198,3 +198,5 @@ logs/app-*.log
 
 # But keep examples
 !.env.example
+
+screenshots/

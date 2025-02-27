@@ -1,6 +1,7 @@
 import {
   smoothStream,
   streamText,
+  type CoreMessage,
   type LanguageModelV1,
   type StreamTextResult,
   type ToolSet,
@@ -139,24 +140,44 @@ export const runGenerate = task(
 
     logger.debug("agent:system", system);
 
+    const messages = [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: system,
+          },
+        ],
+      },
+      {
+        role: "assistant",
+        content: "<think>",
+      },
+    ] as CoreMessage[];
+
+    if (workingMemory.currentImage) {
+      messages[0].content = [
+        ...messages[0].content,
+        {
+          type: "image",
+          image: workingMemory.currentImage,
+        },
+      ] as CoreMessage["content"];
+    }
+
     const stream = streamText({
       model,
-      messages: [
-        {
-          role: "user",
-          content: system,
-        },
-        {
-          role: "assistant",
-          content: "<think>",
-        },
-      ],
+      messages,
       stopSequences: ["</response>"],
       temperature: 0.6,
       experimental_transform: smoothStream({
         chunking: "word",
       }),
     });
+
+    // Clear the current image after using it
+    workingMemory.currentImage = undefined;
 
     return prepareStreamResponse({
       step: "response",
@@ -247,24 +268,44 @@ export const runGenerateResults = task(
       callId,
     });
 
+    const messages = [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: system,
+          },
+        ],
+      },
+      {
+        role: "assistant",
+        content: "<think>",
+      },
+    ] as CoreMessage[];
+
+    if (workingMemory.currentImage) {
+      messages[0].content = [
+        ...messages[0].content,
+        {
+          type: "image",
+          image: workingMemory.currentImage,
+        },
+      ] as CoreMessage["content"];
+    }
+
     const stream = streamText({
       model,
-      messages: [
-        {
-          role: "user",
-          content: system,
-        },
-        {
-          role: "assistant",
-          content: "<think>",
-        },
-      ],
+      messages: messages,
       stopSequences: ["</response>"],
       temperature: 0.6,
       experimental_transform: smoothStream({
         chunking: "word",
       }),
     });
+
+    // Clear the current image after using it
+    workingMemory.currentImage = undefined;
 
     return prepareStreamResponse({
       step: "results-response",
