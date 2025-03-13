@@ -167,7 +167,7 @@ importers:
         version: 1.1.12(zod@3.24.2)
       '@ai-sdk/openai':
         specifier: ^1.2.1
-        version: 1.2.1(zod@3.24.2)
+        version: 1.2.3(zod@3.24.2)
       '@daydreamsai/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -195,7 +195,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/chains:
     dependencies:
@@ -204,7 +204,7 @@ importers:
         version: 1.1.15(zod@3.24.2)
       '@ai-sdk/openai':
         specifier: ^1.2.1
-        version: 1.2.1(zod@3.24.2)
+        version: 1.2.3(zod@3.24.2)
       '@daydreamsai/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -232,7 +232,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/computer-usage:
     dependencies:
@@ -241,7 +241,7 @@ importers:
         version: 1.1.15(zod@3.24.2)
       '@ai-sdk/openai':
         specifier: ^1.2.1
-        version: 1.2.1(zod@3.24.2)
+        version: 1.2.3(zod@3.24.2)
       '@daydreamsai/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -278,7 +278,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/deep-research:
     dependencies:
@@ -306,7 +306,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/discord:
     dependencies:
@@ -331,7 +331,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/games/gigaverse:
     dependencies:
@@ -343,7 +343,7 @@ importers:
         version: 1.1.12(zod@3.24.2)
       '@ai-sdk/openai':
         specifier: ^1.2.1
-        version: 1.2.1(zod@3.24.2)
+        version: 1.2.3(zod@3.24.2)
       '@daydreamsai/core':
         specifier: workspace:*
         version: link:../../../packages/core
@@ -359,7 +359,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/mcp:
     dependencies:
@@ -378,7 +378,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/tasks:
     dependencies:
@@ -390,7 +390,7 @@ importers:
         version: 1.1.12(zod@3.24.2)
       '@ai-sdk/openai':
         specifier: ^1.2.1
-        version: 1.2.1(zod@3.24.2)
+        version: 1.2.3(zod@3.24.2)
       '@daydreamsai/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -406,7 +406,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/telegram:
     dependencies:
@@ -428,7 +428,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   examples/twitter:
     dependencies:
@@ -450,7 +450,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
 
   packages/chroma:
     dependencies:
@@ -466,7 +466,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
       tsup:
         specifier: ^8.3.6
         version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.8.2)(yaml@2.7.0)
@@ -478,7 +478,7 @@ importers:
     dependencies:
       '@ai-sdk/openai':
         specifier: ^1.1.14
-        version: 1.2.1(zod@3.24.2)
+        version: 1.2.3(zod@3.24.2)
       '@langchain/core':
         specifier: ^0.3.39
         version: 0.3.42(openai@4.86.2(encoding@0.1.13)(ws@8.18.1(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.24.2))
@@ -524,7 +524,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
       tsup:
         specifier: ^8.3.6
         version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.8.2)(yaml@2.7.0)
@@ -625,7 +625,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
       tsup:
         specifier: ^8.3.6
         version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.8.2)(yaml@2.7.0)
@@ -643,20 +643,20 @@ importers:
         version: 14.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       typescript:
         specifier: ^5.6.3
-        version: 5.7.3
+        version: 5.8.2
       zod:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
       tsup:
         specifier: ^8.3.6
-        version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.7.3)(yaml@2.7.0)
+        version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.8.2)(yaml@2.7.0)
       vitest:
         specifier: ^3.0.5
-        version: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.7.3))(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.8.2))(tsx@4.19.3)(yaml@2.7.0)
 
   packages/hyperliquid:
     dependencies:
@@ -668,20 +668,20 @@ importers:
         version: 1.6.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       typescript:
         specifier: ^5.6.3
-        version: 5.7.3
+        version: 5.8.2
       zod:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
       tsup:
         specifier: ^8.3.6
-        version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.7.3)(yaml@2.7.0)
+        version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.8.2)(yaml@2.7.0)
       vitest:
         specifier: ^3.0.5
-        version: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.7.3))(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.8.2))(tsx@4.19.3)(yaml@2.7.0)
 
   packages/mongo:
     dependencies:
@@ -697,7 +697,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
       tsup:
         specifier: ^8.3.6
         version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.8.2)(yaml@2.7.0)
@@ -718,20 +718,20 @@ importers:
         version: 4.16.3(encoding@0.1.13)
       typescript:
         specifier: ^5.6.3
-        version: 5.7.3
+        version: 5.8.2
       zod:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
       tsup:
         specifier: ^8.3.6
-        version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.7.3)(yaml@2.7.0)
+        version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.8.2)(yaml@2.7.0)
       vitest:
         specifier: ^3.0.5
-        version: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.7.3))(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.8.2))(tsx@4.19.3)(yaml@2.7.0)
 
   packages/twitter:
     dependencies:
@@ -743,20 +743,20 @@ importers:
         version: 0.0.18(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       typescript:
         specifier: ^5.6.3
-        version: 5.7.3
+        version: 5.8.2
       zod:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.4
+        version: 1.2.5
       tsup:
         specifier: ^8.3.6
-        version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.7.3)(yaml@2.7.0)
+        version: 8.4.0(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.3)(typescript@5.8.2)(yaml@2.7.0)
       vitest:
         specifier: ^3.0.5
-        version: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.7.3))(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.8.2))(tsx@4.19.3)(yaml@2.7.0)
 
 packages:
 
@@ -789,14 +789,23 @@ packages:
     peerDependencies:
       zod: ^3.0.0
 
-  '@ai-sdk/openai@1.2.1':
-    resolution: {integrity: sha512-UtVDNrmrKzb3b4T9bnpduXs4FKpWGn+sH5qaFP1mtxOPeYGUF9OoJfGilH3CNfqGAE4QdZh/LT3IV6GHacooGg==}
+  '@ai-sdk/openai@1.2.3':
+    resolution: {integrity: sha512-iIJKMjKYZN3XWVECDassufz3X7rq/b5BQ6Uhnp03i06T8E4QwCamwtLitJXtrqQ+OxL33Ugn3EIZKGaSBo/+qw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
 
   '@ai-sdk/provider-utils@2.1.11':
     resolution: {integrity: sha512-lMnXA5KaRJidzW7gQmlo/SnX6D+AKk5GxHFcQtOaGOSJNmu/qcNZc1rGaO7K5qW52OvCLXtnWudR4cc/FvMpVQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
+  '@ai-sdk/provider-utils@2.1.12':
+    resolution: {integrity: sha512-NLm2Ypkv419jR5TNOvZ057ciSYFKzSDEIIwE8cRyeR1Y5RbuX+auZveqGg6GWsDzvUnn6Xra7BJmr0422v60UA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -3366,6 +3375,9 @@ packages:
   '@types/bun@1.2.4':
     resolution: {integrity: sha512-QtuV5OMR8/rdKJs213iwXDpfVvnskPXY/S0ZiFbsTjQZycuqPbMW8Gf/XhLfwE5njW8sxI2WjISURXPlHypMFA==}
 
+  '@types/bun@1.2.5':
+    resolution: {integrity: sha512-w2OZTzrZTVtbnJew1pdFmgV99H0/L+Pvw+z1P67HaR18MHOzYnTYOi6qzErhK8HyT+DB782ADVPPE92Xu2/Opg==}
+
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
 
@@ -3931,6 +3943,9 @@ packages:
 
   bun-types@1.2.4:
     resolution: {integrity: sha512-nDPymR207ZZEoWD4AavvEaa/KZe/qlrbMSchqpQwovPZCKc7pwMoENjEtHgMKaAjJhy+x6vfqSBA1QU3bJgs0Q==}
+
+  bun-types@1.2.5:
+    resolution: {integrity: sha512-3oO6LVGGRRKI4kHINx5PIdIgnLRb7l/SprhzqXapmoYkFl5m4j6EvALvbDVuuBFaamB46Ap6HCUxIXNLCGy+tg==}
 
   bundle-require@5.1.0:
     resolution: {integrity: sha512-3WrrOuZiyaaZPWiEt4G3+IffISVC9HYlWueJEBWED4ZH4aIAC2PnkdnuRrR94M+w6yGWn4AglWtJtBI8YqvgoA==}
@@ -7270,13 +7285,22 @@ snapshots:
       '@ai-sdk/provider-utils': 2.1.11(zod@3.24.2)
       zod: 3.24.2
 
-  '@ai-sdk/openai@1.2.1(zod@3.24.2)':
+  '@ai-sdk/openai@1.2.3(zod@3.24.2)':
     dependencies:
       '@ai-sdk/provider': 1.0.10
-      '@ai-sdk/provider-utils': 2.1.11(zod@3.24.2)
+      '@ai-sdk/provider-utils': 2.1.12(zod@3.24.2)
       zod: 3.24.2
 
   '@ai-sdk/provider-utils@2.1.11(zod@3.24.2)':
+    dependencies:
+      '@ai-sdk/provider': 1.0.10
+      eventsource-parser: 3.0.0
+      nanoid: 3.3.9
+      secure-json-parse: 2.7.0
+    optionalDependencies:
+      zod: 3.24.2
+
+  '@ai-sdk/provider-utils@2.1.12(zod@3.24.2)':
     dependencies:
       '@ai-sdk/provider': 1.0.10
       eventsource-parser: 3.0.0
@@ -9044,7 +9068,7 @@ snapshots:
   '@jest/console@29.7.0':
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       chalk: 4.1.2
       jest-message-util: 29.7.0
       jest-util: 29.7.0
@@ -9057,14 +9081,14 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@22.13.10)
+      jest-config: 29.7.0(@types/node@20.17.24)
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -9089,7 +9113,7 @@ snapshots:
     dependencies:
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       jest-mock: 29.7.0
 
   '@jest/expect-utils@29.7.0':
@@ -9107,7 +9131,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@sinonjs/fake-timers': 10.3.0
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
       jest-util: 29.7.0
@@ -9129,7 +9153,7 @@ snapshots:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       '@jridgewell/trace-mapping': 0.3.25
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       chalk: 4.1.2
       collect-v8-coverage: 1.0.2
       exit: 0.1.2
@@ -9199,7 +9223,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
@@ -10556,9 +10580,13 @@ snapshots:
     dependencies:
       bun-types: 1.2.4
 
+  '@types/bun@1.2.5':
+    dependencies:
+      bun-types: 1.2.5
+
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.13.10
+      '@types/node': 12.20.55
 
   '@types/cookie@0.6.0':
     optional: true
@@ -10574,7 +10602,7 @@ snapshots:
 
   '@types/graceful-fs@4.1.9':
     dependencies:
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
 
   '@types/hast@3.0.4':
     dependencies:
@@ -10686,7 +10714,7 @@ snapshots:
 
   '@types/ws@7.4.7':
     dependencies:
-      '@types/node': 22.13.10
+      '@types/node': 12.20.55
 
   '@types/ws@8.18.0':
     dependencies:
@@ -10830,15 +10858,6 @@ snapshots:
     optionalDependencies:
       msw: 2.7.3(@types/node@20.17.24)(typescript@5.8.2)
       vite: 6.2.1(@types/node@20.17.24)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.7.0)
-
-  '@vitest/mocker@3.0.8(msw@2.7.3(@types/node@22.13.10)(typescript@5.7.3))(vite@6.2.1(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.7.0))':
-    dependencies:
-      '@vitest/spy': 3.0.8
-      estree-walker: 3.0.3
-      magic-string: 0.30.17
-    optionalDependencies:
-      msw: 2.7.3(@types/node@22.13.10)(typescript@5.7.3)
-      vite: 6.2.1(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.7.0)
 
   '@vitest/mocker@3.0.8(msw@2.7.3(@types/node@22.13.10)(typescript@5.8.2))(vite@6.2.1(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.7.0))':
     dependencies:
@@ -11302,6 +11321,11 @@ snapshots:
     optional: true
 
   bun-types@1.2.4:
+    dependencies:
+      '@types/node': 22.13.10
+      '@types/ws': 8.5.14
+
+  bun-types@1.2.5:
     dependencies:
       '@types/node': 22.13.10
       '@types/ws': 8.5.14
@@ -12527,7 +12551,7 @@ snapshots:
       '@jest/expect': 29.7.0
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.5.3
@@ -12596,36 +12620,6 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@22.13.10):
-    dependencies:
-      '@babel/core': 7.26.9
-      '@jest/test-sequencer': 29.7.0
-      '@jest/types': 29.6.3
-      babel-jest: 29.7.0(@babel/core@7.26.9)
-      chalk: 4.1.2
-      ci-info: 3.9.0
-      deepmerge: 4.3.1
-      glob: 7.2.3
-      graceful-fs: 4.2.11
-      jest-circus: 29.7.0
-      jest-environment-node: 29.7.0
-      jest-get-type: 29.6.3
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-runner: 29.7.0
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      micromatch: 4.0.8
-      parse-json: 5.2.0
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-json-comments: 3.1.1
-    optionalDependencies:
-      '@types/node': 22.13.10
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-
   jest-diff@29.7.0:
     dependencies:
       chalk: 4.1.0
@@ -12650,7 +12644,7 @@ snapshots:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       jest-mock: 29.7.0
       jest-util: 29.7.0
 
@@ -12660,7 +12654,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@types/graceful-fs': 4.1.9
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -12699,7 +12693,7 @@ snapshots:
   jest-mock@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       jest-util: 29.7.0
 
   jest-pnp-resolver@1.2.3(jest-resolve@29.7.0):
@@ -12734,7 +12728,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       chalk: 4.1.2
       emittery: 0.13.1
       graceful-fs: 4.2.11
@@ -12762,7 +12756,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       chalk: 4.1.2
       cjs-module-lexer: 1.4.3
       collect-v8-coverage: 1.0.2
@@ -12808,7 +12802,7 @@ snapshots:
   jest-util@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       chalk: 4.1.2
       ci-info: 3.9.0
       graceful-fs: 4.2.11
@@ -12827,7 +12821,7 @@ snapshots:
     dependencies:
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -12836,7 +12830,7 @@ snapshots:
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 22.13.10
+      '@types/node': 20.17.24
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
@@ -13195,32 +13189,6 @@ snapshots:
       yargs: 17.7.2
     optionalDependencies:
       typescript: 5.8.2
-    transitivePeerDependencies:
-      - '@types/node'
-    optional: true
-
-  msw@2.7.3(@types/node@22.13.10)(typescript@5.7.3):
-    dependencies:
-      '@bundled-es-modules/cookie': 2.0.1
-      '@bundled-es-modules/statuses': 1.0.1
-      '@bundled-es-modules/tough-cookie': 0.1.6
-      '@inquirer/confirm': 5.1.7(@types/node@22.13.10)
-      '@mswjs/interceptors': 0.37.6
-      '@open-draft/deferred-promise': 2.2.0
-      '@open-draft/until': 2.1.0
-      '@types/cookie': 0.6.0
-      '@types/statuses': 2.0.5
-      graphql: 16.10.0
-      headers-polyfill: 4.0.3
-      is-node-process: 1.2.0
-      outvariant: 1.4.3
-      path-to-regexp: 6.3.0
-      picocolors: 1.1.1
-      strict-event-emitter: 0.5.1
-      type-fest: 4.37.0
-      yargs: 17.7.2
-    optionalDependencies:
-      typescript: 5.7.3
     transitivePeerDependencies:
       - '@types/node'
     optional: true
@@ -14848,44 +14816,6 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 20.17.24
-    transitivePeerDependencies:
-      - jiti
-      - less
-      - lightningcss
-      - msw
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-      - tsx
-      - yaml
-
-  vitest@3.0.8(@types/node@22.13.10)(jiti@2.4.2)(msw@2.7.3(@types/node@22.13.10)(typescript@5.7.3))(tsx@4.19.3)(yaml@2.7.0):
-    dependencies:
-      '@vitest/expect': 3.0.8
-      '@vitest/mocker': 3.0.8(msw@2.7.3(@types/node@22.13.10)(typescript@5.7.3))(vite@6.2.1(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.7.0))
-      '@vitest/pretty-format': 3.0.8
-      '@vitest/runner': 3.0.8
-      '@vitest/snapshot': 3.0.8
-      '@vitest/spy': 3.0.8
-      '@vitest/utils': 3.0.8
-      chai: 5.2.0
-      debug: 4.4.0
-      expect-type: 1.2.0
-      magic-string: 0.30.17
-      pathe: 2.0.3
-      std-env: 3.8.1
-      tinybench: 2.9.0
-      tinyexec: 0.3.2
-      tinypool: 1.0.2
-      tinyrainbow: 2.0.0
-      vite: 6.2.1(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.7.0)
-      vite-node: 3.0.8(@types/node@22.13.10)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.7.0)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@types/node': 22.13.10
     transitivePeerDependencies:
       - jiti
       - less
