@@ -51,7 +51,7 @@
     "chromadb-default-embed": "^2.13.2",
     "dotenv": "^16.4.7",
     "js-tiktoken": "^1.0.18",
-    "openai": "^4.83.0",
+    "openai": "^4.87.3",
     "p-defer": "^4.0.1",
     "uuid": "^11.1.0",
     "zod": "^3.24.2",
