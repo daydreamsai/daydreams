@@ -211,7 +211,7 @@ Here are the main query structures you can use:
 
 \`\`\`graphql
 query GetRealmInfo {
-  s0EternumRealmModels(where: { realm_id: REALM_ID }) {
+  s1_eternum_RealmModels(where: { realm_id: REALM_ID }) {
     edges {
       node {
           entity_id
@@ -225,7 +225,7 @@ query GetRealmInfo {
 2. Get Realm Position:
 \`\`\`graphql
 query GetRealmPosition {
-  s0EternumPositionModels(where: { entity_id: ENTITY_ID }, limit: 1) {
+  s1_eternum_PositionModels(where: { entity_id: ENTITY_ID }, limit: 1) {
     edges {
       node {
    
@@ -240,7 +240,7 @@ query GetRealmPosition {
 3. Get Realm Details:
 \`\`\`graphql
 query GetRealmDetails {
-  s0EternumResourceModels(where: { entity_id: ENTITY_ID }, limit: 100) {
+  s1_eternum_ResourceModels(where: { entity_id: ENTITY_ID }, limit: 100) {
     edges {
       node {
           resource_type
@@ -248,7 +248,7 @@ query GetRealmDetails {
       }
     }
   }
-  s0EternumBuildingModels(where: { outer_col: X, outer_row: Y }) {
+  s1_eternum_BuildingModels(where: { outer_col: X, outer_row: Y }) {
     edges {
       node {
           category
@@ -285,126 +285,126 @@ query IntrospectModel {
 
 
 <AVAILABLE_MODELS>
- s0EternumAcceptOrderModels
-      s0EternumAcceptPartialOrderModels
-      s0EternumAddressNameModels
-      s0EternumArmyModels
-      s0EternumArmyTroopsModels
-      s0EternumArrivalTimeModels
-      s0EternumBankModels
-      s0EternumBattleModels
-      s0EternumBattleClaimDataModels
-      s0EternumBattleConfigModels
-      s0EternumBattleJoinDataModels
-      s0EternumBattleLeaveDataModels
-      s0EternumBattlePillageDataModels
-      s0EternumBattlePillageDataTroopsModels
-      s0EternumBattlePillageDataU8u128Models
-      s0EternumBattleStartDataModels
-      s0EternumBattleBattleArmyModels
-      s0EternumBattleBattleHealthModels
-      s0EternumBattleTroopsModels
-      s0EternumBuildingModels
-      s0EternumBuildingCategoryPopConfigModels
-      s0EternumBuildingConfigModels
-      s0EternumBuildingGeneralConfigModels
-      s0EternumBuildingQuantityv2Models
-      s0EternumBurnDonkeyModels
-      s0EternumCancelOrderModels
-      s0EternumCapacityCategoryModels
-      s0EternumCapacityConfigModels
-      s0EternumContributionModels
-      s0EternumCreateGuildModels
-      s0EternumCreateOrderModels
-      s0EternumDetachedResourceModels
-      s0EternumEntityNameModels
-      s0EternumEntityOwnerModels
-      s0EternumEpochModels
-      s0EternumEpochContractAddressu16Models
-      s0EternumFragmentMineDiscoveredModels
-      s0EternumGameEndedModels
-      s0EternumGuildModels
-      s0EternumGuildMemberModels
-      s0EternumGuildWhitelistModels
-      s0EternumHealthModels
-      s0EternumHyperstructureModels
-      s0EternumHyperstructureCoOwnersChangeModels
-      s0EternumHyperstructureCoOwnersChangeContractAddressu16Models
-      s0EternumHyperstructureConfigModels
-      s0EternumHyperstructureContributionModels
-      s0EternumHyperstructureContributionU8u128Models
-      s0EternumHyperstructureFinishedModels
-      s0EternumHyperstructureResourceConfigModels
-      s0EternumJoinGuildModels
-      s0EternumLevelingConfigModels
-      s0EternumLiquidityModels
-      s0EternumLiquidityEventModels
-      s0EternumLiquidityFixedModels
-      s0EternumMapConfigModels
-      s0EternumMapExploredModels
-      s0EternumMapExploredU8u128Models
-      s0EternumMarketModels
-      s0EternumMarketFixedModels
-      s0EternumMercenariesConfigModels
-      s0EternumMercenariesConfigU8u128Models
-      s0EternumMessageModels
-      s0EternumMovableModels
-      s0EternumOrdersModels
-      s0EternumOwnedResourcesTrackerModels
-      s0EternumOwnerModels
-      s0EternumPopulationModels
-      s0EternumPopulationConfigModels
-      s0EternumPositionModels
-      s0EternumProductionModels
-      s0EternumProductionDeadlineModels
-      s0EternumProductionInputModels
-      s0EternumProductionOutputModels
-      s0EternumProgressModels
-      s0EternumProtecteeModels
-      s0EternumProtectorModels
-      s0EternumQuantityModels
-      s0EternumQuantityTrackerModels
-      s0EternumQuestModels
-      s0EternumQuestBonusModels
-      s0EternumQuestConfigModels
-      s0EternumRealmModels
-      s0EternumRealmLevelConfigModels
-      s0EternumRealmMaxLevelConfigModels
-      s0EternumResourceModels
-      s0EternumResourceAllowanceModels
-      s0EternumResourceBridgeConfigModels
-      s0EternumResourceBridgeFeeSplitConfigModels
-      s0EternumResourceBridgeWhitelistConfigModels
-      s0EternumResourceCostModels
-      s0EternumResourceTransferLockModels
-      s0EternumSeasonModels
-      s0EternumSettleRealmDataModels
-      s0EternumSettlementConfigModels
-      s0EternumSpeedConfigModels
-      s0EternumStaminaModels
-      s0EternumStaminaConfigModels
-      s0EternumStaminaRefillConfigModels
-      s0EternumStatusModels
-      s0EternumStructureModels
-      s0EternumStructureCountModels
-      s0EternumStructureCountCoordModels
-      s0EternumSwapEventModels
-      s0EternumTickConfigModels
-      s0EternumTileModels
-      s0EternumTradeModels
-      s0EternumTransferModels
-      s0EternumTransferU8u128Models
-      s0EternumTravelModels
-      s0EternumTravelFoodCostConfigModels
-      s0EternumTravelStaminaCostConfigModels
-      s0EternumTravelCoordModels
-      s0EternumTroopConfigModels
-      s0EternumTrophyCreationModels
-      s0EternumTrophyCreationTaskModels
-      s0EternumTrophyProgressionModels
-      s0EternumWeightModels
-      s0EternumWeightConfigModels
-      s0EternumWorldConfigModels
+  s1_eternum_AcceptOrderModels
+  s1_eternum_AcceptPartialOrderModels
+  s1_eternum_AddressNameModels
+  s1_eternum_ArmyModels
+  s1_eternum_ArmyTroopsModels
+  s1_eternum_ArrivalTimeModels
+  s1_eternum_BankModels
+  s1_eternum_BattleModels
+  s1_eternum_BattleClaimDataModels
+  s1_eternum_BattleConfigModels
+  s1_eternum_BattleJoinDataModels
+  s1_eternum_BattleLeaveDataModels
+  s1_eternum_BattlePillageDataModels
+  s1_eternum_BattlePillageDataTroopsModels
+  s1_eternum_BattlePillageDataU8u128Models
+  s1_eternum_BattleStartDataModels
+  s1_eternum_BattleBattleArmyModels
+  s1_eternum_BattleBattleHealthModels
+  s1_eternum_BattleTroopsModels
+  s1_eternum_BuildingModels
+  s1_eternum_BuildingCategoryPopConfigModels
+  s1_eternum_BuildingConfigModels
+  s1_eternum_BuildingGeneralConfigModels
+  s1_eternum_BuildingQuantityv2Models
+  s1_eternum_BurnDonkeyModels
+  s1_eternum_CancelOrderModels
+  s1_eternum_CapacityCategoryModels
+  s1_eternum_CapacityConfigModels
+  s1_eternum_ContributionModels
+  s1_eternum_CreateGuildModels
+  s1_eternum_CreateOrderModels
+  s1_eternum_DetachedResourceModels
+  s1_eternum_EntityNameModels
+  s1_eternum_EntityOwnerModels
+  s1_eternum_EpochModels
+  s1_eternum_EpochContractAddressu16Models
+  s1_eternum_FragmentMineDiscoveredModels
+  s1_eternum_GameEndedModels
+  s1_eternum_GuildModels
+  s1_eternum_GuildMemberModels
+  s1_eternum_GuildWhitelistModels
+  s1_eternum_HealthModels
+  s1_eternum_HyperstructureModels
+  s1_eternum_HyperstructureCoOwnersChangeModels
+  s1_eternum_HyperstructureCoOwnersChangeContractAddressu16Models
+  s1_eternum_HyperstructureConfigModels
+  s1_eternum_HyperstructureContributionModels
+  s1_eternum_HyperstructureContributionU8u128Models
+  s1_eternum_HyperstructureFinishedModels
+  s1_eternum_HyperstructureResourceConfigModels
+  s1_eternum_JoinGuildModels
+  s1_eternum_LevelingConfigModels
+  s1_eternum_LiquidityModels
+  s1_eternum_LiquidityEventModels
+  s1_eternum_LiquidityFixedModels
+  s1_eternum_MapConfigModels
+  s1_eternum_MapExploredModels
+  s1_eternum_MapExploredU8u128Models
+  s1_eternum_MarketModels
+  s1_eternum_MarketFixedModels
+  s1_eternum_MercenariesConfigModels
+  s1_eternum_MercenariesConfigU8u128Models
+  s1_eternum_MessageModels
+  s1_eternum_MovableModels
+  s1_eternum_OrdersModels
+  s1_eternum_OwnedResourcesTrackerModels
+  s1_eternum_OwnerModels
+  s1_eternum_PopulationModels
+  s1_eternum_PopulationConfigModels
+  s1_eternum_PositionModels
+  s1_eternum_ProductionModels
+  s1_eternum_ProductionDeadlineModels
+  s1_eternum_ProductionInputModels
+  s1_eternum_ProductionOutputModels
+  s1_eternum_ProgressModels
+  s1_eternum_ProtecteeModels
+  s1_eternum_ProtectorModels
+  s1_eternum_QuantityModels
+  s1_eternum_QuantityTrackerModels
+  s1_eternum_QuestModels
+  s1_eternum_QuestBonusModels
+  s1_eternum_QuestConfigModels
+  s1_eternum_RealmModels
+  s1_eternum_RealmLevelConfigModels
+  s1_eternum_RealmMaxLevelConfigModels
+  s1_eternum_ResourceModels
+  s1_eternum_ResourceAllowanceModels
+  s1_eternum_ResourceBridgeConfigModels
+  s1_eternum_ResourceBridgeFeeSplitConfigModels
+  s1_eternum_ResourceBridgeWhitelistConfigModels
+  s1_eternum_ResourceCostModels
+  s1_eternum_ResourceTransferLockModels
+  s1_eternum_SeasonModels
+  s1_eternum_SettleRealmDataModels
+  s1_eternum_SettlementConfigModels
+  s1_eternum_SpeedConfigModels
+  s1_eternum_StaminaModels
+  s1_eternum_StaminaConfigModels
+  s1_eternum_StaminaRefillConfigModels
+  s1_eternum_StatusModels
+  s1_eternum_StructureModels
+  s1_eternum_StructureCountModels
+  s1_eternum_StructureCountCoordModels
+  s1_eternum_SwapEventModels
+  s1_eternum_TickConfigModels
+  s1_eternum_TileModels
+  s1_eternum_TradeModels
+  s1_eternum_TransferModels
+  s1_eternum_TransferU8u128Models
+  s1_eternum_TravelModels
+  s1_eternum_TravelFoodCostConfigModels
+  s1_eternum_TravelStaminaCostConfigModels
+  s1_eternum_TravelCoordModels
+  s1_eternum_TroopConfigModels
+  s1_eternum_TrophyCreationModels
+  s1_eternum_TrophyCreationTaskModels
+  s1_eternum_TrophyProgressionModels
+  s1_eternum_WeightModels
+  s1_eternum_WeightConfigModels
+  s1_eternum_WorldConfigModels
 </AVAILABLE_MODELS>
 
 <best_practices>
