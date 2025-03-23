@@ -491,10 +491,25 @@ export interface Agent<TContext extends AnyContext = AnyContext> {
   trainingDataPath?: string;
 
   /**
+   * Options for trimming working memory
+   */
+  trimWorkingMemoryOptions?: TrimWorkingMemoryOptions;
+
+  /**
    * Exports all episodes as training data
    * @param filePath Optional path to save the training data
    */
   exportAllTrainingData?: (filePath?: string) => Promise<void>;
+
+  /**
+   * Manually trim working memory for a context
+   * @param contextId The ID of the context
+   * @param options Optional custom trim options
+   */
+  trimMemory?: (
+    contextId: string,
+    options?: TrimWorkingMemoryOptions
+  ) => Promise<void>;
 
   /**
    * Emits an event with the provided arguments.
@@ -610,6 +625,16 @@ export type Config<TContext extends AnyContext = AnyContext> = Partial<
   exportTrainingData?: boolean;
   /** Path to save training data */
   trainingDataPath?: string;
+  /** Options for trimming working memory */
+  trimWorkingMemoryOptions?: TrimWorkingMemoryOptions;
+};
+
+/** Options for trimming working memory */
+export type TrimWorkingMemoryOptions = {
+  thoughts?: number;
+  inputs?: number;
+  outputs?: number;
+  actions?: number;
 };
 
 /** Configuration type for inputs without type field */

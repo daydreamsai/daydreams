@@ -25,7 +25,7 @@ import { createVectorStore } from "./memory/base";
 import { runGenerate, runGenerateResults } from "./tasks";
 import { exportEpisodesAsTrainingData } from "./memory/utils";
 import type { Episode, Memory } from "./types";
-import { randomUUIDv7 } from "./utils";
+import { randomUUIDv7, trimWorkingMemory } from "./utils";
 import { createContextStreamHandler, handleStream } from "./streaming";
 
 export function createDreams<TContext extends AnyContext = AnyContext>(
@@ -49,6 +49,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     reasoningModel,
     exportTrainingData,
     trainingDataPath,
+    trimWorkingMemoryOptions,
   } = config;
 
   const container = config.container ?? createContainer();
@@ -116,6 +117,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     context: config.context ?? undefined,
     exportTrainingData,
     trainingDataPath,
+    trimWorkingMemoryOptions,
     emit: (event: string, data: any) => {
       logger.debug("agent:event", event, data);
     },
@@ -143,6 +145,32 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
         contextId,
       });
       return getContextWorkingMemory(agent, contextId);
+    },
+
+    async trimMemory(contextId, options) {
+      logger.info("agent:trimMemory", "Manually trimming working memory", {
+        contextId,
+        hasCustomOptions: !!options,
+      });
+
+      const workingMemory = await getContextWorkingMemory(agent, contextId);
+
+      // Use provided options, or fall back to global config options, or use default
+      const trimOptions = options || trimWorkingMemoryOptions || undefined;
+
+      trimWorkingMemory(workingMemory, trimOptions);
+
+      // Save the trimmed working memory
+      await saveContextWorkingMemory(agent, contextId, workingMemory);
+
+      logger.debug("agent:trimMemory", "Working memory trimmed and saved", {
+        contextId,
+        inputsCount: workingMemory.inputs.length,
+        outputsCount: workingMemory.outputs.length,
+        thoughtsCount: workingMemory.thoughts.length,
+        callsCount: workingMemory.calls.length,
+        resultsCount: workingMemory.results.length,
+      });
     },
 
     async start(args) {
@@ -286,6 +314,15 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       });
 
       const workingMemory = await getContextWorkingMemory(agent, ctxState.id);
+
+      // Apply trim to working memory if options are set
+      if (trimWorkingMemoryOptions) {
+        logger.debug("agent:run", "Trimming working memory", {
+          id: ctxState.id,
+          options: trimWorkingMemoryOptions,
+        });
+        trimWorkingMemory(workingMemory, trimWorkingMemoryOptions);
+      }
 
       logger.trace("agent:run", "Working memory retrieved", {
         id: ctxState.id,
@@ -522,6 +559,15 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       });
 
       const workingMemory = await getContextWorkingMemory(agent, contextId);
+
+      // Apply trim to working memory if options are set
+      if (trimWorkingMemoryOptions) {
+        logger.debug("agent:send", "Trimming working memory", {
+          id: contextId,
+          options: trimWorkingMemoryOptions,
+        });
+        trimWorkingMemory(workingMemory, trimWorkingMemoryOptions);
+      }
 
       logger.trace("agent:send", "Working memory retrieved", {
         id: contextId,

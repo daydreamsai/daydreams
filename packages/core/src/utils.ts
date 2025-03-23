@@ -14,6 +14,7 @@ import type {
   OutputSchema,
   TemplateVariables,
   WorkingMemory,
+  TrimWorkingMemoryOptions,
 } from "./types";
 export { v7 as randomUUIDv7 } from "uuid";
 
@@ -190,14 +191,7 @@ export function validateEnv<T extends z.ZodTypeAny>(
   }
 }
 
-type TrimWorkingMemoryOptions = {
-  thoughts: number;
-  inputs: number;
-  outputs: number;
-  actions: number;
-};
-
-const defaultTrimOptions: TrimWorkingMemoryOptions = {
+const defaultTrimOptions = {
   thoughts: 6,
   inputs: 20,
   outputs: 20,
@@ -206,11 +200,18 @@ const defaultTrimOptions: TrimWorkingMemoryOptions = {
 
 export function trimWorkingMemory(
   workingMemory: WorkingMemory,
-  options: TrimWorkingMemoryOptions = defaultTrimOptions
+  options: Partial<typeof defaultTrimOptions> = {}
 ) {
-  workingMemory.thoughts = workingMemory.thoughts.slice(-options.thoughts);
-  workingMemory.inputs = workingMemory.inputs.slice(-options.inputs);
-  workingMemory.outputs = workingMemory.outputs.slice(-options.outputs);
-  workingMemory.calls = workingMemory.calls.slice(-options.actions);
-  workingMemory.results = workingMemory.results.slice(-options.actions);
+  const mergedOptions = {
+    ...defaultTrimOptions,
+    ...options,
+  };
+
+  workingMemory.thoughts = workingMemory.thoughts.slice(
+    -mergedOptions.thoughts
+  );
+  workingMemory.inputs = workingMemory.inputs.slice(-mergedOptions.inputs);
+  workingMemory.outputs = workingMemory.outputs.slice(-mergedOptions.outputs);
+  workingMemory.calls = workingMemory.calls.slice(-mergedOptions.actions);
+  workingMemory.results = workingMemory.results.slice(-mergedOptions.actions);
 }
