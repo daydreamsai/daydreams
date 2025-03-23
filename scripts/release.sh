@@ -39,6 +39,10 @@ for arg in "$@"; do
       VERSION_TYPE="patch"
       shift
       ;;
+    --pre-release)
+      VERSION_TYPE="pre-release"
+      shift
+      ;;
     --dry-run)
       DRY_RUN=true
       shift
