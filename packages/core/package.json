@@ -46,6 +46,6 @@
     "p-defer": "^4.0.1",
     "uuid": "^11.1.0",
     "zod": "^3.24.2",
-    "zod-to-json-schema": "^3.24.1"
+    "zod-to-json-schema": "^3.24.5"
   }
 }
