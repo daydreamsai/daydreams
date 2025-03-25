@@ -101,7 +101,7 @@ We use [bun](https://bun.sh/) for development.
 ```bash
 bun install
 
-bun build:core --watch
+bun build:packages --watch
 ```
 
 Edit the core package and watch for changes, and play with examples.

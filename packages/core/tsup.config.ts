@@ -1,10 +1,17 @@
 import { defineConfig } from "tsup";
 
-import { tsupConfig } from "../../tsup.config";
-
 export default defineConfig({
-  ...tsupConfig,
-  entry: ["./src/index.ts", "src/extensions/index.ts"],
+  entry: {
+    "index": "src/index.ts",
+    "extensions/index": "src/extensions/index.ts",
+    "extensions/mcp/extension": "src/extensions/mcp/extension.ts",
+    "extensions/cli/extension": "src/extensions/cli/extension.ts",
+  },
   dts: true,
+  format: ["esm"],
+  clean: true,
+  splitting: true,
+  sourcemap: true,
+  outDir: "dist",
   external: ["readline/promises", "@tavily/core", "ollama"],
 });
