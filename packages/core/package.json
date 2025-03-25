@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.14",
-    "@langchain/core": "^0.3.39",
+    "@langchain/core": "^0.3.43",
     "@langchain/textsplitters": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.6.1",
     "@tavily/core": "^0.3.1",
