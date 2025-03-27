@@ -13,7 +13,7 @@ terminal interface.
 1. Install dependencies:
 
    ```
-   bun i && bun run build:core
+   bun i && bun run build:packages
    ```
 
 2. Set up environment variables: Create a `.env` file in the root directory with
@@ -36,5 +36,5 @@ terminal interface.
 
 3. Run the application:
    ```
-   bun run examples/v1/games/gigaverse/gigaverse-simple-ui.ts
+   bun run examples/games/gigaverse/example-gigaverse-simple-ui.ts
    ```
