@@ -38,7 +38,7 @@
     "@langchain/core": "^0.3.39",
     "@langchain/textsplitters": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.6.1",
-    "@tavily/core": "^0.3.1",
+    "@tavily/core": "^0.3.4",
     "ai": "^4.1.46",
     "chromadb-default-embed": "^2.13.2",
     "dotenv": "^16.4.7",
