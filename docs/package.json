@@ -29,7 +29,7 @@
     "remark-mdx": "^3.1.0",
     "remark-stringify": "^11.0.0",
     "tailwind-merge": "^3.0.2",
-    "three": "^0.172.0",
+    "three": "^0.175.0",
     "tw-animate-css": "^1.2.4"
   },
   "devDependencies": {
