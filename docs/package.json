@@ -15,7 +15,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fast-glob": "^3.3.3",
-    "fumadocs-core": "15.1.2",
+    "fumadocs-core": "15.2.6",
     "fumadocs-mdx": "11.5.7",
     "fumadocs-ui": "15.1.2",
     "gray-matter": "^4.0.3",
