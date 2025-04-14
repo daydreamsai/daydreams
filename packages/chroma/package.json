@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@daydreamsai/core": "workspace:*",
-    "chromadb": "^1.10.5",
+    "chromadb": "^2.2.0",
     "zod": "^3.24.2"
   }
 }
