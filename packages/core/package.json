@@ -42,7 +42,7 @@
     "build": "tsup --dts-resolve"
   },
   "dependencies": {
-    "@ai-sdk/provider": "^1.1.0",
+    "@ai-sdk/provider": "^1.1.3",
     "@ai-sdk/ui-utils": "^1.2.3",
     "ai": "^4.2.9",
     "dotenv": "^16.4.7",
