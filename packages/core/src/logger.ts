@@ -1,33 +1,158 @@
-import { LogLevel } from "./types";
+import { LogLevel, type Optional } from "./types"; // Assuming LogLevel is defined elsewhere
 
-import type { LogEntry, LoggerConfig, LogWriter } from "./types";
+// --- Interfaces ---
+
+export interface LogEntry {
+  level: LogLevel;
+  timestamp: Date;
+  context: string;
+  message: string;
+  data?: any;
+}
+
+export interface Formatter {
+  format(entry: LogEntry): string;
+}
+
+export interface Transport {
+  log(formattedMessage: string, entry: LogEntry): void;
+  init?(): Promise<void> | void; // Optional initialization (e.g., open file stream)
+  close?(): Promise<void> | void; // Optional cleanup
+}
+
+export interface LoggerConfig {
+  level: LogLevel;
+  transports: Transport[];
+  formatter: Formatter;
+}
+
+// --- Default Implementations ---
+
+export class DefaultFormatter implements Formatter {
+  private enableTimestamp: boolean;
+
+  constructor(options: { enableTimestamp?: boolean } = {}) {
+    this.enableTimestamp = options.enableTimestamp ?? true;
+  }
+
+  format(entry: LogEntry): string {
+    const parts: string[] = [];
+
+    if (this.enableTimestamp) {
+      parts.push(`[${entry.timestamp.toISOString()}]`);
+    }
+
+    parts.push(`[${LogLevel[entry.level]}]`); // Assumes LogLevel is an enum
+    parts.push(`[${entry.context}]`);
+    parts.push(entry.message);
+
+    // Note: Default formatter now DOES NOT stringify data,
+    // as transports might want to handle it differently.
+    // if (entry.data) {
+    //   try {
+    //     parts.push(`\n${JSON.stringify(entry.data, null, 2)}`);
+    //   } catch (error) {
+    //     parts.push("[Unserializable data]");
+    //   }
+    // }
+
+    return parts.join(" ");
+  }
+}
+
+const colors: { [key in LogLevel]?: string } = {
+  [LogLevel.ERROR]: "\x1b[31m", // Red
+  [LogLevel.WARN]: "\x1b[33m", // Yellow
+  [LogLevel.INFO]: "\x1b[36m", // Cyan
+  [LogLevel.DEBUG]: "\x1b[32m", // Green
+  [LogLevel.TRACE]: "\x1b[90m", // Gray
+};
+
+const colorReset = "\x1b[0m";
+
+function colorize(message: string, level: LogLevel): string {
+  const color = colors[level] || "";
+  return `${color}${message}${colorReset}`;
+}
+
+// --- UPDATED ConsoleTransport ---
+export class ConsoleTransport implements Transport {
+  private enableColors: boolean;
+
+  constructor(options: { enableColors?: boolean } = {}) {
+    this.enableColors = options.enableColors ?? true;
+  }
+
+  log(formattedMessage: string, entry: LogEntry): void {
+    const messageParts: any[] = []; // Use array to pass multiple args to console.log
+
+    if (this.enableColors) {
+      messageParts.push(colorize(formattedMessage, entry.level));
+    } else {
+      messageParts.push(formattedMessage);
+    }
+
+    // If data exists, log it as a separate argument to console.log
+    // This allows the browser/Node console to display it interactively.
+    if (entry.data !== undefined) {
+      messageParts.push(entry.data);
+    }
+
+    // Use appropriate console method based on level
+    switch (entry.level) {
+      case LogLevel.ERROR:
+        console.error(...messageParts);
+        break;
+      case LogLevel.WARN:
+        console.warn(...messageParts);
+        break;
+      case LogLevel.INFO:
+        console.info(...messageParts);
+        break;
+      case LogLevel.DEBUG:
+      case LogLevel.TRACE: // console.debug and console.trace might behave differently
+        console.debug(...messageParts); // Or console.log(...messageParts)
+        break;
+      default:
+        console.log(...messageParts);
+    }
+  }
+}
 
 export class Logger {
-  private config: Omit<Required<LoggerConfig>, "logWriter">;
-  private logWriter?: LogWriter;
+  private config: LoggerConfig;
 
-  constructor(config: LoggerConfig) {
+  constructor(config: Partial<LoggerConfig>) {
+    // Provide defaults if necessary
+    const transports =
+      !config.transports || config.transports.length === 0
+        ? [new ConsoleTransport()]
+        : config.transports;
+
+    const formatter = config.formatter ?? new DefaultFormatter();
+
     this.config = {
-      level: config.level,
-      enableTimestamp: config.enableTimestamp ?? true,
-      enableColors: config.enableColors ?? true,
-      logToFile: config.logToFile ?? false,
-      logPath: config.logPath ?? "./logs",
+      level: config.level ?? LogLevel.INFO,
+      transports: transports,
+      formatter: formatter,
     };
 
-    if (this.config.logToFile && !config.logWriter) {
-      throw new Error("LogWriter must be provided when logToFile is enabled");
-    }
+    // Initialize transports
+    this.config.transports.forEach((transport) => {
+      if (typeof transport.init === "function") {
+        Promise.try(transport.init).catch((err) =>
+          console.error("Error initializing transport:", err)
+        );
+      }
+    });
+  }
 
-    if (config.logWriter) {
-      this.logWriter = config.logWriter;
-    }
+  configure(config: Pick<LoggerConfig, "level">) {
+    this.config.level = config.level;
   }
 
   error(context: string, message: string, data?: any) {
     this.log(LogLevel.ERROR, context, message, data);
-
-    if (data) console.error(data);
   }
 
   warn(context: string, message: string, data?: any) {
@@ -57,63 +182,34 @@ export class Logger {
       data,
     };
 
-    const formatted = this.formatLogEntry(entry);
+    const formattedMessage = this.config.formatter.format(entry); // Format the core message
 
-    if (this.config.enableColors) {
-      console.log(this.colorize(formatted, level));
-    } else {
-      console.log(formatted);
-    }
-
-    if (this.config.logToFile) {
-      this.writeToFile(entry);
-    }
+    // Send to all transports (passing both formatted string and raw entry)
+    this.config.transports.forEach((transport) => {
+      try {
+        transport.log(formattedMessage, entry);
+      } catch (error) {
+        console.error(
+          `Error logging to transport ${transport.constructor.name}:`,
+          error
+        );
+      }
+    });
   }
 
-  private formatLogEntry(entry: LogEntry): string {
-    const parts: string[] = [];
-
-    if (this.config.enableTimestamp) {
-      parts.push(`[${entry.timestamp.toISOString()}]`);
+  // Method to gracefully close transports
+  async close(): Promise<void> {
+    for (const transport of this.config.transports) {
+      if (typeof transport.close === "function") {
+        try {
+          await Promise.try(transport.close);
+        } catch (err) {
+          console.error(
+            `Error closing transport ${transport.constructor.name}:`,
+            err
+          );
+        }
+      }
     }
-
-    parts.push(`[${LogLevel[entry.level]}]`);
-    parts.push(`[${entry.context}]`);
-    parts.push(entry.message);
-
-    if (entry.data) {
-      parts.push(JSON.stringify(entry.data, null, 2));
-    }
-
-    return parts.join(" ");
-  }
-
-  private colorize(message: string, level: LogLevel): string {
-    const colors = {
-      [LogLevel.ERROR]: "\x1b[31m", // Red
-      [LogLevel.WARN]: "\x1b[33m", // Yellow
-      [LogLevel.INFO]: "\x1b[36m", // Cyan
-      [LogLevel.DEBUG]: "\x1b[32m", // Green
-      [LogLevel.TRACE]: "\x1b[90m", // Gray
-    };
-
-    const reset = "\x1b[0m";
-    return `${colors[level]}${message}${reset}`;
-  }
-
-  private initLogFile() {
-    if (!this.logWriter) {
-      throw new Error("LogWriter not configured");
-    }
-    this.logWriter.init(this.config.logPath);
-  }
-
-  private writeToFile(entry: LogEntry) {
-    if (!this.logWriter) {
-      throw new Error("LogWriter not configured");
-    }
-
-    const logLine = this.formatLogEntry(entry) + "\n";
-    this.logWriter.write(logLine);
   }
 }

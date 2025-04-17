@@ -89,23 +89,17 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
 
   const taskRunner = config.taskRunner ?? new TaskRunner(3);
 
-  const logger = new Logger({
-    level: config.logger ?? LogLevel.INFO,
-    enableTimestamp: true,
-    enableColors: true,
-  });
+  const logger =
+    config.logger ??
+    new Logger({
+      level: config.logLevel ?? LogLevel.INFO,
+    });
+
+  if (config.logger && config.logLevel !== undefined) {
+    logger.configure({ level: config.logLevel });
+  }
 
   container.instance("logger", logger);
-
-  logger.debug("dreams", "Creating agent", {
-    hasModel: !!model,
-    hasReasoningModel: !!reasoningModel,
-    inputsCount: Object.keys(inputs).length,
-    outputsCount: Object.keys(outputs).length,
-    actionsCount: actions.length,
-    servicesCount: services.length,
-    extensionsCount: extensions.length,
-  });
 
   const debug: Debugger = (...args) => {
     if (!config.debugger) return;
@@ -147,6 +141,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
   }
 
   const agent: Agent<TContext> = {
+    logger,
     inputs,
     outputs,
     events,
@@ -187,6 +182,15 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       return () => {
         subs.delete(handler);
       };
+    },
+
+    async getAgentContext() {
+      return agent.context
+        ? await agent.getContext({
+            context: agent.context,
+            args: contexts.get("agent:context")!.args,
+          })
+        : undefined;
     },
 
     async getContexts() {
@@ -277,8 +281,6 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       const id = getContextId(params.context, args);
 
       if (!contexts.has(id) && contextIds.has(id)) {
-        console.log({ id });
-
         const stateSnapshot = await loadContextState(agent, params.context, id);
 
         if (stateSnapshot) {
@@ -314,7 +316,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     },
 
     getContextId(params) {
-      logger.trace("agent:getContextId", "Getting context id", params);
+      // logger.trace("agent:getContextId", "Getting context id", params);
       return getContextId(params.context, params.args);
     },
 
@@ -465,7 +467,6 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
 
     async run(params) {
       const { context, args, outputs, handlers, abortSignal } = params;
-      console.log(params.chain);
       if (!booted) {
         logger.error("agent:run", "Agent not booted");
         throw new Error("Not booted");
@@ -485,14 +486,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       // and we will use that state from contextsRunning so we need to wait before checking and creating
       const ctxState = await agent.getContext({ context, args });
       const workingMemory = await agent.getWorkingMemory(ctxId);
-      const agentContextEntry = contexts.get("agent:context");
-      const agentCtxState =
-        agent.context && agentContextEntry
-          ? await agent.getContext({
-              context: agent.context,
-              args: agentContextEntry.args,
-            })
-          : undefined;
+      const agentCtxState = await agent.getAgentContext();
 
       // todo: allow to control what happens when new input is sent while the ctx is running
       // context.onInput?
@@ -535,7 +529,14 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       let maxSteps = 0;
 
       function getMaxSteps() {
-        return ctxState.settings.maxSteps ?? 5;
+        return state.contexts.reduce(
+          (maxSteps, ctxState) =>
+            Math.max(
+              maxSteps,
+              ctxState.settings.maxSteps ?? ctxState.context.maxSteps ?? 0
+            ),
+          5
+        );
       }
 
       await state.setParams({
@@ -595,14 +596,12 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
               prompt,
               workingMemory,
               logger,
-              abortSignal,
               onError: (error) => {
                 streamError = error;
                 state.errors.push(error);
               },
             },
             {
-              debug: agent.debugger,
               abortSignal,
             }
           );
@@ -684,19 +683,6 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
           }
         }
       }
-
-      logger.debug(
-        "agent:run",
-        "Marking all working memory chain as processed"
-      );
-
-      workingMemory.inputs.forEach((i) => {
-        i.processed = true;
-      });
-
-      state.chain.forEach((i) => {
-        i.processed = true;
-      });
 
       await Promise.all(
         state.contexts.map((state) =>

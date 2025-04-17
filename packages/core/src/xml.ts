@@ -188,7 +188,7 @@ type XMLToken = StartTag | EndTag | TextContent | SelfClosingTag;
 
 const alphaSlashRegex = /[a-zA-Z\/]/;
 
-const wrappers = ["'", "`", '"', "(", ")"];
+const wrappers = ["'", "`", "(", ")"];
 
 // todo: maybe only allow new tags in new lines or immediatly after closing one
 export function* xmlStreamParser(
@@ -283,7 +283,12 @@ export function* xmlStreamParser(
           yield { type: "end", name: tagName };
         } else {
           const attributes = parseAttributes(tagContent.slice(tagName.length));
-          yield { type: "start", name: tagName, attributes };
+
+          if (tagContent.endsWith("/")) {
+            yield { type: "self-closing", name: tagName, attributes };
+          } else {
+            yield { type: "start", name: tagName, attributes };
+          }
         }
       } else {
         // Not a tag we care about, treat as text

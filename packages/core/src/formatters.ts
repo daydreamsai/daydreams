@@ -137,7 +137,7 @@ export function formatOutputInterface(output: Output<any>) {
     },
     {
       tag: "content_schema",
-      children: formatSchema(output.schema ?? z.string(), "schema"),
+      children: formatSchema(output.schema ?? z.string(), "content"),
     },
     output.examples
       ? {
@@ -162,6 +162,10 @@ export function formatAction(action: AnyAction) {
           children: action.instructions,
         }
       : null,
+    {
+      tag: "format",
+      children: action.callFormat?.toUpperCase() ?? "JSON",
+    },
     action.schema
       ? {
           tag: "schema",

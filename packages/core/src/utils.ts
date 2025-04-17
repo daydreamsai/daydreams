@@ -10,6 +10,7 @@ import type {
   Memory,
   Optional,
   OutputConfig,
+  OutputRefResponse,
   OutputSchema,
   WorkingMemory,
 } from "./types";
@@ -66,9 +67,9 @@ export function action<
  */
 export function output<
   Schema extends OutputSchema = OutputSchema,
-  // TResponse extends OutputResponse = OutputResponse,
+  Response extends OutputRefResponse = OutputRefResponse,
   Context extends AnyContext = AnyContext,
->(config: OutputConfig<Schema, Context>) {
+>(config: OutputConfig<Schema, Response, Context>) {
   return config;
 }
 

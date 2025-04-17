@@ -4,6 +4,7 @@ import type { Container } from "./container";
 import type { ServiceProvider } from "./serviceProvider";
 import type { BaseMemory } from "./memory";
 import type { TaskRunner } from "./task";
+import type { Logger } from "./logger";
 
 export { type LanguageModelV1, type Schema } from "ai";
 
@@ -73,8 +74,9 @@ export interface MemoryStore {
    * Removes all data from memory
    */
   clear(): Promise<void>;
-}
 
+  keys(base?: string): Promise<string[]>;
+}
 /**
  * Interface for storing and retrieving vector data
  */
@@ -261,7 +263,9 @@ export interface Action<
   name: string;
   description?: string;
   instructions?: string;
+
   schema: Schema;
+
   memory?: TMemory;
   install?: (agent: TAgent) => Promise<void> | void;
 
@@ -301,10 +305,41 @@ export interface Action<
       TMemory
     >,
     agent: TAgent
-  ) => Promise<void> | void;
+  ) => MaybePromise<any>;
+
+  queueKey?:
+    | string
+    | ((
+        ctx: ActionCallContext<
+          Schema,
+          TContext,
+          InferAgentContext<TAgent>,
+          TMemory
+        >
+      ) => string);
+
+  examples?: string[];
+
+  parser?: (ref: ActionCall) => InferActionArguments<Schema>;
+
+  callFormat?: "json" | "xml";
 }
 
-export type ActionCtxRef = AnyAction & { ctxId: string };
+export type ActionCtxRef = AnyAction & {
+  ctxRef: {
+    type: string;
+    id: string;
+    key: string;
+  };
+};
+
+export type OutputCtxRef = AnyOutput & {
+  ctxRef: {
+    type: string;
+    id: string;
+    key: string;
+  };
+};
 
 export type OutputSchema = z.AnyZodObject | z.ZodString | ZodRawShape;
 
@@ -327,7 +362,7 @@ export type OutputResponse =
 
 export type Output<
   Schema extends OutputSchema = OutputSchema,
-  // Response extends OutputResponse = OutputResponse,
+  Response extends OutputRefResponse = OutputRefResponse,
   TContext extends AnyContext = AnyContext,
   TAgent extends AnyAgent = AnyAgent,
 > = {
@@ -337,6 +372,7 @@ export type Output<
   required?: boolean;
   schema?: Schema;
   attributes?: OutputSchema;
+  context?: TContext;
   install?: (agent: TAgent) => MaybePromise<void>;
   enabled?: (ctx: AgentContext<TContext>) => boolean;
   handler?: (
@@ -345,13 +381,15 @@ export type Output<
       outputRef: OutputRef<InferOutputSchemaParams<Schema>>;
     },
     agent: TAgent
-  ) => MaybePromise<OutputResponse>;
-  format?: (res: OutputResponse) => string | string[] | XMLElement;
+  ) => MaybePromise<Response | Response[]>;
+  format?: (res: OutputRef<Response["data"]>) => string | string[] | XMLElement;
   /** Optional evaluator for this specific output */
   evaluator?: Evaluator<OutputResponse, AgentContext<Context>, TAgent>;
 
   examples?: string[];
 };
+
+export type AnyOutput = Output<any, any, any, AnyAgent>;
 
 export type AnyAction = Action<any, any, any, any, AnyAgent, any>;
 
@@ -463,6 +501,7 @@ export type ActionCall<Data = any> = {
   name: string;
   content: string;
   data: Data;
+  params?: Record<string, string>;
   timestamp: number;
   processed: boolean;
 };
@@ -628,6 +667,8 @@ export type Registry = {
 };
 
 interface AgentDef<TContext extends AnyContext = AnyContext> {
+  logger: Logger;
+
   /**
    * The memory store and vector store used by the agent.
    */
@@ -676,7 +717,7 @@ interface AgentDef<TContext extends AnyContext = AnyContext> {
   /**
    * A record of output configurations for the agent.
    */
-  outputs: Record<string, Omit<Output<any, TContext, any>, "type">>;
+  outputs: Record<string, Omit<Output<any, any, TContext, any>, "type">>;
 
   /**
    * A record of event schemas for the agent.
@@ -747,7 +788,7 @@ export interface Agent<TContext extends AnyContext = AnyContext>
     args: InferSchemaArguments<TContext["schema"]>;
     model?: LanguageModelV1;
     contexts?: ContextRefArray<SubContextRefs>;
-    outputs?: Record<string, Omit<Output<any, TContext, any>, "type">>;
+    outputs?: Record<string, Omit<Output<any, any, TContext, any>, "type">>;
     actions?: AnyAction[];
     handlers?: Partial<Handlers>;
     abortSignal?: AbortSignal;
@@ -768,7 +809,7 @@ export interface Agent<TContext extends AnyContext = AnyContext>
     input: { type: string; data: any };
     model?: LanguageModelV1;
     contexts?: ContextRefArray<SubContextRefs>;
-    outputs?: Record<string, Omit<Output<any, SContext, any>, "type">>;
+    outputs?: Record<string, Omit<Output<any, any, SContext, any>, "type">>;
     actions?: AnyAction[];
     handlers?: Partial<Handlers>;
     abortSignal?: AbortSignal;
@@ -814,6 +855,8 @@ export interface Agent<TContext extends AnyContext = AnyContext>
     context: TContext;
     args: InferSchemaArguments<TContext["schema"]>;
   }): string;
+
+  getAgentContext(): Promise<ContextState<TContext> | undefined>;
 
   /**
    * Retrieves the state of a given context and arguments.
@@ -861,7 +904,7 @@ export type Config<TContext extends AnyContext = AnyContext> = Partial<
 > & {
   model: Agent["model"];
   reasoningModel?: Agent["reasoningModel"];
-  logger?: LogLevel;
+  logLevel?: LogLevel;
   contexts?: AnyContext[];
   services?: ServiceProvider[];
   extensions?: Extension<TContext>[];
@@ -884,10 +927,10 @@ export type InputConfig<
 /** Configuration type for outputs without type field */
 export type OutputConfig<
   Schema extends OutputSchema = OutputSchema,
-  // Response extends OutputResponse = OutputResponse,
+  Response extends OutputRefResponse = OutputRefResponse,
   TContext extends AnyContext = AnyContext,
   TAgent extends AnyAgent = AnyAgent,
-> = Omit<Output<Schema, TContext, TAgent>, "type">;
+> = Omit<Output<Schema, Response, TContext, TAgent>, "type">;
 
 /** Configuration type for experts without type field */
 export type ExpertConfig = Omit<Expert, "type">;
@@ -1038,8 +1081,9 @@ interface ContextConfigApi<
       z.AnyZodObject | z.ZodString | z.ZodRawShape
     >,
   >(outputs: {
-    [K in keyof TSchemas]: Output<
+    [K in keyof TSchemas]: OutputConfig<
       TSchemas[K],
+      any,
       Context<TMemory, Schema, Ctx, Actions, Events>,
       AnyAgent
     >;
@@ -1160,7 +1204,7 @@ export interface Context<
   /**
    * A record of output configurations for the context.
    */
-  outputs: Record<string, Omit<Output<any, AnyContext, any>, "type">>;
+  outputs: Record<string, Omit<Output<any, any, AnyContext, any>, "type">>;
 }
 
 export type ContextSettings = {
@@ -1178,7 +1222,7 @@ export type ContextsRefRecord<T extends Record<string, AnyContext>> = {
   [K in keyof T]: ContextRef<T[K]>;
 };
 
-export type ContextRefArray<T extends Context<any>[]> = {
+export type ContextRefArray<T extends AnyContext[] = AnyContext[]> = {
   [K in keyof T]: ContextRef<T[K]>;
 };
 

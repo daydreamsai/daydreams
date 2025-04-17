@@ -10,6 +10,7 @@ import type {
   AnyAction,
   AnyAgent,
   AnyContext,
+  AnyOutput,
   Context,
   ContextRef,
   ContextState,
@@ -20,11 +21,13 @@ import type {
   Log,
   Memory,
   Output,
+  OutputCtxRef,
   OutputRef,
   WorkingMemory,
 } from "./types";
 import { randomUUIDv7 } from "./utils";
 import { pushToWorkingMemory } from "./context";
+import { parse } from "./xml";
 
 export class NotFoundError extends Error {
   constructor(public ref: ActionCall | OutputRef | InputRef) {
@@ -47,6 +50,24 @@ function parseJSONContent(content: string) {
   }
 
   return JSON.parse(content);
+}
+
+function parseXMLContent(content: string) {
+  const nodes = parse(content, (node) => {
+    return node;
+  });
+
+  const data = nodes.reduce(
+    (data, node) => {
+      if (node.type === "element") {
+        data[node.name] = node.content;
+      }
+      return data;
+    },
+    {} as Record<string, string>
+  );
+
+  return data;
 }
 
 export interface TemplateInfo {
@@ -246,12 +267,20 @@ export async function prepareActionCall({
   actions: ActionCtxRef[];
   logger: Logger;
 }) {
-  const action = actions.find((a) => a.name === call.name);
+  const contextKey = call.params?.contextKey;
+
+  const action = actions.find(
+    (a) =>
+      a.name === call.name && (contextKey ? contextKey === a.ctxRef.key : true)
+  );
+
+  console.log({ call, contextKey, action });
 
   if (!action) {
     logger.error("agent:action", "ACTION_MISMATCH", {
       name: call.name,
       data: call.content,
+      contextKey,
     });
 
     throw new NotFoundError(call);
@@ -259,12 +288,27 @@ export async function prepareActionCall({
 
   try {
     const content = call.content.trim();
-    const json = content.length > 0 ? parseJSONContent(content) : {};
 
-    const templates = detectTemplates(json);
+    let data: any;
+    const templates: TemplateInfo[] = [];
 
-    return { action, json, templates };
+    if (action.parser) {
+      data = action.parser(call);
+    } else if (action.schema && action.schema?._def?.typeName !== "ZodString") {
+      if (action.callFormat === "xml") {
+        data = parseXMLContent(content);
+      } else {
+        data = parseJSONContent(content);
+      }
+
+      templates.push(...detectTemplates(data));
+    } else {
+      data = content;
+    }
+
+    return { action, data, templates };
   } catch (error) {
+    console.log({ error });
     throw new ParsingError(call, error);
   }
 }
@@ -340,6 +384,12 @@ export async function handleActionCall({
     processed: false,
   };
 
+  const queueKey = action.queueKey
+    ? typeof action.queueKey === "function"
+      ? action.queueKey(callCtx)
+      : action.queueKey
+    : undefined;
+
   result.data = await taskRunner.enqueueTask(
     runAction,
     {
@@ -349,9 +399,9 @@ export async function handleActionCall({
       ctx: callCtx,
     },
     {
-      debug: agent.debugger,
       retry: action.retry,
       abortSignal,
+      queueKey,
     }
   );
 
@@ -368,22 +418,18 @@ export async function handleActionCall({
   return result;
 }
 
-export async function handleOutput({
+export function prepareOutputRef({
   outputRef,
   outputs,
   logger,
-  state,
-  workingMemory,
-  agent,
 }: {
-  outputs: Output[];
   outputRef: OutputRef;
+  outputs: OutputCtxRef[];
   logger: Logger;
-  workingMemory: WorkingMemory;
-  state: ContextState;
-  agent: AnyAgent;
-}): Promise<OutputRef | OutputRef[]> {
+}) {
   const output = outputs.find((output) => output.type === outputRef.type);
+
+  console.log({ output, outputRef });
 
   if (!output) {
     throw new NotFoundError(outputRef);
@@ -411,6 +457,24 @@ export async function handleOutput({
     }
   }
 
+  return { output };
+}
+
+export async function handleOutput({
+  outputRef,
+  output,
+  logger,
+  state,
+  workingMemory,
+  agent,
+}: {
+  output: OutputCtxRef;
+  outputRef: OutputRef;
+  logger: Logger;
+  workingMemory: WorkingMemory;
+  state: ContextState;
+  agent: AnyAgent;
+}): Promise<OutputRef | OutputRef[]> {
   if (output.handler) {
     const response = await Promise.try(
       output.handler,
@@ -433,7 +497,7 @@ export async function handleOutput({
           ...res,
         };
 
-        ref.formatted = output.format ? output.format(response) : undefined;
+        ref.formatted = output.format ? output.format(ref) : undefined;
         refs.push(ref);
       }
       return refs;
@@ -444,7 +508,7 @@ export async function handleOutput({
         processed: response.processed ?? true,
       };
 
-      ref.formatted = output.format ? output.format(response) : undefined;
+      ref.formatted = output.format ? output.format(ref) : undefined;
 
       return ref;
     }
@@ -474,6 +538,62 @@ export async function prepareContextActions(params: {
     actions.map((action) =>
       prepareAction({
         action,
+        ...params,
+      })
+    )
+  ).then((t) => t.filter((t) => !!t));
+}
+
+async function prepareOutput({
+  output,
+  context,
+  state,
+  workingMemory,
+  agent,
+  agentCtxState,
+}: {
+  output: AnyOutput;
+  context: AnyContext;
+  state: ContextState<AnyContext>;
+  workingMemory: WorkingMemory;
+  agent: AnyAgent;
+  agentCtxState: ContextState<AnyContext> | undefined;
+}): Promise<OutputCtxRef | undefined> {
+  if (output.context && output.context.type !== context.type) return undefined;
+  const enabled = output.enabled
+    ? output.enabled({
+        ...state,
+        context,
+        workingMemory,
+      })
+    : true;
+
+  return enabled
+    ? {
+        ...output,
+        ctxRef: {
+          type: state.context.type,
+          id: state.id,
+          key: state.key,
+        },
+      }
+    : undefined;
+}
+
+export async function prepareContextOutputs(params: {
+  context: Context;
+  state: ContextState<AnyContext>;
+  workingMemory: WorkingMemory;
+  agent: AnyAgent;
+  agentCtxState: ContextState<AnyContext> | undefined;
+}): Promise<OutputCtxRef[]> {
+  return Promise.all(
+    Object.entries(params.context.outputs).map(([type, output]) =>
+      prepareOutput({
+        output: {
+          type,
+          ...output,
+        },
         ...params,
       })
     )
@@ -522,7 +642,11 @@ export async function prepareAction({
   return enabled
     ? {
         ...action,
-        ctxId: state.id,
+        ctxRef: {
+          type: state.context.type,
+          id: state.id,
+          key: state.key,
+        },
       }
     : undefined;
 }
@@ -558,23 +682,25 @@ export async function prepareContext({
     ...input,
   }));
 
-  const outputs: Output[] = Object.entries({
-    ...agent.outputs,
-    ...ctxState.context.outputs,
-    ...(params?.outputs ?? {}),
-  })
-    .filter(([_, output]) =>
-      output.enabled
-        ? output.enabled({
-            ...ctxState,
-            workingMemory,
-          })
-        : true
+  const outputs: OutputCtxRef[] = await Promise.all(
+    Object.entries({
+      ...agent.outputs,
+      ...ctxState.context.outputs,
+      ...(params?.outputs ?? {}),
+    }).map(([type, output]) =>
+      prepareOutput({
+        output: {
+          type,
+          ...output,
+        },
+        agent,
+        agentCtxState,
+        context: ctxState.context,
+        state: ctxState,
+        workingMemory,
+      })
     )
-    .map(([type, output]) => ({
-      type,
-      ...output,
-    }));
+  ).then((r) => r.filter((a) => !!a));
 
   const actions = await Promise.all(
     [agent.actions, params?.actions]
@@ -621,13 +747,17 @@ export async function prepareContext({
 
   inputs.push(...subCtxsStatesInputs);
 
-  const subCtxsStatesOutputs: Output[] = subCtxsStates
-    .map((state) => Object.entries(state.context.outputs))
-    .flat()
-    .map(([type, output]) => ({
-      type,
-      ...output,
-    }));
+  const subCtxsStatesOutputs: OutputCtxRef[] = await Promise.all(
+    subCtxsStates.map((state) =>
+      prepareContextOutputs({
+        agent,
+        agentCtxState,
+        context: state.context,
+        state: state,
+        workingMemory,
+      })
+    )
+  ).then((r) => r.flat());
 
   outputs.push(...subCtxsStatesOutputs);
 

@@ -44,29 +44,25 @@ const telegramChat = context({
     }
     return "";
   },
-});
-
-export const telegram = extension({
-  name: "telegram",
-  services: [telegramService],
-  contexts: {
-    chat: telegramChat,
-  },
   inputs: {
     "telegram:message": input({
       schema: {
         user: z.object({ id: z.number(), username: z.string() }),
         text: z.string(),
       },
-      format: ({ data }) =>
-        formatMsg({
-          role: "user",
-          content: data.text,
-          user: data.user.username,
-        }),
+      format({ data: { user, text } }) {
+        return {
+          tag: "input",
+          params: {
+            type: "telegram:message",
+            userId: user.id.toString(),
+            username: user.username,
+          },
+          children: text,
+        };
+      },
       subscribe(send, { container }) {
         const tg = container.resolve<Telegraf>("telegraf");
-
         tg.on("message", (ctx) => {
           const chat = ctx.chat;
           const user = ctx.msg.from;
@@ -92,24 +88,26 @@ export const telegram = extension({
   },
   outputs: {
     "telegram:message": output({
-      schema: {
+      attributes: {
         userId: z
           .string()
           .describe("the userId to send the message to, you must include this"),
-        content: z.string().describe("the content of the message to send"),
       },
+      schema: z
+        .string()
+        .describe("the content of the message to send using markdown format"),
       description: "use this to send a telegram message to user",
-      enabled({ context }) {
-        return context.type === telegramChat.type;
-      },
+      examples: [
+        `<output type="telegram:message" userId="123456789">Hello! How can I assist you today?</output>`,
+      ],
       handler: async (data, ctx, { container }) => {
         const tg = container.resolve<Telegraf>("telegraf").telegram;
-        const chunks = splitTextIntoChunks(data.content, {
+        const chunks = splitTextIntoChunks(data, {
           maxChunkSize: 4096,
         });
 
         for (const chunk of chunks) {
-          await tg.sendMessage(data.userId, chunk, {
+          await tg.sendMessage(ctx.outputRef.params!.userId, chunk, {
             parse_mode: "Markdown",
           });
         }
@@ -120,5 +118,13 @@ export const telegram = extension({
         };
       },
     }),
+  },
+});
+
+export const telegram = extension({
+  name: "telegram",
+  services: [telegramService],
+  contexts: {
+    chat: telegramChat,
   },
 });

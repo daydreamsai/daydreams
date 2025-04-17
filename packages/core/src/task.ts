@@ -1,202 +1,224 @@
 import { v7 as randomUUIDv7 } from "uuid";
-import type { Debugger } from "./types";
+import type { MaybePromise } from "./types";
+import pDefer, { type DeferredPromise } from "p-defer";
 
-/**
- * Options for configuring a task.
- */
-export type TaskOptions = {
-  limit?: number;
-  retry?:
-    | number
-    | boolean
-    | ((failureCount: number, error: unknown) => boolean);
-  debug?: Debugger;
+type TaskContext = {
+  taskId: string;
+  abortSignal: AbortSignal;
+};
+
+type TaskOptions = {
+  concurrency?: number;
+  retry?: number | boolean | ((failureCount: number, err: unknown) => boolean);
   priority?: number;
-  callId?: string;
-  abortSignal?: AbortSignal;
+  queueKey?: string;
+  timeoutMs?: number;
 };
 
-/**
- * Context provided to a task.
- */
-export type TaskContext = {
-  callId: string;
-  debug: Debugger;
+type Task<Params = any, Result = any, TError = any> = {
+  key: string;
+  handler: (params: Params, ctx: TaskContext) => MaybePromise<Result>;
+  concurrency?: number;
+  retry?: boolean | number | ((failureCount: number, error: TError) => boolean);
+  priority?: number;
+  queueKey?: string;
+  timeoutMs?: number;
 };
-
-/**
- * A task function that takes parameters and options and returns a promise.
- */
-export type Task<in Params, out Result> = (
-  params: Params,
-  options?: TaskOptions
-) => Promise<Result>;
 
 type InferTaskParams<T extends Task<any, any>> =
   T extends Task<infer Params, any> ? Params : unknown;
 type InferTaskResult<T extends Task<any, any>> =
   T extends Task<any, infer Result> ? Result : unknown;
 
-/**
- * Represents a task that is queued for execution.
- */
-interface QueuedTask {
+type TaskInstance<TTask extends Task<any, any> = Task<any, any>> = {
   id: string;
-  execute: () => Promise<any>;
-  priority: number;
-  resolve: (value: any) => void;
-  reject: (reason: any) => void;
-}
+  task: TTask;
+  params: InferTaskParams<TTask>;
+  options: Omit<TaskOptions, "concurrency">;
+  createdAt: Date;
+  attempts: number;
+  controller: AbortController;
+  promise: DeferredPromise<InferTaskResult<TTask>>;
+  lastError?: unknown;
+};
 
-/**
- * Manages the execution of tasks with concurrency control.
- */
+type Queue = {
+  concurrency: number;
+  tasks: TaskInstance[];
+  running: Set<string>;
+};
+
 export class TaskRunner {
-  private queue: QueuedTask[] = [];
-  private running: Set<string> = new Set();
-  private concurrency: number;
-  private processing: boolean = false;
+  queues = new Map<string, Queue>();
+  processing = new Set<string>();
 
-  /**
-   * Creates a new TaskRunner instance.
-   * @param concurrency - The maximum number of tasks to run concurrently.
-   */
-  constructor(concurrency: number = 1) {
-    this.concurrency = concurrency;
+  constructor(concurrency: number) {
+    this.queues.set("main", { concurrency, tasks: [], running: new Set() });
   }
 
-  /**
-   * Sets the concurrency level for the task runner.
-   * @param concurrency - The new concurrency level.
-   */
-  setConcurrency(concurrency: number) {
-    this.concurrency = concurrency;
-    this.processQueue();
-  }
+  setQueue(queueKey: string, concurrency: number) {
+    const queue = this.queues.get(queueKey);
 
-  /**
-   * Processes the task queue, running tasks up to the concurrency limit.
-   */
-  private async processQueue() {
-    if (this.processing) return;
-    this.processing = true;
-
-    try {
-      while (this.queue.length > 0 && this.running.size < this.concurrency) {
-        // Sort entire queue by priority
-        this.queue.sort((a, b) => b.priority - a.priority);
-
-        const task = this.queue.shift();
-        if (!task) break;
-
-        this.running.add(task.id);
-
-        // Execute task without awaiting to allow concurrent execution
-        task
-          .execute()
-          .then((result) => {
-            task.resolve(result);
-          })
-          .catch((error) => {
-            task.reject(error);
-          })
-          .finally(() => {
-            this.running.delete(task.id);
-            // Try to process more tasks after one completes
-            this.processQueue();
-          });
-      }
-    } finally {
-      this.processing = false;
-    }
-  }
-
-  /**
-   * Enqueues a task for execution.
-   * @param taskFn - The function to execute as a task.
-   * @param priority - The priority of the task.
-   * @returns A promise that resolves when the task is completed.
-   */
-  enqueue<T>(taskFn: () => Promise<T>, priority: number = 0): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const queuedTask: QueuedTask = {
-        id: randomUUIDv7(),
-        execute: taskFn,
-        priority,
-        resolve,
-        reject,
-      };
-
-      this.queue.push(queuedTask);
-      // Use setTimeout to ensure proper task ordering
-      setTimeout(() => this.processQueue(), 0);
+    this.queues.set(queueKey, {
+      tasks: queue?.tasks ?? [],
+      running: queue?.running ?? new Set(),
+      concurrency,
     });
   }
 
-  /**
-   * Gets the number of active tasks.
-   */
-  get activeTasksCount(): number {
-    return this.running.size;
-  }
+  private processQueue(queueKey: string) {
+    if (this.processing.has(queueKey)) return;
 
-  /**
-   * Gets the number of tasks in the queue.
-   */
-  get queuedTasksCount(): number {
-    return this.queue.length;
-  }
+    const queue = this.queues.get(queueKey);
+    if (!queue) return;
 
-  /**
-   * Enqueues a task function for execution.
-   * @param taskFn - The task function to execute
-   * @param params - Parameters to pass to the task
-   * @param options - Task options including priority
-   * @returns A promise that resolves when the task is completed
-   */
-  enqueueTask<TTask extends Task<any, any>>(
-    taskFn: TTask,
-    params: InferTaskParams<TTask>,
-    options: TaskOptions = {}
-  ): Promise<InferTaskResult<TTask>> {
-    return this.enqueue(() => taskFn(params, options), options.priority ?? 0);
-  }
-}
-
-/**
- * Creates a task function that can be executed or enqueued.
- * @param key - A unique key for the task.
- * @param fn - The function to execute as the task.
- * @param defaultOptions - Default options for the task.
- * @returns A task function that can be executed directly or enqueued.
- */
-export function task<Params, Result>(
-  key: string,
-  fn: (params: Params, ctx: TaskContext) => Promise<Result>,
-  defaultOptions?: Omit<TaskOptions, "callId">
-): (params: Params, options?: TaskOptions) => Promise<Result> {
-  async function execute(params: Params, options?: TaskOptions) {
-    const callId = options?.callId ?? randomUUIDv7();
-
-    const mergedOptions = {
-      ...defaultOptions,
-      ...options,
-    };
-
-    delete mergedOptions.callId;
+    this.processing.add(queueKey);
 
     try {
-      const res = await Promise.resolve(
-        fn(params, {
-          callId,
-          debug: mergedOptions?.debug ?? (() => {}),
-        })
-      );
-      return res;
-    } catch (error) {
-      throw error;
+      while (queue.tasks.length > 0 && queue.running.size < queue.concurrency) {
+        queue.tasks.sort(
+          (a, b) => (b.options.priority ?? 0) - (a.options.priority ?? 0)
+        );
+        const instance = queue.tasks.shift();
+
+        if (!instance) break;
+
+        queue.running.add(instance.id);
+
+        this.processTask(instance)
+          .then((res) => {
+            instance.promise.resolve(res);
+          })
+          .catch((err) => {
+            instance.promise.reject(err);
+          })
+          .finally(() => {
+            queue.running.delete(instance.id);
+            this.processQueue(queueKey);
+          });
+      }
+    } finally {
+      this.processing.delete(queueKey);
     }
   }
 
-  return execute;
+  private async processTask(instance: TaskInstance) {
+    while (true) {
+      instance.controller.signal.throwIfAborted();
+
+      try {
+        instance.attempts++;
+
+        if (instance.attempts > 1) {
+          await new Promise<void>((resolve) =>
+            setTimeout(resolve, 250 * instance.attempts)
+          );
+        }
+
+        const result = await Promise.try(
+          instance.task.handler,
+          instance.params,
+          {
+            taskId: instance.id,
+            abortSignal: instance.controller.signal,
+          }
+        );
+
+        return result;
+      } catch (error) {
+        const retry = instance.options.retry;
+
+        if (retry) {
+          if (typeof retry === "boolean" && retry) continue;
+          if (typeof retry === "number" && retry >= instance.attempts) continue;
+          if (typeof retry === "function" && retry(instance.attempts, error))
+            continue;
+        }
+
+        throw error;
+      }
+    }
+  }
+
+  enqueueTask<TTask extends Task<any, any, any>>(
+    task: TTask,
+    params: InferTaskParams<TTask>,
+    options?: Omit<TaskOptions, "concurrency"> & { abortSignal?: AbortSignal }
+  ): Promise<InferTaskResult<TTask>> {
+    const queueKey = options?.queueKey ?? "main";
+
+    if (!this.queues.has(queueKey)) {
+      throw new Error("Invalid queue");
+    }
+
+    const { key, handler, ...defaultTaskToptions } = task;
+
+    const controller = new AbortController();
+    const deferPromise = pDefer<InferTaskResult<TTask>>();
+
+    const instance: TaskInstance<TTask> = {
+      id: randomUUIDv7(),
+      task,
+      params,
+      options: {
+        ...defaultTaskToptions,
+        ...options,
+      },
+      controller,
+      attempts: 0,
+      createdAt: new Date(),
+      promise: deferPromise,
+    };
+
+    if (instance.options?.timeoutMs) {
+      const timeoutSignal = AbortSignal.timeout(instance.options.timeoutMs);
+
+      timeoutSignal.addEventListener(
+        "abort",
+        () => {
+          controller.abort(timeoutSignal.reason);
+        },
+        {
+          once: true,
+          signal: controller.signal,
+        }
+      );
+    }
+
+    if (options?.abortSignal) {
+      function signalListener() {
+        controller.abort(options!.abortSignal!.reason);
+      }
+
+      options.abortSignal.addEventListener("abort", signalListener, {
+        once: true,
+      });
+
+      deferPromise.promise.finally(() => {
+        options.abortSignal?.removeEventListener("abort", signalListener);
+      });
+    }
+
+    controller.signal.addEventListener(
+      "abort",
+      () => {
+        deferPromise.reject(controller.signal.reason);
+      },
+      {
+        once: true,
+      }
+    );
+
+    this.queues.get(queueKey)!.tasks.push(instance);
+
+    setTimeout(() => this.processQueue(queueKey), 0);
+
+    return deferPromise.promise;
+  }
+}
+
+export function task<Params = any, Result = any>(
+  definition: Task<Params, Result>
+) {
+  return definition;
 }

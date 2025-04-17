@@ -77,6 +77,7 @@ Follow these steps to process the updates:
    - You can only use actions listed in the <available_actions> section
    - Follow the schemas provided for each action
    - Actions should be used when necessary to fulfill requests or provide information that cannot be conveyed through a simple response
+   - If action belongs to a context and there is many instances of the context use <action_call contextKey="[Context key]">
 
 5. No output or action:
    If you determine that no output or action is necessary, don't respond to that message.`,
@@ -124,10 +125,10 @@ Here's how you structure your response:
 </reasoning>
 
 [List of async action calls to be initiated, if applicable]
-<action_call name="[Action name]">[action arguments using the schema as JSON]</action_call>
+<action_call name="[Action name]">[action arguments using the schema and format]</action_call>
 
 [List of outputs, if applicable]
-<output type="[Output type]" {...output attributes using the schema}>
+<output type="[Output type]" {...output attributes using the attributes_schema}>
 [output content using the content_schema]
 </output>
 </response>`,

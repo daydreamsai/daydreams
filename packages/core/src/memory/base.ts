@@ -34,6 +34,16 @@ export function createMemory(
 export function createMemoryStore(): MemoryStore {
   const data = new Map<string, any>();
   return {
+    async keys(base) {
+      const keys = Array.from(data.keys());
+
+      if (base) {
+        return keys.filter((key) => key.startsWith(base));
+      }
+
+      return keys;
+    },
+
     /**
      * Retrieves a value from the store
      * @param key - Key to look up

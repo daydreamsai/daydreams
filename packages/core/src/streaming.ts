@@ -10,6 +10,7 @@ import {
   ParsingError,
   prepareActionCall,
   prepareContext,
+  prepareOutputRef,
   resolvePathSegments,
   resolveTemplates,
 } from "./handlers";
@@ -31,6 +32,7 @@ import type {
   Input,
   Log,
   Output,
+  OutputCtxRef,
   OutputRef,
   RunRef,
   StepRef,
@@ -169,6 +171,20 @@ export async function handleStream<Ctx = any>(
 
         // todo: we need to handle text when !current to a default output?
       }
+
+      if (result.value.type === "self-closing") {
+        fn(
+          {
+            index: index++,
+            tag: result.value.name,
+            attributes: result.value.attributes,
+            content: "",
+            done: true,
+            _depth: 0,
+          },
+          ctx
+        );
+      }
       result = parser.next();
     }
   }
@@ -275,7 +291,7 @@ export function createContextStreamHandler({
     steps: [] as StepRef[],
     chain: [] as AnyRef[],
     actions: [] as ActionCtxRef[],
-    outputs: [] as Output[],
+    outputs: [] as OutputCtxRef[],
     inputs: [] as Input[],
     contexts: [] as ContextState[],
     errors: [] as any[],
@@ -464,7 +480,7 @@ export function createContextStreamHandler({
   }
 
   async function handleActionCallStream(call: ActionCall) {
-    const { action, json, templates } = await prepareActionCall({
+    const { action, data, templates } = await prepareActionCall({
       call,
       actions: state.actions,
       logger,
@@ -474,7 +490,7 @@ export function createContextStreamHandler({
 
     if (templates.length > 0)
       await resolveTemplates(
-        json,
+        data,
         templates,
         async function templateResolver(key, path) {
           if (key === "calls") {
@@ -517,12 +533,12 @@ export function createContextStreamHandler({
 
       call.data =
         "parse" in schema
-          ? (schema as ZodSchema).parse(json)
+          ? (schema as ZodSchema).parse(data)
           : schema.validate
-            ? schema.validate(json)
-            : json;
+            ? schema.validate(data)
+            : data;
     } else {
-      call.data = json;
+      call.data = data;
     }
 
     state.calls.push(
@@ -533,7 +549,7 @@ export function createContextStreamHandler({
         logger,
         state:
           state.contexts.find(
-            (subCtxState) => subCtxState.id === action.ctxId
+            (subCtxState) => subCtxState.id === action.ctxRef.id
           ) ?? ctxState,
         taskRunner,
         workingMemory,
@@ -564,12 +580,21 @@ export function createContextStreamHandler({
   async function handleOutputStream(outputRef: OutputRef) {
     logger.debug("agent:output", outputRef.type, outputRef.data);
 
+    const { output } = prepareOutputRef({
+      outputRef,
+      outputs: state.outputs,
+      logger,
+    });
+
     const refs = await handleOutput({
       agent,
       logger,
-      state: ctxState,
+      state:
+        state.contexts.find(
+          (subCtxState) => subCtxState.id === output.ctxRef.id
+        ) ?? ctxState,
       workingMemory,
-      outputs: state.outputs,
+      output,
       outputRef,
     });
 
@@ -587,6 +612,7 @@ export function createContextStreamHandler({
     try {
       await pushLogStream(el, done);
     } catch (error) {
+      console.log({ error });
       state.errors.push(error);
       if (el.ref === "input") return;
       // wip
@@ -679,10 +705,13 @@ export function createContextStreamHandler({
           ref: "action_call",
         });
 
+        const { name, ...params } = el.attributes;
+
         handlePushLog(
           {
             ...ref,
-            name: el.attributes.name,
+            name,
+            params,
             content: el.content,
             data: undefined,
             processed: false,

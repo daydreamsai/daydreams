@@ -98,14 +98,13 @@ type GenerateOptions = {
   logger: Logger;
   model: LanguageModelV1;
   onError: (error: unknown) => void;
-  abortSignal?: AbortSignal;
 };
 
-export const runGenerate = task(
-  "agent:run:generate",
-  async (
-    { prompt, workingMemory, model, onError, abortSignal }: GenerateOptions,
-    { callId, debug }
+export const runGenerate = task({
+  key: "agent:run:generate",
+  handler: async (
+    { prompt, workingMemory, model, onError }: GenerateOptions,
+    { abortSignal }
   ) => {
     const isReasoningModel = reasoningModels.includes(model.modelId);
 
@@ -139,18 +138,13 @@ export const runGenerate = task(
       ] as CoreMessage["content"];
     }
 
-    try {
     const stream = streamText({
       model,
       messages,
       stopSequences: ["\n</response>"],
       temperature: 0.6,
       abortSignal,
-        // experimental_transform: smoothStream({
-        //   chunking: "word",
-        // }),
       onError: (event) => {
-          console.log({ event });
         onError(event.error);
       },
     });
@@ -160,12 +154,8 @@ export const runGenerate = task(
       stream,
       isReasoningModel,
     });
-    } catch (error) {
-      console.log({ error });
-      throw error;
-    }
-  }
-);
+  },
+});
 
 /**
  * Task that executes an action with the given context and parameters.
@@ -179,9 +169,9 @@ export const runGenerate = task(
  * @returns The result of the action execution
  * @throws Will throw an error if the action execution fails
  */
-export const runAction = task(
-  "agent:run:action",
-  async <TContext extends AnyContext>({
+export const runAction = task({
+  key: "agent:run:action",
+  handler: async <TContext extends AnyContext>({
     ctx,
     action,
     agent,
@@ -210,10 +200,10 @@ export const runAction = task(
       logger.error("agent:action", "ACTION_FAILED", { error });
 
       if (action.onError) {
-        await Promise.try(action.onError, error, ctx, agent);
+        return await Promise.try(action.onError, error, ctx, agent);
       } else {
         throw error;
       }
     }
-  }
-);
+  },
+});
