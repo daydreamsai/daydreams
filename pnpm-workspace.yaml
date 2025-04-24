@@ -3,3 +3,4 @@ packages:
   - "clients/**/*"
   - "examples/**/*"
   - "docs"
+  - "bot"

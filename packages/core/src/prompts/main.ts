@@ -93,11 +93,14 @@ Configuration: Access pre-defined configuration values using {{config.key.name}}
 Here are the available actions you can initiate:
 {{actions}}
 
-Here are the available outputs you can use:
+Here are the available outputs you can use (full details):
 {{outputs}}
 
 Here is the current contexts:
 {{contexts}}
+
+Here is a summary of the available output types you can use:
+{{output_types_summary}}
 
 <template-engine>
 Purpose: Utilize the template engine ({{...}} syntax) primarily to streamline workflows by transferring data between different components within the same turn. This includes passing outputs from actions into subsequent action arguments, or embedding data from various sources directly into response outputs. This enhances efficiency and reduces interaction latency.
@@ -177,6 +180,20 @@ export function formatPromptSections({
   maxWorkingMemorySize?: number;
   chainOfThoughtSize?: number;
 }) {
+  // Create a simple list of output types
+  const outputTypesSummary =
+    outputs.length > 0
+      ? xml(
+          "output_types_summary",
+          undefined,
+          outputs.map((o) => `- ${o.type}`).join("\\n")
+        )
+      : xml(
+          "output_types_summary",
+          undefined,
+          "No outputs are currently available."
+        );
+
   return {
     actions: xml("available-actions", undefined, actions.map(formatAction)),
     outputs: xml(
@@ -184,6 +201,7 @@ export function formatPromptSections({
       undefined,
       outputs.map(formatOutputInterface)
     ),
+    output_types_summary: outputTypesSummary,
     contexts: xml("contexts", undefined, contexts.map(formatContextState)),
     workingMemory: xml(
       "working-memory",

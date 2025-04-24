@@ -1,0 +1,4080 @@
+file: ./content/docs/contributing.mdx
+meta: {
+  "title": "Contributing",
+  "description": "How to contribute to the Daydreams project."
+}
+        
+(Content coming soon)
+
+
+file: ./content/docs/index.mdx
+meta: {
+  "title": "Getting Started",
+  "description": "Build your first Daydreams agent."
+}
+        
+> ⚠️ **Warning**: This is alpha software under active development. Expect
+> frequent breaking changes and bugs. The API is not yet stable.
+
+## Overview
+
+Daydreams is a framework for building autonomous AI agents. At its core, an
+agent analyzes incoming information (inputs), reasons about it using a Large
+Language Model (LLM), and decides on the next steps, which could be generating a
+response (output) or performing a task (action). The results of actions feed
+back into the agent's awareness, creating a continuous loop orchestrated by the
+LLM.
+
+This allows you to build agents that can interact with various systems like
+blockchains, social media, APIs, and more, based on goals and context.
+
+## Installation
+
+You can install the core Daydreams package and the CLI helper using npm or bun:
+
+```bash
+npm install @daydreamsai/core @daydreamsai/cli
+# or
+bun add @daydreamsai/core @daydreamsai/cli
+```
+
+You will also need an LLM provider SDK, for example, OpenAI:
+
+```bash
+npm install @ai-sdk/openai
+# or
+bun add @ai-sdk/openai
+```
+
+Make sure you have an `OPENAI_API_KEY` environment variable set.
+
+## Core Concepts
+
+Daydreams is built around a few key ideas:
+
+* **[Agent](./concepts/index):** The central orchestrator that runs the main
+  loop.
+* **[Context](./concepts/contexts):** Manages the state and memory for a
+  specific task or interaction (e.g., a chat session).
+* **[Inputs](./concepts/inputs):** How agents receive information (e.g., CLI
+  messages, API events).
+* **[Outputs](./concepts/outputs):** How agents respond or send information out
+  (e.g., CLI responses, tweets).
+* **[Actions](./concepts/actions):** Tasks agents can perform (e.g., calling an
+  API, executing a transaction).
+* **[Memory](./concepts/memory):** How agents store and recall information
+  (working memory, episodic memory).
+
+Dive deeper into these in the [Core Concepts](./concepts/index) section.
+
+## Your First Agent (CLI Echo Bot)
+
+Let's create a simple agent that echoes back whatever you type in the command
+line.
+
+**1. Set up your project:**
+
+```bash
+mkdir my-first-agent
+cd my-first-agent
+npm init -y
+npm install @daydreamsai/core @daydreamsai/cli @ai-sdk/openai zod
+# or use bun
+# bun init
+# bun add @daydreamsai/core @daydreamsai/cli @ai-sdk/openai zod
+```
+
+**2. Create `agent.ts`:**
+
+```typescript
+import { createDreams, context, input, output } from "@daydreamsai/core";
+import { cliExtension } from "@daydreamsai/cli";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+
+// 1. Define the main context for our agent
+const echoContext = context({
+  type: "echo",
+  // No specific args needed for this simple context
+  schema: z.object({}),
+  // Instructions for the LLM
+  instructions:
+    "You are a simple echo bot. Repeat the user's message back to them.",
+});
+
+// 2. Create the agent instance
+const agent = createDreams({
+  // Use the OpenAI model
+  model: openai("gpt-4o-mini"),
+  // Include the CLI extension for input/output
+  extensions: [cliExtension],
+  // Register our custom context
+  contexts: [echoContext],
+});
+
+// 3. Start the agent and run the context
+async function main() {
+  // Start the agent (initializes services like readline)
+  await agent.start();
+
+  console.log("Echo agent started. Type 'exit' to quit.");
+
+  // Run our echo context. Since it uses the cliExtension,
+  // it will automatically start listening for console input.
+  // We use {} for args because our context schema is an empty object.
+  await agent.run({
+    context: echoContext,
+    args: {},
+  });
+
+  // Agent stops when the input loop (in cliExtension) breaks (e.g., on "exit")
+  console.log("Agent stopped.");
+}
+
+main();
+```
+
+**3. Run the agent:**
+
+Make sure your `OPENAI_API_KEY` environment variable is set.
+
+```bash
+node agent.ts
+```
+
+Now you can type messages, and the agent should echo them back using the CLI
+input and output handlers provided by `cliExtension`.
+
+***
+
+*Next Steps: Explore the [Core Concepts](./concepts/index) or check out the
+[Guides](./guides/index) for more complex examples.*
+
+
+file: ./content/docs/advanced/custom-extensions.mdx
+meta: {
+  "title": "Custom Extensions",
+  "description": "Building your own Daydreams extensions."
+}
+        
+(Content coming soon)
+
+
+file: ./content/docs/advanced/index.mdx
+meta: {
+  "title": "Advanced Topics",
+  "description": "Deeper dives into Daydreams capabilities."
+}
+        
+(Content coming soon)
+
+
+file: ./content/docs/concepts/actions.mdx
+meta: {
+  "title": "Actions",
+  "description": "Defining agent capabilities and task execution."
+}
+        
+Actions represent the capabilities of a Daydreams agent – the specific tasks it
+can perform in response to inputs or its internal reasoning. They are the
+primary way agents interact with external systems, APIs, or execute complex
+logic.
+
+Examples of actions could include:
+
+* Sending a tweet.
+* Fetching data from an API.
+* Executing a smart contract transaction.
+* Querying a database.
+* Writing to a file.
+
+## Defining an Action
+
+Actions are defined using the `action` helper function exported from
+`@daydreamsai/core`.
+
+```typescript
+import {
+  action,
+  type ActionCallContext,
+  type AnyAgent,
+} from "@daydreamsai/core";
+import { z } from "zod";
+import { type MyContext } from "./my-context"; // Assuming you have a context defined
+
+// Example: An action to fetch weather data
+const getWeather = action({
+  // Required: A unique name for the action. Used by the LLM in <action_call name="...">
+  name: "getWeather",
+
+  // Optional: Description for the LLM to understand what the action does.
+  description: "Fetches the current weather for a given city.",
+
+  // Optional: More specific instructions for the LLM on how/when to use the action.
+  instructions: "Use this action when the user asks for the weather.",
+
+  // Optional: Zod schema defining the arguments the action expects.
+  // If omitted, the handler receives no `args` parameter.
+  schema: z.object({
+    city: z.string().describe("The city name to get the weather for."),
+    unit: z.enum(["Celsius", "Fahrenheit"]).default("Celsius").optional(),
+  }),
+
+  // Required: The function that executes the action's logic.
+  handler: async (args, ctx, agent) => {
+    // 'args' contains the validated arguments based on the schema.
+    console.log(`Fetching weather for ${args.city} in ${args.unit}`);
+
+    // 'ctx' is the ActionCallContext, providing access to context state, memory, etc.
+    const apiKey = ctx.memory.apiKey; // Accessing context-specific memory
+    const url = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${args.city}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch weather: ${response.statusText}`);
+    }
+    const data = await response.json();
+
+    // The return value becomes the data in the ActionResult
+    return {
+      temperature:
+        args.unit === "Celsius" ? data.current.temp_c : data.current.temp_f,
+      condition: data.current.condition.text,
+      unit: args.unit,
+    };
+  },
+
+  // Optional: Zod schema defining the expected structure of the return value.
+  // Useful for documentation and potentially for type checking.
+  returns: z.object({
+    temperature: z.number(),
+    condition: z.string(),
+    unit: z.string(),
+  }),
+
+  // Optional: Function to format the ActionResult data for logging or display.
+  format: (result) => {
+    const data = result.data; // Access the return value from the handler
+    return `The weather is ${data.temperature}°${data.unit} and ${data.condition}.`;
+  },
+
+  // Optional: Define persistent memory specific to this action.
+  // memory: myActionMemory, // See Memory concept page
+
+  // Optional: Conditionally enable/disable this action based on context state.
+  enabled: (ctx) => {
+    // Example: Only enable if an API key exists in the context memory
+    // return !!ctx.memory.apiKey; // Assumes ctx is ActionContext here
+    return true;
+  },
+
+  // Optional: Specify retry behavior on failure.
+  retry: 3, // Retry up to 3 times
+
+  // Optional: Custom error handler.
+  onError: async (error, ctx, agent) => {
+    console.error(`Action ${ctx.call.name} failed:`, error);
+    // Maybe emit an event or try a fallback
+    ctx.emit("actionError", { action: ctx.call.name, error: error.message });
+  },
+
+  // Optional: Associate this action with a specific context type.
+  // context: MyContext, // Only available when MyContext is active
+});
+```
+
+**Key Parameters:**
+
+* `name` (string): Unique identifier used in `<action_call name="...">`.
+* `description`/`instructions` (string, optional): Help the LLM understand the
+  action's purpose and usage. Included in the `<available-actions>` section of
+  the prompt.
+* `schema` (Zod Schema, optional): Defines and validates arguments passed by the
+  LLM. Arguments are parsed from the JSON content within the `<action_call>`
+  tag.
+* `handler` (Function): The core logic. Receives validated `args` (if schema is
+  defined) and the `ActionCallContext`. The return value is wrapped in an
+  `ActionResult`.
+* `returns` (Zod Schema, optional): Documents the expected return shape of the
+  handler.
+* `format` (Function, optional): Customizes how the `ActionResult` is logged or
+  displayed.
+* `memory` (Memory, optional): Allows associating persistent state specifically
+  with this action across multiple calls.
+* `enabled` (Function, optional): Dynamically determines if the action should be
+  available to the LLM based on the current context.
+* `retry` (boolean | number | Function, optional): Configures automatic retries
+  if the handler throws an error.
+* `onError` (Function, optional): Custom logic to execute if the handler fails
+  (after retries).
+* `context` (Context, optional): Restricts the action to be available only when
+  a specific context type is active.
+
+### `ActionCallContext`
+
+The `handler` function receives a context object (`ctx`) with useful properties:
+
+```typescript
+type ActionCallContext = {
+  // From the active ContextState
+  id: string;
+  key: string;
+  context: AnyContext;
+  args: Record<string, any>; // Context arguments
+  options: Record<string, any>; // Context setup options
+  memory: Record<string, any>; // Context persistent memory
+  settings: ContextSettings;
+
+  // Specific to the run
+  workingMemory: WorkingMemory;
+  agentMemory?: Record<string, any>; // Agent's top-level context memory, if any
+  actionMemory?: Record<string, any>; // Action's persistent memory, if defined
+
+  // Details about this specific call
+  call: ActionCall; // The parsed <action_call> log object
+
+  // Utilities
+  abortSignal?: AbortSignal; // Signal for aborting long-running tasks
+  push: (log: Log) => void; // Push a new Log entry into the current run's working memory
+  emit: (event: string, data: any, options?: { processed?: boolean }) => void; // Emit an EventRef
+};
+```
+
+## LLM Interaction
+
+1. **Availability:** Enabled actions are presented to the LLM within the
+   `<available-actions>` tag in the prompt, including their name, description,
+   instructions, and argument schema.
+2. **Invocation:** The LLM requests an action by including an
+   `<action_call name="actionName">...</action_call>` tag in its response
+   stream. The content inside the tag should be a JSON object matching the
+   action's `schema`.
+
+## Execution Flow
+
+1. **Parsing:** When the framework parses an `<action_call>` from the LLM
+   stream (`handleActionCallStream` in `streaming.ts`), it identifies the
+   action by `name`.
+2. **Argument Handling:** `prepareActionCall` (`handlers.ts`) parses the JSON
+   content inside the tag.
+3. **Template Resolution:** It resolves any template variables (e.g.,
+   `{{calls[0].id}}`, `{{shortTermMemory.someKey}}`) within the parsed
+   arguments against the current run's state.
+4. **Validation:** If a `schema` is defined for the action, the resolved
+   arguments are validated against it.
+5. **Execution:** `handleActionCall` (`handlers.ts`) enqueues the actual
+   execution using the `runAction` task (`tasks/index.ts`) via the
+   `TaskRunner`.
+6. **Handler Invocation:** The `runAction` task executes the action's `handler`
+   function with the validated arguments and the `ActionCallContext`.
+7. **Result:** The return value of the `handler` is wrapped in an
+   `ActionResult` object.
+8. **Feedback:** The `ActionResult` is pushed back into the processing loop
+   (`handlePushLog` in `streaming.ts`), making the result available to the
+   agent (and potentially the LLM in the next step's prompt).
+
+Actions are the fundamental mechanism for agents to interact with the world and
+perform tasks beyond simple text generation.
+
+
+file: ./content/docs/concepts/agent-lifecycle.mdx
+meta: {
+  "title": "Agent Lifecycle",
+  "description": "How Daydreams agents process information and execute tasks."
+}
+        
+The core of the Daydreams framework is the agent's execution lifecycle. This
+loop manages how an agent receives input, reasons with an LLM, performs actions,
+and handles results. Understanding this flow is crucial for building and
+debugging agents.
+
+Let's trace the lifecycle of a typical request:
+
+## 1. Input Reception
+
+* **Source:** An input source (like Discord, Telegram, CLI) is configured via an
+  `extension`.
+* **Subscription:** The `input` definition within the extension (e.g.,
+  `discord:message`) uses a `subscribe` method to listen for external events.
+* **Trigger:** When the external service (e.g., Discord API) emits an event
+  (like a new message), the `subscribe` callback is triggered.
+* **Invocation:** This callback usually invokes
+  `agent.send(context, args, data)`, providing:
+  * The target `context` (e.g., `discordChannelContext`).
+  * `args` to identify the specific context instance (e.g.,
+    `{ channelId: '...' }`).
+  * The input `data` (e.g., user message content).
+
+## 2. `agent.send`
+
+* **Log Creation:** Creates an `InputRef` object (a type of `Log`) containing
+  the input details (type, content, timestamp) and marks it as
+  `processed: false`.
+* **Run Initiation:** Calls `agent.run`, passing the context details and the new
+  `InputRef` as part of the initial processing `chain`.
+
+## 3. `agent.run`
+
+* **Context Initialization:** Retrieves or creates the `ContextState` for the
+  given context type and arguments. It also retrieves or creates the associated
+  `WorkingMemory` for this specific run.
+* **Concurrency Check:** Checks if this specific context (`ctxId`) is already
+  processing in the `contextsRunning` map.
+  * If yes: Pushes the new `InputRef` onto the existing run's stream handler
+    (`push`) and returns the promise associated with the ongoing run.
+  * If no: Proceeds to set up a new run.
+* **Stream Handler Setup:** Calls `createContextStreamHandler`. This critical
+  function sets up the state management for this run, including:
+  * The `state` object (tracking steps, logs, actions, outputs, errors, calls,
+    etc.).
+  - The `handler` function that will process parsed XML tokens from the LLM's
+    response stream.
+  - The `push` function to add logs (`Log` objects) to the processing pipeline.
+* **Tracking:** Adds the new run state to the `contextsRunning` map.
+* **Start Run:** Calls `state.start()`. This prepares the initial context state
+  (`prepareContext`) by loading available actions, outputs, etc., and creates
+  the first `StepRef` log.
+* **Step Loop:** Enters the main processing loop
+  (`while ((maxSteps = getMaxSteps()) >= state.step)`), which iterates through
+  reasoning steps.
+
+## 4. Inside the Step Loop
+
+Each iteration represents one turn of the agent's reasoning cycle:
+
+* **Prepare State:** Calls `prepareContext` again (or `state.nextStep()` which
+  internally calls `prepare`). This refreshes the available actions, outputs,
+  and context data based on the *current* `WorkingMemory`, including results
+  from the previous step.
+* **Prompt Generation:**
+  * `formatPromptSections` gathers the prepared actions, outputs, context
+    states, and `WorkingMemory` logs (both processed and unprocessed).
+  * Various `format*` functions convert these objects into standardized XML
+    strings using the `xml` helper and `formatXml`.
+  * `render` injects these XML strings into the main `promptTemplate`.
+* **LLM Call:**
+  * The `runGenerate` task is enqueued via the `taskRunner`.
+  * It sends the fully formatted XML prompt to the configured LLM.
+  * It returns a text stream (`stream`) of the LLM's response and a promise for
+    the complete text (`getTextResponse`).
+* **Stream Processing:**
+  * `handleStream` consumes the LLM's text stream.
+  * It uses `xmlStreamParser` to parse the incoming text into XML tokens
+    (`StartTag`, `EndTag`, `TextContent`) based on recognized tags.
+  * `handleStream` reconstructs logical `StackElement` objects from these
+    tokens.
+  * For each `StackElement`, the `handler` function (created by
+    `createContextStreamHandler`) is invoked.
+* **Handling Parsed Elements:**
+  * This `handler` uses `getOrCreateRef` to create or update partial `Log`
+    entries (like `Thought`, `ActionCall`, `OutputRef`) based on the incoming
+    `StackElement` data.
+  * When an element is fully parsed (`el.done` is true), it calls
+    `handlePushLog`.
+* **Processing Completed Logs:**
+  * This is the core logic reacting to the LLM's parsed output. Based on the
+    `Log` object's `ref` type:
+    * `thought`: Logs the reasoning step, calls the `onThinking` handler if
+      provided.
+    * `input`: Calls `handleInput` for schema validation, custom processing, and
+      potential episodic memory query.
+    * `output`: Calls `handleOutputStream` -> `handleOutput`. Validates against
+      schema, runs the output's `handler`, formats result, adds `OutputRef` to
+      memory.
+    * `action_call`: Calls `handleActionCallStream` -> `prepareActionCall` to
+      parse args and resolve templates. Pushes execution logic
+      (`handleActionCall` -> `runAction` task) onto `state.calls`. The
+      `ActionResult` is added back via `handlePushLog`.
+    * `action_result`: Logs the result. Optionally calls `generateEpisode`.
+  * Notifies subscribers (`onLogStream`).
+  * Saves the updated `WorkingMemory`.
+* **Action Synchronization:** After the LLM response stream is fully processed,
+  `agent.run` waits for all action promises in `state.calls` to settle.
+* **Loop Continuation:** Checks `state.shouldContinue()`. If yes, increments
+  `state.step` and loops.
+
+## 5. Run Completion
+
+* **Exit Loop:** Once the loop condition is met, the loop exits.
+* **Cleanup:** Marks any remaining logs as processed.
+* **Hooks:** Calls `onRun` hooks defined in the active contexts.
+* **Save State:** Saves the final state of all involved contexts.
+* **Release:** Removes the run (`ctxId`) from the `contextsRunning` map.
+* **Return:** Resolves the original promise returned by `agent.run` with the
+  complete array of `Log` objects generated during the run (`state.chain`).
+
+This detailed cycle illustrates how Daydreams agents iteratively perceive
+(inputs, results), reason (LLM prompt/response), and act (outputs, actions),
+using streaming and asynchronous processing to handle complex interactions
+efficiently.
+
+
+file: ./content/docs/concepts/contexts.mdx
+meta: {
+  "title": "Contexts",
+  "description": "Managing state, memory, and behavior for agent interactions."
+}
+        
+In Daydreams, a **Context** represents a specific scope of interaction or task
+for an agent. It encapsulates the state, memory, available actions, and behavior
+relevant to that scope. Think of it like a dedicated workspace for the agent to
+handle a particular conversation, process, or goal.
+
+For example, you might have separate contexts for:
+
+* Handling a Discord channel (`discord:channel`).
+* Managing a Telegram chat (`telegram:chat`).
+* Executing a specific trading strategy (`tradingContext`).
+* Processing a user's request in a CLI session (`cli`).
+
+Each running instance of a context maintains its own state and memory, isolated
+from others.
+
+## Defining a Context
+
+Contexts are defined using the `context` function exported from
+`@daydreamsai/core`.
+
+```typescript
+import { context, action, input, output } from "@daydreamsai/core";
+import { z } from "zod";
+
+// Example: A simple context for a chat session
+const chatContext = context({
+  // Required: A unique identifier for this type of context
+  type: "chat",
+
+  // Required: Zod schema defining the arguments needed to identify
+  // a specific instance of this context.
+  schema: z.object({
+    sessionId: z.string(),
+    userId: z.string(),
+  }),
+
+  // Optional: Function to generate a unique instance key from arguments.
+  // If not provided, defaults to the 'type'. Useful when 'type' alone isn't unique enough.
+  key: ({ sessionId }) => sessionId,
+
+  // Optional: Asynchronous function called when a context instance is first created.
+  // Use this to set up initial data or options specific to this instance.
+  setup: async (args, settings, agent) => {
+    const userProfile = await agent.someService.getUserProfile(args.userId);
+    return { userProfile }; // This becomes 'options' in ContextState
+  },
+
+  // Optional: Function to define the structure of the persistent memory
+  // specific to this context type (TMemory). Runs if no saved memory exists.
+  create: (params, agent) => {
+    return {
+      messageHistory: [],
+      userPreferences: params.options.userProfile?.preferences ?? {},
+    };
+  },
+
+  // Optional: Provides static or dynamic instructions to the LLM within this context.
+  instructions: (state) =>
+    `You are chatting with ${state.options.userProfile?.name}. Be helpful.`,
+
+  // Optional: Provides a description of the context, often used in prompts.
+  description: "A chat session with a specific user.",
+
+  // Optional: Function to render the context's state for the LLM prompt.
+  // The output (string, XML, etc.) is included in the <context> section of the prompt.
+  render: (state) => {
+    return state.memory.messageHistory
+      .slice(-5) // Show last 5 messages
+      .map((msg) => `${msg.sender}: ${msg.text}`)
+      .join("\\n");
+  },
+
+  // Optional: Define lifecycle hooks for the context run.
+  onStep: async (ctx, agent) => {
+    /* Logic to run on each step */
+  },
+  onRun: async (ctx, agent) => {
+    /* Logic to run when the run completes */
+  },
+  shouldContinue: (ctx) => true, // Determine if the run should continue
+  onError: async (error, ctx, agent) => {
+    /* Handle errors */
+  },
+
+  // Optional: Define inputs, outputs, and actions specific to this context type.
+  // These are merged with the agent's global definitions.
+  inputs: {
+    /* ... */
+  },
+  outputs: {
+    /* ... */
+  },
+  actions: [
+    /* ... */
+  ],
+
+  // Optional: Specify a default LLM for this context type.
+  model: undefined, // Defaults to agent's model if undefined
+
+  // Optional: Default limits for runs within this context.
+  maxSteps: 10,
+  maxWorkingMemorySize: 50,
+});
+```
+
+**Key Parameters:**
+
+* `type` (string): A unique identifier for the kind of context (e.g.,
+  "discord:channel", "trading").
+* `schema` (Zod Schema): Defines the arguments needed to uniquely identify an
+  *instance* of this context (e.g., `{ channelId: z.string() }`). The agent uses
+  these arguments to load or create the correct context state.
+* `key` (Function, optional): Generates a unique string identifier for a context
+  instance based on its arguments. If omitted, the `type` is used (suitable if
+  only one instance of that type exists).
+* `setup` (Function, optional): Runs once when a context instance is first
+  initialized. Useful for fetching initial data needed by the context, which
+  becomes available in `ContextState.options`.
+* `create` (Function, optional): Defines the initial structure of the context's
+  persistent memory (`TMemory`) if no saved state is found. The return value is
+  stored and managed by the `MemoryStore`.
+* `instructions` / `description` (string | Function, optional): Provides
+  guidance to the LLM about the context's purpose or state. Can be dynamic based
+  on the current `ContextState`.
+* `render` (Function, optional): Determines how the context's current state
+  (`ContextState.memory`) is represented in the LLM prompt (within the
+  `<context>` tag).
+* `onStep` / `onRun` / `shouldContinue` / `onError` (Functions, optional):
+  Lifecycle hooks executed during an `agent.run`.
+* `inputs` / `outputs` / `actions` (Objects/Array, optional): Define I/O and
+  actions specifically available within this context type. These are merged with
+  the agent's global definitions.
+* `model` (LanguageModelV1, optional): Override the agent's default model for
+  runs within this context.
+* `maxSteps` / `maxWorkingMemorySize` (number, optional): Set default limits for
+  runs within this context.
+
+## Context State (`ContextState`)
+
+When a context is active during an `agent.run`, its state is represented by the
+`ContextState` object. This object is passed to various handlers and functions
+(like `render`, `onStep`, action handlers).
+
+```typescript
+type ContextState<TContext extends AnyContext = AnyContext> = {
+  id: string; // Unique identifier for this instance (e.g., "discord:channel:12345")
+  key: string; // Key generated by the `key` function (e.g., "12345")
+  context: TContext; // The original context definition object
+  args: InferSchemaArguments<TContext["schema"]>; // Parsed arguments used to load this instance
+  options: InferContextOptions<TContext>; // Result returned by the `setup` function
+  memory: InferContextMemory<TContext>; // The current persistent memory state for this instance
+  settings: ContextSettings; // Runtime settings (model, limits) for this run
+  contexts: string[]; // IDs of other contexts linked to this run
+};
+```
+
+## Working Memory
+
+Each context run (`agent.run`) has an associated `WorkingMemory`. This is
+distinct from the persistent `ContextState.memory`. Working Memory holds the
+temporary logs (`InputRef`, `OutputRef`, `ActionCall`, `ActionResult`,
+`Thought`, etc.) generated *during* a single run. It's the agent's short-term
+scratchpad for the current execution cycle and is used to build the prompt for
+the LLM at each step.
+
+See the
+[Agent Lifecycle](./agent-lifecycle#4-inside-the-step-loop-agentrun-in-dreamsts)
+for how Working Memory is used in prompt generation.
+
+## Agent Interaction
+
+You typically interact with contexts via the `Agent` instance:
+
+* `agent.getContext({ context: myContext, args: { ... } })`: Retrieves an
+  existing `ContextState` instance or creates a new one if it doesn't exist.
+  Loads memory from the `MemoryStore`.
+* `agent.getContextById(id)`: Retrieves a `ContextState` by its full ID (e.g.,
+  "discord:channel:12345").
+* `agent.saveContext(contextState, optionalWorkingMemory)`: Persists the
+  `ContextState` (including its `memory`) to the configured `MemoryStore`.
+  `WorkingMemory` is usually saved internally during `agent.run`.
+* `agent.run({ context: myContext, args: { ... } })`: Starts or continues the
+  execution loop for a specific context instance.
+
+Contexts provide the essential structure for managing scoped state, behavior,
+and memory within the Daydreams framework.
+
+
+file: ./content/docs/concepts/index.mdx
+meta: {
+  "title": "Core Concepts",
+  "description": "Understand the fundamental building blocks of the Daydreams framework."
+}
+        
+The Daydreams framework is designed around a set of core concepts that work
+together to enable autonomous agent behavior. Understanding these concepts is
+key to effectively building and customizing agents.
+
+This section provides a detailed explanation of each fundamental component:
+
+* **[Agent Lifecycle](/docs/concepts/agent-lifecycle):** How an agent processes
+  information, makes decisions, and executes tasks in a continuous loop.
+* **[Contexts](/docs/concepts/contexts):** The mechanism for managing state,
+  memory, and behavior for specific tasks or interactions.
+* **[Actions](/docs/concepts/actions):** Definable tasks or capabilities that an
+  agent can perform.
+* **[Inputs](/docs/concepts/inputs):** How agents receive data and trigger
+  processing cycles.
+* **[Outputs](/docs/concepts/outputs):** How agents communicate results or send
+  information to external systems.
+* **[Memory](/docs/concepts/memory):** The different ways agents store,
+  retrieve, and utilize information (Working, Episodic, Vector).
+* **[Prompting](/docs/concepts/prompting):** How instructions and context are
+  formatted for the LLM to guide its reasoning.
+* **[Streaming & Parsing](/docs/concepts/streaming-parsing):** How the framework
+  handles and interprets the LLM's output stream in real-time.
+* **[Task Runner](/docs/concepts/task-runner):** The system for managing
+  asynchronous operations and background tasks.
+* **[Services & Extensions](/docs/concepts/services-extensions):** How to
+  integrate external services and extend the framework's capabilities.
+
+Explore these pages to gain a deeper understanding of how Daydreams works under
+the hood.
+
+
+file: ./content/docs/concepts/inputs.mdx
+meta: {
+  "title": "Inputs",
+  "description": "How Daydreams agents receive information and trigger processing."
+}
+        
+Inputs are the mechanism by which Daydreams agents receive information from the
+outside world. They act as the triggers that initiate or contribute to an
+agent's processing cycle (`agent.run`). An input could represent a user message,
+a blockchain event, an API webhook, a sensor reading, or any other data source
+relevant to the agent's task.
+
+## Defining an Input
+
+Input sources are defined using the `input` helper function exported from
+`@daydreamsai/core`. Each input definition connects an external data source to
+the agent's core processing loop.
+
+```typescript
+import { input, context, type AnyAgent } from "@daydreamsai/core";
+import { z } from "zod";
+import { EventEmitter } from "events"; // Example external source
+
+// Assume myContext is defined elsewhere
+declare const myContext: any;
+
+// Example: An input source listening to a simple EventEmitter
+const myEventEmitter = new EventEmitter();
+
+const eventInput = input({
+  // Required: A unique identifier for this input type.
+  type: "custom:event",
+
+  // Optional: Zod schema for the *data* payload pushed by the 'send' function.
+  // This validates the data structure before it's processed by the agent.
+  schema: z.object({
+    eventId: z.string(),
+    payload: z.any(),
+    timestamp: z.number(),
+  }),
+
+  // Required (usually): Connects to the external data source and triggers 'send'.
+  subscribe: (send, agent: AnyAgent) => {
+    // 'send' is the function to push data into the agent.
+    // 'agent' is the agent instance for accessing services, etc.
+
+    const listener = (eventData: { id: string; data: any; ts: number }) => {
+      console.log(`Event received: ${eventData.id}`);
+
+      // Determine the target context and its arguments.
+      // This might be static or dynamically determined based on eventData.
+      const targetContext = myContext; // Replace with your actual context
+      const contextArgs = { someId: eventData.id }; // Arguments for the context schema
+
+      // Prepare the data payload matching the input's schema.
+      const inputData = {
+        eventId: eventData.id,
+        payload: eventData.data,
+        timestamp: eventData.ts,
+      };
+
+      // Call 'send' to push the input to the agent for processing.
+      send(targetContext, contextArgs, inputData);
+    };
+
+    // Attach the listener to the external source.
+    myEventEmitter.on("newEvent", listener);
+
+    // Return a cleanup function to detach the listener when the agent stops.
+    return () => {
+      myEventEmitter.off("newEvent", listener);
+      console.log("Detached event listener.");
+    };
+  },
+
+  // Optional: A handler to preprocess or validate the data *before* the InputRef log
+  // is created and added to WorkingMemory. It receives the raw data passed to 'send'.
+  // It can modify the data or add parameters to the InputRef.
+  handler: async (data, ctx, agent) => {
+    // Example: Add a parameter based on context state
+    const processed =
+      ctx.memory.processedEvents?.includes(data.eventId) ?? false;
+    return {
+      data: data, // Can transform data if needed
+      params: { processed: String(processed) }, // Add parameters to the InputRef
+    };
+  },
+
+  // Optional: Custom formatting for how this InputRef appears in logs.
+  format: (ref) => {
+    return `Event ${ref.data.eventId} received: ${JSON.stringify(
+      ref.data.payload
+    )}`;
+  },
+
+  // Optional: Setup logic run when the agent starts.
+  install: async (agent) => {
+    /* Initialize external connections */
+  },
+
+  // Optional: Conditionally enable/disable this input source.
+  enabled: (state) => true,
+
+  // Optional: Associate this input definition with a specific context.
+  // context: myContext,
+});
+```
+
+**Key Parameters:**
+
+* `type` (string): A unique name identifying this input source (e.g.,
+  "discord:message", "webhook:github").
+* `schema` (Zod Schema, optional): Defines the expected structure of the `data`
+  payload passed to the `send` function within `subscribe`. This ensures data
+  consistency before it enters the agent's run cycle.
+* `subscribe` (Function): This is the core connection point.
+  * It receives a `send` function and the `agent` instance.
+  * Its responsibility is to listen to the external source (e.g., setup webhook
+    listeners, connect to websockets, poll APIs, listen to event emitters).
+  * When new data arrives, it calls `send(context, args, data)`:
+    * `context`: The target `Context` definition object.
+    * `args`: An object matching the target `context`'s `schema`, identifying
+      the specific instance to run.
+    * `data`: The payload matching this `input`'s `schema`.
+  * It should return a cleanup function that disconnects from the source when
+    the agent stops.
+* `handler` (Function, optional): A pre-processing step that runs *after* `send`
+  is called but *before* the `InputRef` log is finalized and added to the
+  `WorkingMemory`. It receives the raw data from `send` and the target
+  `ContextState`. It can transform the data or add `params` to the resulting
+  `InputRef`.
+* `format` (Function, optional): Customizes the XML representation of the
+  `InputRef` log.
+* `install` (Function, optional): Logic executed once when the agent starts
+  (e.g., initializing SDKs).
+* `enabled` (Function, optional): Dynamically control if this input source is
+  active.
+* `context` (Context, optional): Associates this input definition with a
+  specific context (less common for inputs, usually defined globally or in
+  extensions).
+
+## Execution Flow
+
+1. **External Event:** An event occurs in the external system connected via
+   `subscribe`.
+2. **Listener Triggered:** The listener function set up in `subscribe` is
+   called with the raw event data.
+3. **`send` Called:** The listener determines the target `context` and `args`,
+   formats the `data` payload according to the `input` schema, and calls
+   `send(targetContext, contextArgs, inputData)`.
+4. **`agent.send`:** The `send` function (provided by the framework) internally
+   calls
+   `agent.send({ context: targetContext, args: contextArgs, input: { type: thisInputType, data: inputData } })`.
+5. **`InputRef` Creation:** `agent.send` creates the initial `InputRef` log
+   object with `processed: false`.
+6. **`agent.run` Initiated:** `agent.send` calls `agent.run` for the target
+   context instance, passing the new `InputRef` in the `chain`. (See
+   [Agent Lifecycle](./agent-lifecycle)).
+7. **`handleInput` Called:** During the first step of the `agent.run` cycle,
+   when the `InputRef` is processed by `handlePushLog`, the `handleInput`
+   function (`handlers.ts`) is invoked.
+8. **Pre-processing & Validation:** `handleInput` runs the optional
+   `input.handler` (if defined) for any final data transformation or adding
+   `params` to the `InputRef`. It also validates the final `InputRef.data`
+   against `input.schema`.
+9. **Memory Query:** `handleInput` may perform a query against the vector store
+   using the input data to retrieve relevant episodic memories, adding them to
+   the `WorkingMemory`.
+10. **Processing Continues:** The `InputRef` is marked as `processed: true`
+    (usually), and the agent proceeds with the rest of the step (prompt
+    generation, LLM call, etc.).
+
+Inputs are the entry points for external information, initiating the agent's
+perception-reasoning-action cycle. The `subscribe` method bridges external
+systems with the agent's core logic via the `send` function.
+
+
+file: ./content/docs/concepts/memory.mdx
+meta: {
+  "title": "Memory",
+  "description": "How Daydreams agents store, recall, and learn from information."
+}
+        
+Memory is fundamental to how Daydreams agents operate, allowing them to maintain
+state, recall past interactions, store learned information, and improve their
+performance over time. The framework provides a flexible system with different
+types of memory serving distinct purposes.
+
+## Core Memory Components (`BaseMemory`)
+
+When creating an agent using `createDreams`, you configure its primary memory
+system via the `memory` option. This accepts an object conforming to the
+`BaseMemory` type, which holds implementations for different storage needs:
+
+```typescript
+import { createDreams } from "@daydreamsai/core";
+import { createMemory, createMemoryStore, createVectorStore } from "@daydreamsai/core";
+import { createChromaVectorStore } from "@daydreamsai/chroma"; // Example
+import { createMongoMemoryStore } from "@daydreamsai/mongo"; // Example
+
+const agent = createDreams({
+  model: /* ... */,
+  memory: createMemory(
+    // 1. MemoryStore: For key-value based storage
+    await createMongoMemoryStore({ uri: "mongodb://localhost:27017" }),
+
+    // 2. VectorStore: For embedding storage and similarity search
+    createChromaVectorStore("my-agent-episodes")
+  ),
+  // Optional: Enable automatic episodic memory generation
+  // generateMemories: true,
+  // exportTrainingData: true, // Optionally save episodes for fine-tuning
+  // trainingDataPath: './agent-training.jsonl'
+});
+```
+
+The `createMemory` function bundles together two main storage interfaces:
+
+1. **`MemoryStore`**: A key-value store interface for structured data
+   persistence.
+2. **`VectorStore`**: An interface for storing vector embeddings and performing
+   similarity searches, primarily used for episodic memory.
+
+The `BaseMemory` object passed to `createDreams` makes these stores available
+throughout the agent's systems.
+
+## `MemoryStore` (Key-Value Storage)
+
+The `MemoryStore` handles the persistence of structured data associated with
+contexts and actions. It defines a simple key-value interface:
+
+* `get<T>(key: string): Promise<T | null>`: Retrieve data by key.
+* `set<T>(key: string, value: T): Promise<void>`: Store or update data by key.
+* `delete(key: string): Promise<void>`: Remove data by key.
+* `clear(): Promise<void>`: Remove all data (use with caution).
+
+**Uses:**
+
+* Storing `ContextState` snapshots (key: `"context:<contextId>"`).
+* Storing persistent `Context` memory (key: `"memory:<contextId>"`).
+* Storing `WorkingMemory` snapshots between runs (key:
+  `"working-memory:<contextId>"`).
+* Storing persistent `Action` memory (key: defined in `action.memory.key`).
+
+**Implementations:**
+
+* `createMemoryStore()`: Default in-memory store using a `Map` (data lost on
+  restart). Found in `@daydreamsai/core`.
+* `createMongoMemoryStore()`: MongoDB-backed implementation. Found in
+  `@daydreamsai/mongo`.
+* *(Others like SQLite, Redis might be available or could be implemented)*
+
+## `VectorStore` (Embedding Storage & Search)
+
+The `VectorStore` is designed for handling high-dimensional vector embeddings,
+typically used for semantic search and retrieving relevant past experiences
+(Episodic Memory).
+
+* `upsert(contextId: string, data: any): Promise<void>`: Add or update vector
+  embeddings, often associated with a specific context.
+* `query(contextId: string, query: string): Promise<any[]>`: Search for vectors
+  similar to the query text within a specific context.
+* `createIndex(indexName: string): Promise<void>`: Create an index (if required
+  by the backend).
+* `deleteIndex(indexName: string): Promise<void>`: Delete an index.
+
+**Uses:**
+
+* Storing `Episode` embeddings for recall.
+* Potentially storing document embeddings for RAG (Retrieval-Augmented
+  Generation) patterns (though not explicitly shown in the core loop).
+
+**Implementations:**
+
+* `createVectorStore()`: Default no-op implementation (does nothing). Found in
+  `@daydreamsai/core`.
+* `createChromaVectorStore()`: Implementation using ChromaDB. Found in
+  `@daydreamsai/chroma`. Requires `OPENAI_API_KEY` for default embedding or a
+  custom embedder.
+* *(Others like Pinecone might be available or could be implemented)*
+
+## Types of Memory Usage
+
+### Working Memory
+
+* **Purpose:** Short-term, temporary storage for a single `agent.run` cycle.
+* **Content:** Holds the sequence of `Log` objects (`InputRef`, `OutputRef`,
+  `Thought`, `ActionCall`, `ActionResult`, `EventRef`, `StepRef`, `RunRef`)
+  generated during the run.
+* **Lifecycle:** Created at the start of `agent.run`, populated during stream
+  processing, used to build prompts at each step, and potentially snapshotted to
+  the `MemoryStore` between runs.
+* **Access:** Available as `ctx.workingMemory` within handlers.
+
+### Context Memory
+
+* **Purpose:** Persistent state associated with a specific `Context` instance
+  (e.g., chat history for a specific user session).
+* **Structure:** Defined by the `create` function in the `context` definition.
+* **Lifecycle:** Loaded from the `MemoryStore` when `agent.getContext` is
+  called, updated by context logic or actions, saved back to the `MemoryStore`
+  via `agent.saveContext`.
+* **Access:** Available as `ctx.memory` within context-related functions
+  (`render`, `onStep`, etc.) and action handlers.
+
+### Action Memory
+
+* **Purpose:** Persistent state associated specifically with an `Action`,
+  allowing it to maintain state across multiple calls within different runs or
+  contexts.
+* **Structure:** Defined by the `memory` option in the `action` definition,
+  using the `memory()` helper.
+* **Lifecycle:** Loaded from the `MemoryStore` before the action handler runs,
+  potentially updated by the handler, saved back to the `MemoryStore` after the
+  handler completes.
+* **Access:** Available as `ctx.actionMemory` within the action's handler.
+
+### Episodic Memory
+
+* **Purpose:** Enables the agent to learn from past experiences by recalling
+  relevant "episodes" (sequences of observation/thought -> action -> result).
+* **Structure:** Defined by the `Episode` interface (observation, thoughts,
+  result, timestamp, etc.).
+* **Generation:** Handled by `generateEpisode` (`memory/utils.ts`), which uses
+  an LLM to summarize the `Thought`, `ActionCall`, and `ActionResult`. Triggered
+  automatically if `agent.memory.generateMemories` is true.
+* **Storage:** The generated `Episode` (or its embedding) is stored in the
+  `VectorStore` via `agent.memory.vector.upsert()`.
+* **Retrieval:** When a new `InputRef` is processed (`handleInput`), the
+  `agent.memory.vector.query()` method is called to find relevant past episodes
+  based on the input content. Retrieved episodes are added to
+  `WorkingMemory.episodicMemory`.
+* **Training Data:** Episodes can be exported as prompt/completion pairs for
+  fine-tuning models using `agent.exportAllTrainingData()` or by setting
+  `exportTrainingData: true` on the agent config.
+
+By combining these memory types and storage backends, Daydreams agents can
+maintain short-term focus (Working Memory), long-term context state
+(Context/Action Memory), and learn from past interactions (Episodic Memory via
+VectorStore).
+
+
+file: ./content/docs/concepts/outputs.mdx
+meta: {
+  "title": "Outputs",
+  "description": "How Daydreams agents send information and responses."
+}
+        
+Outputs are how Daydreams agents communicate results or send information to
+external systems or users. If Inputs are how agents "listen," Outputs are how
+they "speak" or "act" based on the LLM's reasoning.
+
+Examples of outputs include:
+
+* Sending a message to a Discord channel or Telegram chat.
+* Posting a tweet.
+* Returning a response in a CLI session.
+* Calling an external API based on the agent's decision.
+
+## Defining an Output
+
+Outputs are defined using the `output` helper function exported from
+`@daydreamsai/core`. Each definition specifies how the agent should structure
+information for a particular output channel and how to execute the sending
+logic.
+
+```typescript
+import {
+  output,
+  context,
+  type AnyAgent,
+  type AgentContext,
+} from "@daydreamsai/core";
+import { z } from "zod";
+
+// Assume myDiscordClient.sendMessage exists
+declare const myDiscordClient: {
+  sendMessage: (channelId: string, content: string) => Promise<any>;
+};
+declare const myContext: any;
+
+const discordMessageOutput = output({
+  // Required: A unique identifier for this output type. Used by the LLM.
+  type: "discord:message",
+
+  // Optional: Description for the LLM.
+  description: "Sends a message to a specific Discord channel.",
+
+  // Optional: Instructions for the LLM on usage.
+  instructions: "Use this to reply to the user in the Discord channel.",
+
+  // Optional: Zod schema for the main content of the output.
+  // The LLM provides this content *inside* the <output> tag.
+  // Defaults to z.string() if omitted.
+  schema: z.string().describe("The message content to send."),
+
+  // Optional: Zod schema for additional attributes the LLM must provide
+  // *on* the <output> tag itself.
+  attributes: z.object({
+    channelId: z.string().describe("The ID of the Discord channel to send to."),
+    replyToUserId: z
+      .string()
+      .optional()
+      .describe("User ID to mention in the reply."),
+  }),
+
+  // Required (usually): The function that performs the actual sending logic.
+  handler: async (data, ctx, agent) => {
+    // 'data' contains the validated content (from schema) and attributes.
+    const { channelId, replyToUserId } = ctx.outputRef.params ?? {}; // Access attributes via outputRef
+    const content = data; // Access content from schema
+
+    let messageContent = content;
+    if (replyToUserId) {
+      messageContent = `<@${replyToUserId}> ${content}`;
+    }
+
+    console.log(`Sending to Discord channel ${channelId}: ${messageContent}`);
+    await myDiscordClient.sendMessage(channelId, messageContent);
+
+    // Optional: Return data to update the OutputRef log.
+    // Can also return an array of OutputRefResponse for multiple logs.
+    return {
+      data: { content: messageContent, channelId }, // Updated data for the log
+      params: ctx.outputRef.params,
+      processed: true, // Mark this output as fully handled
+    };
+  },
+
+  // Optional: Custom formatting for the OutputRef log.
+  format: (res) => {
+    const outputData = Array.isArray(res) ? res[0]?.data : res?.data;
+    return `Sent Discord message to ${outputData?.channelId}: "${outputData?.content}"`;
+  },
+
+  // Optional: Examples for the LLM.
+  examples: [
+    `<output type="discord:message" channelId="12345">Hello there!</output>`,
+    `<output type="discord:message" channelId="67890" replyToUserId="user123">Got it!</output>`,
+  ],
+
+  // Optional: Setup logic run when the agent starts.
+  install: async (agent) => {
+    /* ... */
+  },
+
+  // Optional: Conditionally enable this output based on context.
+  enabled: (ctx: AgentContext) => {
+    // Example: Only enable if the current context is a discord channel
+    // return ctx.context.type === 'discord:channel';
+    return true;
+  },
+
+  // Optional: Associate with a specific context type.
+  // context: myContext,
+});
+```
+
+**Key Parameters:**
+
+* `type` (string): Unique identifier used in `<output type="...">`.
+* `description`/`instructions` (string, optional): Help the LLM understand what
+  the output does and when to use it.
+* `schema` (Zod Schema, optional): Defines the structure and validates the
+  *content* placed *inside* the `<output>` tag by the LLM. Defaults to
+  `z.string()`.
+* `attributes` (Zod Schema, optional): Defines and validates *attributes* placed
+  *on* the `<output>` tag itself (e.g.,
+  `<output type="discord:message" channelId="...">`). These provide necessary
+  parameters for the `handler`.
+* `handler` (Function): Executes the logic to send the information externally.
+  It receives:
+  * `data`: The validated content from the `schema`.
+  * `ctx`: The `AgentContext`, including `ctx.outputRef` which contains the
+    parsed `params` (attributes) and original `content`.
+  * `agent`: The agent instance.
+  * It can optionally return an `OutputRefResponse` (or array thereof) to update
+    the log entry or mark it as processed.
+* `format` (Function, optional): Customizes the log representation of the
+  `OutputRef`.
+* `examples` (string\[], optional): Provides concrete examples to the LLM on how
+  to structure the `<output>` tag.
+* `install` / `enabled` / `context` (Functions/Context, optional): Similar to
+  Actions and Inputs for setup, conditional availability, and context scoping.
+
+## LLM Interaction
+
+1. **Availability:** Enabled outputs are presented to the LLM within the
+   `<available-outputs>` tag in the prompt, including their type, description,
+   instructions, content schema (`content_schema`), attribute schema
+   (`attributes_schema`), and examples.
+2. **Invocation:** The LLM generates an output by including an `<output>` tag
+   in its response stream, matching one of the available types. It must provide
+   any required attributes defined in the `attributes` schema and the content
+   inside the tag matching the `schema`.
+   ```xml
+   <output type="discord:message" channelId="123456789">
+     This is the message content generated by the LLM.
+   </output>
+   ```
+
+## Execution Flow
+
+1. **Parsing:** When the framework parses an `<output>` tag from the LLM stream
+   (`handleStream` in `streaming.ts`), it extracts the `type`, `attributes`,
+   and `content`.
+2. **Log Creation:** An initial `OutputRef` log is created (`getOrCreateRef` in
+   `streaming.ts`).
+3. **Processing:** Once the tag is fully parsed (`el.done`), `handlePushLog`
+   calls `handleOutputStream` (local) which in turn calls `handleOutput`
+   (`handlers.ts`).
+4. **Validation:** `handleOutput` finds the corresponding output definition by
+   `type`. It validates the extracted `content` against the `output.schema` and
+   the extracted `attributes` against the `output.attributes` schema.
+5. **Handler Execution:** If validation passes, `handleOutput` executes the
+   `output.handler` function, passing the validated content (`data`) and the
+   `AgentContext` (which includes the `outputRef` containing parsed attributes
+   in `outputRef.params`).
+6. **External Action:** The `handler` performs the necessary external operation
+   (e.g., sending the Discord message).
+7. **Logging:** The `handler` can optionally return data to update the
+   `OutputRef` log. The `OutputRef` is added to the `WorkingMemory`.
+
+Outputs allow the agent to respond and communicate, completing the interaction
+loop initiated by Inputs and guided by Actions.
+
+
+file: ./content/docs/concepts/prompting.mdx
+meta: {
+  "title": "Prompting",
+  "description": "How Daydreams structures prompts to guide LLM reasoning and actions."
+}
+        
+The interaction between the Daydreams framework and the Large Language Model
+(LLM) is mediated through carefully structured prompts. These prompts provide
+the LLM with the necessary context, instructions, available tools (actions and
+outputs), and current state, guiding its reasoning process and constraining its
+output format.
+
+## The Main Prompt Template (`mainStep`)
+
+The core prompt structure is defined in `packages/core/src/prompts/main.ts`
+within the `mainStep` configuration object. It uses a template string
+(`mainStep.template` or `promptTemplate`) composed of several sections:
+
+```text
+{{intro}}      # General instructions for the agent's task
+{{instructions}} # Step-by-step guide on how to process updates
+{{content}}    # Dynamically generated section with available tools and state
+{{response}}   # Structure definition for the LLM's expected output
+{{footer}}     # Final reminders and important notes
+```
+
+Each section (`{{intro}}`, `{{instructions}}`, etc.) contains static text
+providing overall guidance to the LLM on how it should behave within the
+framework.
+
+## Dynamic Prompt Generation
+
+At each step of the [Agent Lifecycle](./agent-lifecycle), the framework
+dynamically generates the content for the `{{content}}` section of the prompt
+template. This ensures the LLM always has the most up-to-date information.
+
+1. **Gathering Data (`formatPromptSections`)**: The `formatPromptSections`
+   function (in `prompts/main.ts`) collects the current state, including:
+   * Available `actions`.
+   * Available `outputs`.
+   * Active `contexts` and their rendered state.
+   * Recent `WorkingMemory` logs (both processed and unprocessed).
+2. **Formatting to XML (`formatters.ts`)**: Various helper functions
+   (`formatAction`, `formatContextState`, `formatOutputInterface`,
+   `formatContextLog`, `formatValue`, `formatXml`) convert these JavaScript
+   objects and data structures into standardized XML strings. This XML format
+   is designed to be clearly parsable by both the LLM and the framework's
+   stream parser.
+3. **Rendering (`render`)**: The `render` function (from `formatters.ts`)
+   injects these dynamically generated XML strings into the main
+   `promptTemplate`, replacing placeholders like `{{actions}}`, `{{outputs}}`,
+   `{{contexts}}`, `{{workingMemory}}`, and `{{updates}}`.
+
+## Key XML Sections in the Prompt
+
+The dynamically generated `{{content}}` section typically includes these crucial
+XML blocks:
+
+* **`<available-actions>`**: Lists all actions currently enabled for the agent.
+  Each action includes its `name`, `description`, `instructions`, and argument
+  `schema` (as JSON schema).
+  ```xml
+  <available-actions>
+    <action name="getWeather">
+      <description>Fetches the current weather...</description>
+      <schema>{ "type": "object", "properties": { ... } }</schema>
+    </action>
+    ...
+  </available-actions>
+  ```
+* **`<available-outputs>`**: Lists all outputs the agent can generate. Each
+  output includes its `type`, `description`, `instructions`, content `schema`
+  (`content_schema`), attribute `schema` (`attributes_schema`), and `examples`.
+  ```xml
+  <available-outputs>
+    <output type="discord:message">
+      <description>Sends a message...</description>
+      <attributes_schema>{ "type": "object", ... }</attributes_schema>
+      <content_schema>{ "type": "string", ... }</content_schema>
+      <examples>...</examples>
+    </output>
+    ...
+  </available-outputs>
+  ```
+* **`<contexts>`**: Displays the state of currently active contexts, as rendered
+  by their respective `render` functions.
+  ```xml
+  <contexts>
+    <context type="chat" key="session123">
+      user1: Hi there!
+      agent: Hello! How can I help?
+    </context>
+    ...
+  </contexts>
+  ```
+* **`<working-memory>`**: Shows processed logs (`InputRef`, `OutputRef`,
+  `ActionCall`, `ActionResult`, `Thought`, `EventRef`) from previous steps
+  within the *current* run.
+  ```xml
+  <working-memory>
+    <input type="cli:message" timestamp="...">User message</input>
+    <action_call name="lookupUser" id="..." timestamp="...">...</action_call>
+    <action_result callId="..." name="lookupUser" timestamp="...">...</action_result>
+    <output type="cli:message" timestamp="...">Agent response</output>
+  </working-memory>
+  ```
+* **`<updates>`**: Shows *new*, unprocessed logs (typically new `InputRef`s or
+  `ActionResult`s from the previous step) that the LLM needs to analyze and
+  react to in the *current* step.
+  ```xml
+  <updates>
+    <input type="discord:message" timestamp="...">A new message requiring a response</input>
+    <action_result callId="..." name="complexCalculation" timestamp="...">Result is 42</action_result>
+  </updates>
+  ```
+
+## Expected LLM Response Structure
+
+The framework instructs the LLM (via the `{{response}}` section of the template)
+to structure its output using specific XML tags:
+
+```xml
+<response>
+  <reasoning>
+    [LLM's thought process explaining its analysis and plan]
+  </reasoning>
+
+  [Optional: Action calls]
+  <action_call name="actionName">[JSON arguments matching the action's schema]</action_call>
+
+  [Optional: Outputs]
+  <output type="outputType" attribute1="value1">[Content matching the output's schema]</output>
+</response>
+```
+
+* **`<response>`**: The root tag for the entire response.
+* **`<reasoning>`**: Contains the LLM's step-by-step thinking process. This is
+  logged as a `Thought`.
+* **`<action_call>`**: Used to invoke an action. The `name` must match an
+  available action, and the content must be valid JSON matching the action's
+  argument `schema`.
+* **`<output>`**: Used to generate an output. The `type` must match an available
+  output. Any required `attributes` must be included, and the content must match
+  the output's content `schema`.
+
+The framework parses this XML structure from the LLM's response stream to
+trigger the corresponding handlers for actions and outputs.
+
+## Template Engine (`{{...}}`)
+
+The prompt template includes a mention of a simple template engine using
+`{{...}}` syntax (e.g., `{{calls[0].someValue}}`, `{{shortTermMemory.key}}`). As
+noted in the prompt comments, its primary intended use is for **intra-turn data
+referencing**. This means allowing an action call within the *same* LLM response
+to reference the anticipated result of a *previous* action call in that *same*
+response.
+
+Example:
+
+```xml
+<response>
+  <reasoning>First, I need to create a file, then write to it.</reasoning>
+  <action_call name="createFile">{ "directory": "/tmp" }</action_call>
+  <action_call name="writeFile">{ "fileId": "{{calls[0].fileId}}", "content": "Hello!" }</action_call>
+</response>
+```
+
+Here, the `writeFile` call references the `fileId` expected to be returned by
+the `createFile` action called just before it within the same LLM response turn.
+The framework resolves these templates before executing the action handlers (see
+`resolveTemplates` in `handlers.ts`).
+
+This dynamic and structured prompting approach allows Daydreams to effectively
+leverage LLMs for complex orchestration tasks, providing them with the necessary
+information and tools while ensuring their output can be reliably processed.
+
+
+file: ./content/docs/concepts/services-extensions.mdx
+meta: {
+  "title": "Services & Extensions",
+  "description": "Understanding dependency injection, service providers, and modular extensions."
+}
+        
+Daydreams uses a combination of Dependency Injection (DI), Service Providers,
+and an Extension system to manage dependencies, initialize components, and
+organize functionality in a modular way.
+
+## Dependency Injection (`container.ts`)
+
+At the heart of the framework's modularity is a simple Dependency Injection
+container, created using `createContainer()`. The container is responsible for
+instantiating and providing access to various services and components throughout
+the agent's lifecycle.
+
+**Purpose:**
+
+* Decouples components by removing the need for them to know how to create their
+  dependencies.
+* Manages the lifecycle of services (e.g., ensuring only one instance of a
+  database client exists).
+* Makes components like loggers, clients, or configuration easily accessible.
+
+**Core Methods:**
+
+* `container.register(token, factory)`: Registers a factory function. A *new
+  instance* is created every time `resolve` is called for the `token`.
+* `container.singleton(token, factory)`: Registers a factory function, but the
+  instance is created *only once* on the first `resolve` call. Subsequent calls
+  return the same instance.
+* `container.instance(token, value)`: Registers a pre-existing object instance
+  directly.
+* `container.resolve<Type>(token)`: Retrieves the instance associated with the
+  `token`. Throws an error if the token is not registered.
+* `container.alias(aliasToken, originalToken)`: Creates an alternative name
+  (`aliasToken`) to resolve an existing `originalToken`.
+
+```typescript
+import { createContainer } from "@daydreamsai/core";
+
+const container = createContainer();
+
+// Register a singleton database client
+container.singleton("dbClient", () => new DatabaseClient(process.env.DB_URI));
+
+// Register a pre-created config object
+const config = { apiKey: "123" };
+container.instance("appConfig", config);
+
+// Register a transient logger (new instance each time)
+container.register(
+  "requestLogger",
+  () => new Logger({ level: LogLevel.DEBUG })
+);
+
+// Resolve dependencies
+const db = container.resolve<DatabaseClient>("dbClient");
+const cfg = container.resolve<typeof config>("appConfig");
+const logger1 = container.resolve<Logger>("requestLogger");
+const logger2 = container.resolve<Logger>("requestLogger"); // Different instance from logger1
+```
+
+The main `Agent` instance, `Logger`, `TaskRunner`, and other core components are
+typically registered within the container when `createDreams` is called.
+
+## Service Providers (`serviceProvider.ts`)
+
+While you could register everything directly with the container, Daydreams uses
+a Service Provider pattern to organize the registration and initialization
+(booting) of related services, especially within extensions.
+
+**Purpose:**
+
+* Groups related service registrations.
+* Provides a dedicated `boot` phase for initialization logic that might depend
+  on other services already being registered (e.g., connecting a client after
+  its configuration is registered).
+
+**Defining a Service Provider:**
+
+Use the `service` helper function:
+
+```typescript
+import { service, type Container } from "@daydreamsai/core";
+import { MyApiClient } from "./my-api-client";
+
+const myApiService = service({
+  // Optional: Register dependencies into the container.
+  // Runs before the boot phase.
+  register(container: Container) {
+    container.singleton("apiConfig", () => ({ baseUrl: process.env.API_URL }));
+    container.singleton(
+      "apiClient",
+      (c) => new MyApiClient(c.resolve("apiConfig"))
+    );
+  },
+
+  // Optional: Perform initialization logic after registration.
+  // Runs during agent.start() after all services are registered.
+  async boot(container: Container) {
+    const apiClient = container.resolve<MyApiClient>("apiClient");
+    await apiClient.connect(); // Example: Connect the client
+    console.log("My API Client Connected!");
+  },
+});
+```
+
+**Lifecycle:**
+
+1. **Registration:** When a service provider is added to the agent (usually via
+   an extension), its `register` method is called immediately by the
+   `ServiceManager` (created internally in `createDreams`).
+2. **Booting:** When `agent.start()` is called, the `ServiceManager` iterates
+   through all registered service providers and calls their `boot` methods
+   *after* all `register` methods have completed.
+
+## Extensions (`extension()` helper)
+
+Extensions are the primary mechanism for packaging and distributing reusable
+Daydreams functionality. They bundle together contexts, actions, inputs,
+outputs, and service providers.
+
+**Purpose:**
+
+* Encapsulate features (e.g., Discord integration, ChromaDB support).
+* Simplify agent configuration by adding features with a single entry.
+* Promote code reuse.
+
+**Defining an Extension:**
+
+Use the `extension` helper function:
+
+```typescript
+import {
+  extension,
+  context,
+  action,
+  input,
+  output,
+  service,
+} from "@daydreamsai/core";
+import { z } from "zod";
+import { MyApiClient } from "./my-api-client"; // From previous example
+
+// Assume myApiService is defined as above
+
+const myFeatureContext = context({
+  /* ... context definition ... */
+});
+const myFeatureAction = action({
+  /* ... action definition ... */
+});
+
+export const myExtension = extension({
+  // Required: A unique name for the extension
+  name: "my-feature",
+
+  // Optional: Service providers required by this extension
+  services: [myApiService],
+
+  // Optional: Context definitions provided by this extension
+  contexts: {
+    myFeature: myFeatureContext,
+  },
+
+  // Optional: Action definitions
+  actions: [myFeatureAction],
+
+  // Optional: Input definitions
+  inputs: {
+    "my-feature:event": input({
+      /* ... input definition ... */
+    }),
+  },
+
+  // Optional: Output definitions
+  outputs: {
+    "my-feature:notify": output({
+      /* ... output definition ... */
+    }),
+  },
+
+  // Optional: Events defined by this extension (used for typing ctx.emit)
+  events: {
+    myEvent: z.object({ id: z.string() }),
+  },
+
+  // Optional: Logic to run once when the extension is added during agent.start()
+  async install(agent) {
+    console.log("Installing My Feature Extension!");
+    // Perform any one-time setup
+  },
+});
+```
+
+**Usage and Lifecycle:**
+
+1. **Configuration:** Pass extensions to `createDreams` in the `extensions`
+   array:
+
+   ```typescript
+   import { createDreams } from "@daydreamsai/core";
+   import { myExtension } from "./my-extension";
+   import { discord } from "@daydreamsai/discord"; // Example built-in
+
+   const agent = createDreams({
+     model: /* ... */,
+     extensions: [
+       myExtension,
+       discord, // Add other extensions
+     ]
+   });
+   ```
+
+2. **Merging:** When `createDreams` initializes, it merges all components
+   (`contexts`, `actions`, `inputs`, `outputs`, `events`) defined within the
+   extensions into the agent's main registry.
+
+3. **Service Registration:** It registers all `services` defined in the
+   extensions with the `ServiceManager`.
+
+4. **Installation & Booting:** When `agent.start()` is called:
+   * The `install` method of each extension is executed (if defined).
+   * The `ServiceManager` boots all registered services (calling their `boot`
+     methods).
+
+Extensions provide a powerful way to structure agent capabilities, making it
+easy to combine built-in features (like CLI, Discord, Chroma) with custom logic.
+
+
+file: ./content/docs/concepts/streaming-parsing.mdx
+meta: {
+  "title": "Streaming & Parsing",
+  "description": "How Daydreams processes LLM response streams in real-time."
+}
+        
+Large Language Models (LLMs) generate responses token by token. To enable
+responsive and interactive agents, Daydreams processes this output *as it
+arrives* (streaming) and parses the structured information (like action calls or
+outputs) embedded within the stream. The framework relies on an XML-based
+structure in the LLM's response for reliable parsing.
+
+## Expected LLM Response Format
+
+As detailed in the [Prompting](./prompting#expected-llm-response-structure)
+section, the framework expects the LLM to wrap its response in a `<response>`
+tag and use specific child tags like `<reasoning>`, `<action_call>`, and
+`<output>`.
+
+```xml
+<response>
+  <reasoning>...</reasoning>
+  <action_call name="...">...</action_call>
+  <output type="...">...</output>
+</response>
+```
+
+## The Parsing Pipeline
+
+The processing of the LLM's raw text stream involves several components working
+together:
+
+1. **LLM Stream:** The raw `AsyncIterable<string>` coming from the LLM provider
+   (e.g., via `streamText` from the AI SDK).
+2. **`xmlStreamParser` (`xml.ts`):** This generator function is the low-level
+   parser.
+   * **Input:** Consumes chunks of text from the LLM stream.
+   * **Logic:** It looks for potential XML tag boundaries (`<`, `>`). Based on
+     a provided set of `parseTags` (e.g.,
+     `{"reasoning", "action_call", "output"}`) and a `shouldParse` function
+     (which determines if a specific tag occurrence should be treated as
+     structure or just text), it identifies the start and end of relevant XML
+     elements.
+   * **Output:** Yields `XMLToken` objects:
+     * `{ type: "start", name: "...", attributes: {...} }`
+     * `{ type: "end", name: "..." }`
+     * `{ type: "text", content: "..." }`
+3. **`handleStream` (`streaming.ts`):** This function orchestrates the parsing.
+   * **Input:** Takes the LLM stream, the set of `parseTags`, the `shouldParse`
+     function, and a `handler` callback.
+   * **Logic:** It iterates through the `XMLToken`s yielded by
+     `xmlStreamParser`. It maintains a stack to handle nested elements and
+     reconstructs logical `StackElement` objects. A `StackElement` represents a
+     parsed XML tag, accumulating its `content` as text tokens arrive between
+     the start and end tokens.
+   * **Output:** Calls the provided `handler` callback whenever a
+     `StackElement` is created or its content is updated, and importantly, when
+     it's considered complete (`done: true` - when the corresponding end tag is
+     parsed).
+4. **`createContextStreamHandler` (`streaming.ts`):** This function, called
+   during `agent.run`, sets up the run-specific state and provides the actual
+   `handler` callback function to `handleStream`.
+   * **The `handler` Callback:** This function bridges the parsed elements to
+     the framework's log objects.
+     * It uses `getOrCreateRef` to associate each `StackElement` (identified by
+       its index in the stream) with a specific `Log` object (`Thought`,
+       `ActionCall`, `OutputRef`).
+     * As text content arrives for a `StackElement`, it updates the `content`
+       of the corresponding `Log` object.
+     * When `handleStream` signals that a `StackElement` is complete
+       (`el.done`), this handler calls `handlePushLog`.
+5. **`handlePushLog` (`streaming.ts`):** This function acts on the completed
+   `Log` objects derived from the parsed stream.
+   * **Input:** Receives a complete `Log` object (`Thought`, `ActionCall`,
+     `OutputRef`, etc.).
+   * **Logic:** Based on the `log.ref` type, it dispatches the log to the
+     appropriate processing function:
+     * `Thought`: Logs the reasoning.
+     * `ActionCall`: Triggers `handleActionCallStream` -> `handleActionCall`
+       for argument parsing, template resolution, and task execution.
+     * `OutputRef`: Triggers `handleOutputStream` -> `handleOutput` for schema
+       validation and executing the output handler.
+   * **Output:** Updates `WorkingMemory`, notifies subscribers, and potentially
+     triggers further asynchronous operations (like action execution).
+
+## Summary Flow
+
+```
+LLM Text Stream
+       |
+       v
+xmlStreamParser (Yields XMLTokens: <start>, <text>, <end>)
+       |
+       v
+handleStream (Reconstructs StackElements, calls handler)
+       |
+       v
+handler (in createContextStreamHandler) (Maps StackElements to Log objects, calls handlePushLog on completion)
+       |
+       v
+handlePushLog (Dispatches complete Log objects)
+       |-------------------|-------------------|
+       v                   v                   v
+handleActionCall   handleOutput         (Log Thought)
+(triggers task)   (sends response)       ... etc ...
+```
+
+This streaming and parsing pipeline allows Daydreams to react to the LLM's
+output incrementally, enabling more interactive agent behavior and efficient
+handling of structured commands like action calls and outputs, even before the
+entire LLM response is finished.
+
+
+file: ./content/docs/concepts/task-runner.mdx
+meta: {
+  "title": "Task Runner",
+  "description": "Managing asynchronous operations and concurrency."
+}
+        
+Daydreams agents often need to perform asynchronous operations, primarily when
+executing [Actions](./actions) that interact with external APIs, blockchains, or
+other time-consuming processes. The framework includes a `TaskRunner` to manage
+these operations efficiently.
+
+## Purpose
+
+The `TaskRunner` serves two main purposes:
+
+1. **Concurrency Control:** It limits the number of asynchronous tasks (like
+   action handlers) that run simultaneously. This prevents the agent from
+   overwhelming external services with too many requests at once (rate
+   limiting) or consuming excessive local resources.
+2. **Prioritization (Future):** While the core framework primarily uses default
+   priority, the underlying queue supports prioritizing tasks, allowing more
+   critical operations to potentially execute sooner.
+
+## Initialization and Configuration
+
+A `TaskRunner` instance is automatically created within `createDreams` unless a
+custom one is provided in the `Config`. Its concurrency limit can be configured:
+
+```typescript
+import { createDreams, TaskRunner } from "@daydreamsai/core";
+
+// Default TaskRunner with concurrency based on environment or default (e.g., 3)
+const agent1 = createDreams({
+  /* ... */
+});
+
+// Explicitly configure concurrency
+const agent2 = createDreams({
+  // ... other config
+  taskRunner: new TaskRunner(5), // Allow up to 5 tasks concurrently
+});
+
+// Access the runner later
+const runner = agent2.taskRunner;
+```
+
+The concurrency limit determines how many tasks from the internal queue can be
+actively running at any given moment.
+
+## Internal Usage (`runAction`)
+
+The most common use of the `TaskRunner` is internal to the framework. When the
+agent parses an `<action_call>` from the LLM (see
+[Streaming & Parsing](./streaming-parsing)), the `handleActionCall` function
+doesn't execute the action's handler directly. Instead, it uses
+`taskRunner.enqueueTask` to schedule the execution:
+
+```typescript
+// Simplified logic within handleActionCall (handlers.ts)
+
+// ... prepare context and arguments ...
+
+result.data = await taskRunner.enqueueTask(
+  runAction, // The task definition for running actions
+  {
+    // Parameters for runAction
+    action,
+    agent,
+    logger,
+    ctx: callCtx,
+  },
+  {
+    // Options for the task enqueueing
+    debug: agent.debugger,
+    retry: action.retry,
+    abortSignal,
+    priority: 0, // Default priority
+  }
+);
+
+// ... process result ...
+```
+
+This ensures that action executions respect the concurrency limits set for the
+agent.
+
+## Defining Tasks (`task` helper)
+
+The framework uses a `task` helper function (from `@daydreamsai/core/task`) to
+define named, reusable asynchronous operations that can be managed by the
+`TaskRunner`. Key framework tasks like `runAction` (executing action handlers)
+and `runGenerate` (calling the LLM) are defined using this helper.
+
+```typescript
+import { task, type TaskContext } from "@daydreamsai/core";
+
+// Example task definition (similar to runAction)
+const myCustomTask = task(
+  // 1. Unique key/name for the task (used for logging/debugging)
+  "agent:run:myCustomTask",
+
+  // 2. The async function implementing the task logic
+  async (params: { someData: string }, ctx: TaskContext) => {
+    // 'params' are the arguments passed when enqueuing
+    // 'ctx' provides task-specific context
+
+    ctx.debug("myCustomTask", ["Executing"], params); // Use debug provided via options
+    console.log(`Task ${ctx.callId} running with data:`, params.someData);
+
+    // ... perform asynchronous work ...
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    return { success: true, taskId: ctx.callId };
+  },
+
+  // 3. Optional default TaskOptions
+  {
+    retry: 1, // Default retry count
+  }
+);
+
+// How it might be enqueued:
+// agent.taskRunner.enqueueTask(myCustomTask, { someData: "hello" }, { priority: 1 });
+```
+
+The `TaskContext` passed to the task function includes:
+
+* `callId`: A unique ID generated for this specific task execution.
+* `debug`: A `Debugger` function instance (configured via `TaskOptions` or
+  defaulting from agent config).
+
+While you typically won't need to define new tasks often (most work happens in
+action handlers), understanding this pattern helps clarify how core operations
+like `runAction` are structured and managed.
+
+## Direct Usage
+
+While primarily used internally for actions, you *could* access the `TaskRunner`
+via `agent.taskRunner` within your custom code (e.g., inside an action handler
+or context hook) if you need to manage additional complex, long-running, or
+resource-intensive asynchronous operations with concurrency control. However,
+simple `async/await` within action handlers is usually sufficient.
+
+The `TaskRunner` provides robust management for the asynchronous operations
+essential to the agent's functioning, ensuring stability and controlled resource
+usage.
+
+
+file: ./content/docs/guides/deep.mdx
+meta: {
+  "title": "Deep Research",
+  "description": "This guide will walk you through creating an AI agent that can perform deep research using Daydreams."
+}
+        
+You can find a deep-research example in the
+[examples](https://github.com/daydreamsai/daydreams/tree/main/examples/deep-research)
+directory.
+
+Detailed tutorial coming soon!
+
+
+file: ./content/docs/guides/giga.mdx
+meta: {
+  "title": "Building a Gigaverse Game Agent",
+  "description": "This guide will walk you through creating an AI agent that can play the Gigaverse dungeon crawler game using Daydreams."
+}
+        
+This guide will walk you through creating an AI agent that can play the
+Gigaverse dungeon crawler game using Daydreams.
+
+## Prerequisites
+
+Before starting, make sure you have:
+
+1. A Gigaverse account
+2. The following environment variables set up:
+   * `ANTHROPIC_API_KEY`: Your Anthropic API key
+   * `GIGA_TOKEN`: Your Gigaverse authentication token (Bearer token from
+     browser)
+
+## Creating the Agent
+
+First, let's create a basic Gigaverse agent:
+
+```ts
+import { anthropic } from "@ai-sdk/anthropic";
+import {
+  createDreams,
+  context,
+  render,
+  action,
+  validateEnv,
+  LogLevel,
+  type Agent,
+} from "@daydreamsai/core";
+import { cliExtension } from "@daydreamsai/cli";
+import { string, z } from "zod";
+
+// Validate environment variables
+const env = validateEnv(
+  z.object({
+    ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
+    GIGA_TOKEN: z.string().min(1, "GIGA_TOKEN is required"),
+  })
+);
+
+// Define the goal-oriented context
+const goalContexts = context({
+  type: "goal",
+  schema: z.object({
+    id: string(),
+    initialGoal: z.string(),
+    initialTasks: z.array(z.string()),
+  }),
+
+  key({ id }) {
+    return id;
+  },
+
+  create(state) {
+    return {
+      goal: state.args.initialGoal,
+      tasks: state.args.initialTasks ?? [],
+      currentTask: state.args.initialTasks?.[0],
+    };
+  },
+
+  render({ memory }) {
+    return render(template, {
+      goal: memory.goal,
+      tasks: memory.tasks.join("\n"),
+      currentTask: memory.currentTask ?? "NONE",
+    });
+  },
+});
+
+// Create the Gigaverse agent
+createDreams({
+  logger: LogLevel.INFO,
+  model: anthropic("claude-3-7-sonnet-latest"),
+  extensions: [cliExtension],
+  context: goalContexts,
+  actions: [
+    // Actions will be defined below
+  ],
+}).start({
+  id: "gigaverse-agent",
+  initialGoal: "Successfully complete a dungeon run in Gigaverse",
+  initialTasks: [
+    "Start a new dungeon run",
+    "Make strategic combat decisions using rock-paper-scissors mechanics",
+    "Select optimal loot after defeating enemies",
+    "Progress as far as possible in the dungeon",
+  ],
+});
+```
+
+## How It Works
+
+The Gigaverse agent is built using several key components:
+
+1. **Context Template**: Defines the agent's understanding of the game and its
+   current state:
+
+```ts
+const template = `
+# Gigaverse Dungeon Game
+
+You are an AI agent playing a rock-paper-scissors dungeon crawler game.
+
+## Game Rules:
+- Combat is resolved through rock-paper-scissors mechanics
+- You can collect loot after defeating enemies
+- Your goal is to progress as far as possible in the dungeon
+
+## Current Status:
+Goal: {{goal}} 
+Tasks: {{tasks}}
+Current Task: {{currentTask}}
+
+Make strategic decisions based on enemy patterns and your current state.
+`;
+```
+
+2. **Game Actions**: The agent can perform several actions in the game:
+
+   * `attackInDungeon`: Make combat decisions (rock, paper, scissors) or select
+     loot
+   * `getPlayerState`: Retrieve the current game state
+   * `startNewRun`: Begin a new dungeon run
+
+## Understanding Gigaverse Game Mechanics
+
+Gigaverse is a dungeon crawler game with the following key mechanics:
+
+1. **Rock-Paper-Scissors Combat**: Battles are resolved using the classic
+   rock-paper-scissors game:
+
+   * Rock beats Scissors
+   * Scissors beats Paper
+   * Paper beats Rock
+
+2. **Dungeon Progression**: Players advance through the dungeon by defeating
+   enemies.
+
+3. **Loot System**: After defeating enemies, players can select one of three
+   loot options to enhance their character.
+
+4. **Health Management**: Players must manage their health throughout the
+   dungeon run.
+
+## Core Game Actions
+
+Let's implement the three main actions needed for the Gigaverse agent:
+
+### 1. Attack in Dungeon
+
+This action handles both combat (rock-paper-scissors) and loot selection:
+
+```ts
+action({
+  name: "attackInDungeon",
+  description: "Attack in the dungeon using rock-paper-scissors game mechanics",
+  schema: z
+    .object({
+      action: z
+        .enum([
+          "rock",
+          "paper",
+          "scissor",
+          "loot_one",
+          "loot_two",
+          "loot_three",
+        ])
+        .describe("The attack move to make"),
+      dungeonId: z
+        .number()
+        .default(0)
+        .describe("The ID of the dungeon"),
+    })
+    .describe(
+      "You use this to make an action in a dungeon. If the lootPhase == true then you can select the Loot option, which will then take you to the next phase. If the lootPhase == false then you can select the Rock, Paper, Scissors option."
+    ),
+  async handler(data, ctx, agent) {
+    try {
+      const { action, dungeonId } = data;
+
+      const payload = {
+        action: action,
+        actionToken: new Date().getTime().toString(),
+        dungeonId: dungeonId,
+      };
+
+      const response = await fetch(
+        "https://gigaverse.io/api/game/dungeon/action",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env.GIGA_TOKEN}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Attack action failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        result,
+        message: `Successfully performed ${action} attack in dungeon ${dungeonId}`,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        error: errorMessage,
+        message: "Attack action failed",
+      };
+    }
+  },
+}),
+```
+
+### 2. Get Player State
+
+This action retrieves the current state of the player in the dungeon:
+
+```ts
+action({
+  name: "getPlayerState",
+  description: "Get the current state of the player in the dungeon",
+  schema: z.object({}),
+  async handler(data, ctx, agent) {
+    try {
+      const response = await fetch(
+        "https://gigaverse.io/api/game/dungeon/state",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env.GIGA_TOKEN}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Fetch player state failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        playerState: result,
+        message: "Successfully fetched player's dungeon state",
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        error: errorMessage,
+        message: "Failed to fetch player's dungeon state",
+      };
+    }
+  },
+}),
+```
+
+### 3. Start New Run
+
+This action initiates a new dungeon run:
+
+```ts
+action({
+  name: "startNewRun",
+  description: "Start a new dungeon run. Use this when the player dies or wants to start a new run from outside the dungeon.",
+  schema: z.object({
+    dungeonId: z
+      .number()
+      .default(1)
+      .describe("The ID of the dungeon to start. Default is 1."),
+  }),
+  async handler(data, ctx, agent) {
+    try {
+      const { dungeonId } = data;
+
+      const payload = {
+        action: "start_run",
+        actionToken: new Date().getTime().toString(),
+        dungeonId: dungeonId,
+      };
+
+      const response = await fetch(
+        "https://gigaverse.io/api/game/dungeon/action",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env.GIGA_TOKEN}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Start new run failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        result,
+        message: `Successfully started a new run in dungeon ${dungeonId}`,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        error: errorMessage,
+        message: "Failed to start a new dungeon run",
+      };
+    }
+  },
+}),
+```
+
+## Agent Decision Making
+
+The agent uses the context and player state to make strategic decisions. Here's
+how the agent approaches the game:
+
+1. **Analyzing Enemy Patterns**:
+
+   * The agent observes patterns in enemy moves over multiple encounters
+   * It can identify if an enemy favors certain moves (like using "rock" more
+     frequently)
+   * This information helps the agent make counter-moves (like choosing "paper"
+     against a "rock"-favoring enemy)
+
+2. **Loot Selection Strategy**:
+
+   * After defeating enemies, the agent evaluates the three loot options
+   * It considers the player's current health, inventory, and progression
+   * The agent selects loot that complements the player's build or addresses
+     weaknesses
+
+3. **Adaptive Gameplay**:
+
+   * As the dungeon difficulty increases, the agent adjusts its strategy
+   * It may prioritize health-restoring items when health is low
+   * The agent can become more conservative or aggressive based on the player's
+     current state
+
+4. **Goal-Oriented Planning**:
+   * The agent maintains awareness of its overall goal and current tasks
+   * It can reprioritize tasks based on the changing game state
+   * This ensures the agent makes decisions that contribute to long-term success
+
+## Integrating with Daydreams
+
+This example showcases several key Daydreams features:
+
+1. **Goal-Oriented Context**: The agent maintains a structured goal and task
+   list.
+
+2. **Action Definitions**: Clear, typed actions with Zod schemas for validation.
+
+3. **API Integration**: Seamless interaction with external APIs (Gigaverse in
+   this case).
+
+4. **Error Handling**: Robust error handling to manage API failures gracefully.
+
+## Next Steps
+
+* Customize the agent's strategy by modifying the context template
+* Add more sophisticated decision-making logic
+* Implement inventory management and character progression
+* Extend the agent to handle more complex game scenarios
+
+For more examples and detailed API documentation, check out our
+[API Reference](/api-reference).
+
+You can find the complete Gigaverse example in the
+[examples](https://github.com/daydreamsai/daydreams/tree/main/examples/games/gigaverse)
+directory.
+
+
+file: ./content/docs/guides/mcp-guide.mdx
+meta: {
+  "title": "Model Context Protocol (MCP) Guide for Daydreams"
+}
+        
+This guide explains how to use the Model Context Protocol (MCP) integration with
+Daydreams, allowing your agents to connect to MCP servers and access their
+resources, tools, and prompts.
+
+More information about MPC can be found in the
+[github](https://github.com/modelcontextprotocol/specification)
+
+## What is MCP?
+
+The Model Context Protocol (MCP) is a standardized way for applications to
+provide context to Large Language Models (LLMs). It separates the concerns of
+providing context from the actual LLM interaction, allowing for a more modular
+and flexible architecture.
+
+Key benefits of MCP include:
+
+* **Standardization**: A common protocol for context exchange between
+  applications and LLMs
+* **Separation of concerns**: Applications can focus on providing context, while
+  LLMs can focus on processing it
+* **Modularity**: Connect to multiple context sources simultaneously
+* **Extensibility**: Add new context sources without changing the core
+  application
+
+## MCP in Daydreams
+
+Daydreams provides a built-in MCP extension that allows your agents to:
+
+* Connect to multiple MCP servers simultaneously
+* Access resources from MCP servers
+* Execute tools provided by MCP servers
+* Use prompts defined on MCP servers
+
+## Getting Started
+
+### Prerequisites
+
+Before you begin, make sure you have:
+
+* Daydreams installed
+* Node.js 18 or later
+* An MCP server to connect to (or you can use the example server provided)
+
+### Installation
+
+1. Create a new Daydreams project or use an existing one
+2. Install the required dependencies:
+
+```bash
+npm install @daydreamsai/core @modelcontextprotocol/sdk @ai-sdk/anthropic
+# or
+yarn add @daydreamsai/core @modelcontextprotocol/sdk @ai-sdk/anthropic
+# or
+pnpm add @daydreamsai/core @modelcontextprotocol/sdk @ai-sdk/anthropic
+```
+
+### Basic Setup
+
+To connect your Daydreams agent to an MCP server, add the MCP extension to your
+agent configuration:
+
+```typescript
+import { createDreams } from "@daydreamsai/core";
+import { mcpExtension } from "@daydreamsai/mcp";
+import { anthropic } from "@ai-sdk/anthropic";
+import path from "path";
+
+// Create an agent with the MCP extension
+createDreams({
+  model: anthropic("claude-3-7-sonnet-latest"),
+
+  // Add the MCP extension with server configuration
+  extensions: [
+    mcpExtension([
+      {
+        id: "example-server",
+        name: "Example Resource Server",
+        transport: {
+          type: "stdio",
+          command: "node",
+          args: [path.join(__dirname, "mcp-server-example.mjs")],
+        },
+      },
+    ]),
+  ],
+}).start();
+```
+
+## Creating a Simple MCP Server
+
+Here's how to create a simple MCP server that provides a tool and a resource:
+
+```javascript
+// mcp-server-example.mjs
+import {
+  McpServer,
+  ResourceTemplate,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
+
+// Create an MCP server
+const server = new McpServer({
+  name: "Demo",
+  version: "1.0.0",
+});
+
+// Add an addition tool
+server.tool("add", { a: z.number(), b: z.number() }, async ({ a, b }) => ({
+  content: [{ type: "text", text: String(a + b) }],
+}));
+
+// Add a dynamic greeting resource
+server.resource(
+  "greeting",
+  new ResourceTemplate("greeting://{name}", { list: undefined }),
+  async (uri, { name }) => ({
+    contents: [
+      {
+        uri: uri.href,
+        text: `Hello, ${name}!`,
+      },
+    ],
+  })
+);
+
+// List available tools
+server.resource(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: "add",
+        description: "Add two numbers",
+        parameters: {
+          a: { type: "number" },
+          b: { type: "number" },
+        },
+      },
+    ],
+  };
+});
+
+// Start receiving messages on stdin and sending messages on stdout
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+## Conclusion
+
+The MCP integration in Daydreams provides a powerful way to connect your agents
+to external data sources and tools. By following this guide, you should be able
+to create agents that can interact with MCP servers and leverage their
+capabilities to build more sophisticated AI applications.
+
+For more information, refer to:
+
+* [MCP TypeScript SDK documentation](https://github.com/model-context-protocol/typescript-sdk)
+* [Daydreams documentation](https://docs.daydreams.ai)
+
+
+file: ./content/docs/guides/twitter.mdx
+meta: {
+  "title": "Building a Twitter Agent",
+  "description": "This guide will walk you through creating an AI agent that can interact with Twitter using DreamsAI."
+}
+        
+## Prerequisites
+
+Before starting, make sure you have:
+
+1. A Twitter developer account
+2. The following environment variables set up:
+   * `GROQ_API_KEY`: Your Groq API key
+
+## Creating the Agent
+
+First, let's create a basic Twitter agent:
+
+```ts
+import { createGroq } from "@ai-sdk/groq";
+import {
+  createContainer,
+  createDreams,
+  LogLevel,
+  twitter,
+} from "@daydreamsai/core";
+
+// Initialize Groq client
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY!,
+});
+
+// Create the agent
+const agent = createDreams({
+  logger: LogLevel.DEBUG,
+  container: createContainer(),
+  model: groq("deepseek-r1-distill-llama-70b"),
+  extensions: [twitter],
+});
+
+// Start the agent
+await agent.start();
+```
+
+## How It Works
+
+The Twitter agent is created using a few key components:
+
+1. **Groq Integration**: We use Groq's language model for processing and
+   understanding Twitter interactions.
+
+2. **Logger**: Set to DEBUG level for detailed logging during development.
+
+3. **Container**: Manages dependencies and services.
+
+4. **Twitter Extension**: The `twitter` extension provides built-in capabilities
+   for:
+   * Monitoring mentions
+   * Replying to tweets
+   * Posting new tweets
+   * Managing Twitter authentication
+
+## Next Steps
+
+* Set up Twitter authentication in your environment variables
+* Customize the agent's behavior by adding your own extensions
+* Implement specific use cases like auto-replies or content monitoring
+
+For more examples and detailed API documentation, check out our
+[API Reference](/api-reference).
+
+
+file: ./content/docs/advanced/reasoning-old/training.mdx
+meta: {
+  "title": "Training Data Export for GRPO in Daydreams",
+  "description": "This guide explains how to export episodic memories as training data for Group Relative Policy Optimization (GRPO) using the Daydreams AI core package."
+}
+        
+## What is GRPO Training?
+
+GRPO (Group Relative Policy Optimization) is a reinforcement learning algorithm
+designed to enhance reasoning capabilities in large language models. It
+optimizes memory usage and is particularly effective for tasks requiring complex
+problem-solving, such as:
+
+* Mathematical reasoning
+* Decision-making scenarios
+* Step-by-step problem solving
+* Game-based learning environments
+
+**Key Benefits of GRPO:**
+
+* Improves reasoning capabilities beyond standard fine-tuning
+* Optimizes memory usage compared to traditional PPO
+* Particularly effective for complex problem-solving tasks
+
+## Workflow Overview
+
+Your Daydreams agent can build reasoning traces for GRPO training by following
+this structured workflow:
+
+1. **Define Prompt Sources** - Use static datasets or interactive environments
+2. **Generate Reasoning Traces** - Create completions that include thought
+   processes
+3. **Store and Save Data** - Export in JSONL format compatible with training
+   tools
+
+## Enabling Automatic Export
+
+You can configure Daydreams to automatically export training data after each
+episode:
+
+```typescript
+import { createDreams } from "@daydreamsai/core";
+
+const agent = createDreams({
+  model: openai("gpt-4-turbo"),
+  exportTrainingData: true,
+  trainingDataPath: "./grpo-training-data.jsonl", // Optional, defaults to "./training-data.jsonl"
+  // ... other configuration options
+});
+```
+
+**Note:** If you don't specify `trainingDataPath`, Daydreams will save the data
+to `./training-data.jsonl` in your project root.
+
+## Manual Export
+
+You can manually export all episodes as training data:
+
+```typescript
+// Export using the default path from your agent configuration
+await agent.exportAllTrainingData();
+
+// Or specify a custom path
+await agent.exportAllTrainingData("./custom-path/grpo-training-data.jsonl");
+```
+
+## Understanding the Data Format for GRPO
+
+Daydreams exports training data in JSONL (JSON Lines) format, optimized for GRPO
+training. Each line contains a JSON object with:
+
+```json
+{
+  "prompt": "You are in a dark room with a door to the north.",
+  "completion": "I need to find a way out. I should check if the door is locked.\n\nI found the door was unlocked and was able to exit the room."
+}
+```
+
+The format includes:
+
+* **prompt**: The observation or context provided to the agent
+* **completion**: The agent's reasoning process and action results
+
+For interactive environments, ensure completions include both reasoning and an
+explicit action statement:
+
+```json
+{
+  "prompt": "You are in a dark room with a door to the north.",
+  "completion": "I need to find a way out. I should check if the door is locked.\n\nAction: try opening the door"
+}
+```
+
+## Creating Custom Training Pairs for GRPO
+
+For advanced use cases, you can create custom training data pairs specifically
+designed for GRPO:
+
+## Optimizing Data for GRPO Training
+
+To maximize the effectiveness of your GRPO training data:
+
+1. **Include diverse scenarios** - Ensure your agent encounters a variety of
+   situations
+2. **Capture step-by-step reasoning** - The completion should show the agent's
+   thought process
+3. **Format actions consistently** - Use patterns like "Action: \[action]" for
+   easy parsing
+4. **Balance task difficulty** - Include both simple and complex reasoning
+   challenges
+
+## Customizing the Export Format
+
+If you need a different format for your specific GRPO training framework:
+
+1. Create your own formatter function based on the Daydreams utilities
+2. Process the episodic memories to match your required format
+3. Save the data using your preferred file structure
+
+**Example use case:** You might need to add additional metadata fields like task
+difficulty or domain type to help with training organization.
+
+
+file: ./content/docs/guides/agents-old/actions.mdx
+meta: {
+  "title": "Actions"
+}
+        
+Actions are the primary way for Daydreams agents to interact with the outside
+world and modify their internal state. They function as a bridge between the
+LLM's reasoning capabilities and actual functionality.
+
+## How Actions Work
+
+When you define an action in Daydreams, you're creating a function that the LLM
+can call during its reasoning process. Here's what happens behind the scenes:
+
+1. Your action definitions are automatically injected into the LLM's context
+2. The LLM decides to call an action based on its reasoning
+3. Daydreams intercepts this call, validates the parameters, and executes your
+   handler function
+4. The result is returned to the LLM, which can then use it for further
+   reasoning
+
+This creates a powerful feedback loop where the LLM can take actions, observe
+results, and adjust its approach accordingly.
+
+## Defining an Action
+
+Here's the basic structure of an action:
+
+```ts
+action({
+  // Name used by the LLM to reference this action
+  name: "searchDatabase",
+
+  // Description helps the LLM understand when to use this action
+  description: "Search the database for records matching the query",
+
+  // Schema defines and validates the parameters
+  schema: z.object({
+    query: z.string().describe("Search query"),
+    limit: z.number().optional().describe("Maximum number of results"),
+  }),
+
+  // Handler function that executes when the action is called
+  handler(data, ctx, agent) {
+    const { query, limit = 10 } = data;
+
+    // Perform the actual operation
+    const results = database.search(query, limit);
+
+    // Return results to the LLM
+    return {
+      results,
+      count: results.length,
+      message: `Found ${results.length} results for "${query}"`,
+    };
+  },
+});
+```
+
+## Mutating Context State
+
+One of the most powerful features of actions is their ability to modify the
+context state. This allows the LLM to maintain and update information across
+multiple interactions:
+
+```ts
+action({
+  name: "addTask",
+  description: "Add a new task to the task list",
+  schema: z.object({
+    title: z.string().describe("Task title"),
+    priority: z.enum(["low", "medium", "high"]).describe("Task priority"),
+    dueDate: z.string().optional().describe("Due date in YYYY-MM-DD format"),
+  }),
+  handler(data, ctx, agent) {
+    // Access the context memory
+    const contextMemory = ctx.agentMemory;
+
+    // Create a new task object
+    const newTask = {
+      id: generateId(),
+      title: data.title,
+      priority: data.priority,
+      dueDate: data.dueDate,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    // Update the context state by adding the task
+    contextMemory.tasks.push(newTask);
+
+    return {
+      task: newTask,
+      message: `Added task "${data.title}" with ${data.priority} priority`,
+    };
+  },
+});
+```
+
+In this example:
+
+* The action accesses the context memory via `ctx.agentMemory`
+* It creates a new task object with the provided data
+* It updates the context state by adding the task to the tasks array
+* The updated state will be reflected in future LLM calls through the context's
+  render function
+
+## Interacting with External Systems
+
+Actions excel at connecting your agent to external systems:
+
+```ts
+action({
+  name: "sendEmail",
+  description: "Send an email to a recipient",
+  schema: z.object({
+    to: z.string().email().describe("Recipient email address"),
+    subject: z.string().describe("Email subject"),
+    body: z.string().describe("Email body content"),
+  }),
+  async handler(data, ctx, agent) {
+    try {
+      // Call an external email service
+      await emailService.send({
+        to: data.to,
+        subject: data.subject,
+        body: data.body,
+        from: "agent@daydreams.ai",
+      });
+
+      // Update the context to record this action
+      ctx.agentMemory.sentEmails = ctx.agentMemory.sentEmails || [];
+      ctx.agentMemory.sentEmails.push({
+        to: data.to,
+        subject: data.subject,
+        timestamp: new Date().toISOString(),
+      });
+
+      return {
+        success: true,
+        message: `Email sent to ${data.to}`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        message: `Failed to send email: ${error.message}`,
+      };
+    }
+  },
+});
+```
+
+This example:
+
+* Connects to an external email service
+* Handles potential errors gracefully
+* Updates the context to maintain a record of sent emails
+* Returns a clear result to the LLM
+
+## Advanced Action Patterns
+
+### Chaining Actions
+
+Actions can build on each other to create complex workflows:
+
+```ts
+// First action: Fetch data
+action({
+  name: "fetchWeatherData",
+  description: "Fetch current weather data for a location",
+  schema: z.object({
+    location: z.string().describe("City or coordinates"),
+  }),
+  async handler(data, ctx, agent) {
+    const weatherData = await weatherAPI.fetch(data.location);
+
+    // Store in context for other actions to use
+    ctx.agentMemory.weatherData = weatherData;
+
+    return {
+      temperature: weatherData.temperature,
+      conditions: weatherData.conditions,
+      location: weatherData.location,
+    };
+  },
+});
+
+// Second action: Analyze the data
+action({
+  name: "analyzeWeatherTrend",
+  description: "Analyze weather trends based on fetched data",
+  schema: z.object({}),
+  handler(data, ctx, agent) {
+    // Use data from previous action
+    const { weatherData } = ctx.agentMemory;
+
+    if (!weatherData) {
+      return {
+        error: "No weather data available. Fetch weather data first.",
+      };
+    }
+
+    // Perform analysis
+    const analysis = analyzeWeatherTrends(weatherData);
+
+    return {
+      trend: analysis.trend,
+      forecast: analysis.forecast,
+      recommendation: analysis.recommendation,
+    };
+  },
+});
+```
+
+### Conditional Actions
+
+Actions can implement conditional logic based on context state:
+
+```ts
+action({
+  name: "completeTask",
+  description: "Mark a task as complete",
+  schema: z.object({
+    taskId: z.string().describe("ID of the task to complete"),
+  }),
+  handler(data, ctx, agent) {
+    const { tasks } = ctx.agentMemory;
+    const taskIndex = tasks.findIndex((t) => t.id === data.taskId);
+
+    if (taskIndex === -1) {
+      return {
+        success: false,
+        message: `Task with ID ${data.taskId} not found`,
+      };
+    }
+
+    // Update task status
+    tasks[taskIndex].status = "completed";
+    tasks[taskIndex].completedAt = new Date().toISOString();
+
+    // Move to completed tasks list
+    ctx.agentMemory.completedTasks = ctx.agentMemory.completedTasks || [];
+    ctx.agentMemory.completedTasks.push(tasks[taskIndex]);
+
+    // Remove from active tasks
+    ctx.agentMemory.tasks.splice(taskIndex, 1);
+
+    return {
+      success: true,
+      message: `Task "${tasks[taskIndex].title}" marked as complete`,
+    };
+  },
+});
+```
+
+## How Actions Appear to the LLM
+
+When the LLM receives the context, your actions are presented as available
+functions it can call. For example:
+
+```
+Available Actions:
+- searchDatabase(query: string, limit?: number): Search the database for records matching the query
+- addTask(title: string, priority: "low" | "medium" | "high", dueDate?: string): Add a new task to the task list
+- completeTask(taskId: string): Mark a task as complete
+```
+
+The LLM uses this information to decide which actions to call and with what
+parameters. The descriptions and parameter descriptions are crucial for helping
+the LLM understand when and how to use each action.
+
+## Best Practices
+
+1. **Clear Names and Descriptions**: Use descriptive names and detailed
+   descriptions to help the LLM understand when to use each action
+2. **Validate Inputs**: Use Zod schemas to validate inputs and provide clear
+   error messages
+3. **Meaningful Returns**: Return structured data that the LLM can easily
+   interpret
+4. **Error Handling**: Handle errors gracefully and provide informative error
+   messages
+5. **State Management**: Be careful when modifying context state to avoid
+   unintended side effects
+6. **Idempotency**: When possible, design actions to be idempotent (can be
+   called multiple times with the same result)
+7. **Atomic Operations**: Keep actions focused on a single responsibility
+
+## Example: Document Management System
+
+Here's a more complete example of actions for a document management system:
+
+```ts
+// Create a new document
+action({
+  name: "createDocument",
+  description: "Create a new document in the system",
+  schema: z.object({
+    title: z.string().describe("Document title"),
+    content: z.string().describe("Document content"),
+    tags: z.array(z.string()).optional().describe("Tags for categorization"),
+  }),
+  handler(data, ctx, agent) {
+    const { title, content, tags = [] } = data;
+
+    const newDoc = {
+      id: generateId(),
+      title,
+      content,
+      tags,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update context state
+    ctx.agentMemory.documents = ctx.agentMemory.documents || [];
+    ctx.agentMemory.documents.push(newDoc);
+
+    return {
+      document: newDoc,
+      message: `Created document "${title}" with ID ${newDoc.id}`,
+    };
+  },
+});
+
+// Search for documents
+action({
+  name: "searchDocuments",
+  description: "Search for documents by title, content, or tags",
+  schema: z.object({
+    query: z.string().describe("Search query"),
+    searchIn: z
+      .array(z.enum(["title", "content", "tags"]))
+      .default(["title", "content"]),
+  }),
+  handler(data, ctx, agent) {
+    const { documents = [] } = ctx.agentMemory;
+    const { query, searchIn } = data;
+
+    const results = documents.filter((doc) => {
+      return searchIn.some((field) => {
+        if (field === "tags" && doc.tags) {
+          return doc.tags.some((tag) =>
+            tag.toLowerCase().includes(query.toLowerCase())
+          );
+        }
+        return doc[field].toLowerCase().includes(query.toLowerCase());
+      });
+    });
+
+    return {
+      results,
+      count: results.length,
+      message: `Found ${results.length} documents matching "${query}"`,
+    };
+  },
+});
+
+// Update a document
+action({
+  name: "updateDocument",
+  description: "Update an existing document",
+  schema: z.object({
+    documentId: z.string().describe("ID of the document to update"),
+    updates: z.object({
+      title: z.string().optional(),
+      content: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+    }),
+  }),
+  handler(data, ctx, agent) {
+    const { documents = [] } = ctx.agentMemory;
+    const { documentId, updates } = data;
+
+    const docIndex = documents.findIndex((d) => d.id === documentId);
+
+    if (docIndex === -1) {
+      return {
+        success: false,
+        message: `Document with ID ${documentId} not found`,
+      };
+    }
+
+    // Update the document
+    ctx.agentMemory.documents[docIndex] = {
+      ...ctx.agentMemory.documents[docIndex],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return {
+      success: true,
+      document: ctx.agentMemory.documents[docIndex],
+      message: `Updated document "${ctx.agentMemory.documents[docIndex].title}"`,
+    };
+  },
+});
+```
+
+This set of actions demonstrates how to create a complete CRUD interface for a
+document management system, all while maintaining state in the context memory.
+
+
+file: ./content/docs/guides/agents-old/context.mdx
+meta: {
+  "title": "Contexts"
+}
+        
+Contexts are the foundation of a Daydreams agent. Similar to React components,
+contexts manage state and rendering for your agent. Each context:
+
+## Context Architecture
+
+A context in Daydreams is a powerful state management system that maintains
+memory and provides structured data to your LLM. Let's break down each component
+of a context:
+
+```ts
+const myContext = context({
+  type: "my-context",
+  schema: z.object({
+    id: string(),
+  }),
+  key({ id }) {
+    return id;
+  },
+  create(state) {
+    return {
+      items: [],
+      currentItem: null,
+    };
+  },
+  render({ memory }) {
+    return `
+      Current Items: ${memory.items.join(", ")}
+      Active Item: ${memory.currentItem || "None"}
+    `;
+  },
+});
+```
+
+### Type
+
+The `type` property is a unique identifier for your context. This helps
+Daydreams distinguish between different contexts in your agent.
+
+```ts
+type: "my-context",
+```
+
+### Schema
+
+The `schema` defines the structure of arguments required to initialize a context
+instance. Daydreams uses Zod for type validation, ensuring that your context
+receives the correct data.
+
+```ts
+schema: z.object({
+  id: string(),
+}),
+```
+
+### Key Function
+
+The `key` function is crucial for context management. It generates a unique
+identifier for each context instance, similar to a foreign key in a database:
+
+```ts
+key({ id }) {
+  return id;
+}
+```
+
+When your agent needs to reference a specific context instance, it uses this
+key. For example:
+
+* If you have multiple todo lists, each with a unique ID, the key function
+  ensures that actions target the correct list
+* The agent can maintain separate states for different users, projects, or tasks
+* Context instances can be persisted and retrieved using this key
+
+### Create Function
+
+The `create` function initializes the memory state for a new context instance:
+
+```ts
+create(state) {
+  return {
+    items: [],
+    currentItem: null,
+  };
+}
+```
+
+This function:
+
+* Runs once when a context instance is first created
+* Sets up the initial state structure
+* Can incorporate data from the schema arguments via the `state` parameter
+
+### Render Function
+
+The `render` function is one of the most important parts of a context. It
+formats the context's state for the LLM:
+
+```ts
+render({ memory }) {
+  return `
+    Current Items: ${memory.items.join(", ")}
+    Active Item: ${memory.currentItem || "None"}
+  `;
+}
+```
+
+This function:
+
+* Is called on every LLM interaction
+* Transforms the raw memory state into a format the LLM can understand
+* Gets piped directly into the LLM's context window
+* Can use template strings, markdown, or any text format the LLM can process
+* Should focus on presenting relevant information concisely
+
+Think of the render function as the "view" in an MVC architecture. It determines
+what the LLM "sees" about your context's state.
+
+## Working with Context Memory
+
+The context memory is where all state changes are stored. You can access and
+modify this memory in action handlers:
+
+```ts
+action({
+  name: "addItem",
+  description: "Add a new item to the list",
+  schema: z.object({
+    item: string(),
+  }),
+  handler(data, ctx, agent) {
+    // Access the context memory
+    const contextMemory = ctx.agentMemory;
+
+    // Update the state
+    contextMemory.items.push(data.item);
+
+    return { success: true };
+  },
+});
+```
+
+## Context Lifecycle
+
+1. **Initialization**: When a context is first referenced, Daydreams calls the
+   `create` function to set up its initial state
+2. **Identification**: The `key` function generates a unique identifier for the
+   context instance
+3. **Interaction**: As the agent runs, actions can read and modify the context's
+   memory
+4. **Rendering**: Before each LLM call, the `render` function formats the
+   context state
+5. **Persistence**: Context instances can be saved and retrieved across sessions
+   using their keys
+
+## Best Practices
+
+* Keep your render output concise and relevant
+* Structure your memory state logically
+* Use descriptive keys that make context instances easy to identify
+* Consider how multiple contexts might interact in complex agents
+* Use Zod's `.describe()` method to add helpful descriptions to your schema
+  fields
+
+## Example: Task Manager Context
+
+Here's a more complete example of a task manager context:
+
+```ts
+const taskManagerContext = context({
+  type: "task-manager",
+  schema: z.object({
+    projectId: string().describe("Unique identifier for the project"),
+    userId: string().describe("User who owns this task list"),
+  }),
+  key({ projectId, userId }) {
+    return `${userId}:${projectId}`;
+  },
+  create(state) {
+    return {
+      tasks: [],
+      completedTasks: [],
+      currentTask: null,
+      projectName: state.projectName || "Unnamed Project",
+    };
+  },
+  render({ memory }) {
+    const taskList = memory.tasks
+      .map((task) => `- ${task.title} (${task.status})`)
+      .join("\n");
+    const completedList = memory.completedTasks
+      .map((task) => `- ${task.title}`)
+      .join("\n");
+
+    return `
+# Task Manager: ${memory.projectName}
+
+## Current Tasks:
+${taskList || "No active tasks"}
+
+## Current Focus:
+${memory.currentTask ? `Working on: ${memory.currentTask.title}` : "No task in focus"}
+
+## Completed Tasks:
+${completedList || "No completed tasks"}
+    `;
+  },
+});
+```
+
+
+file: ./content/docs/guides/agents-old/extensions.mdx
+meta: {
+  "title": "Extensions"
+}
+        
+Extensions are pre-packaged bundles of inputs, outputs, and actions that add
+specific capabilities to your agent. For example, the `cli` extension adds
+terminal input/output capabilities.
+
+## Using Extensions
+
+Extensions are added to an agent using the `extensions` option in the
+`createDreams` function.
+
+```ts
+import { createDreams } from "@daydreamsai/core";
+import { cli } from "@daydreamsai/core/extensions";
+
+const agent = createDreams({
+  extensions: [cli],
+});
+```
+
+
+file: ./content/docs/guides/agents-old/inputs.mdx
+meta: {
+  "title": "Inputs"
+}
+        
+Inputs are the entry points for data flowing into your Daydreams agent. They
+define how your agent receives information from the outside world, whether from
+users, systems, or other data sources.
+
+## How Inputs Work
+
+Inputs serve as the sensory organs of your agent, allowing it to perceive and
+respond to its environment. When you define an input:
+
+1. You create a channel for data to flow into your agent
+2. The input handler processes and validates the incoming data
+3. The data is added to the agent's working memory
+4. The agent can then reason about and respond to this new information
+
+## Defining an Input
+
+Here's the basic structure of an input:
+
+```ts
+input({
+  schema: z.object({
+    user: string(),
+    text: string(),
+  }),
+  format: ({ user, text }) =>
+    formatMsg({
+      role: "user",
+      content: text,
+      user,
+    }),
+  // Subscribe to CLI input
+  async subscribe(send, { container }) {
+    const rl = container.resolve<readline.Interface>("readline");
+
+    const controller = new AbortController();
+
+    new Promise<void>(async (resolve) => {
+      while (!controller.signal.aborted) {
+        const question = await rl.question("> ");
+        if (question === "exit") {
+          break;
+        }
+        console.log("User:", question);
+        send(
+          cliContext,
+          { user: "admin" },
+          {
+            user: "admin",
+            text: question,
+          }
+        );
+      }
+
+      resolve();
+    });
+
+    return () => {
+      controller.abort();
+    };
+  },
+}),
+```
+
+## Inputs in Extensions
+
+In practice, inputs are often defined within extensions to provide integration
+with external services. Extensions bundle related inputs, outputs, and services
+together.
+
+### Extension Pattern
+
+Here's how inputs are typically defined within an extension:
+
+```ts
+export const myExtension = extension({
+  name: "myExtension",
+  services: [myService], // Services needed by this extension
+  contexts: {
+    myContext: myContext, // Contexts used by this extension
+  },
+  inputs: {
+    "myExtension:message": input({
+      schema: z.object({
+        user: z.object({ id: string(), name: string() }),
+        text: string(),
+      }),
+      // Format the input for the LLM
+      format: ({ user, text }) => `${user.name}: ${text}`,
+      // Subscribe to external events
+      subscribe(send, { container }) {
+        // Set up event listeners or polling
+        // When events occur, use send() to push data to the agent
+
+        // Return a cleanup function
+        return () => {
+          // Cleanup code (remove listeners, etc.)
+        };
+      },
+    }),
+  },
+  outputs: {
+    // Output definitions...
+  },
+});
+```
+
+### Subscription Model
+
+A key feature of inputs in extensions is the `subscribe` function, which:
+
+1. Sets up listeners for external events
+2. Processes incoming data
+3. Sends it to the appropriate context using the `send` function
+4. Returns a cleanup function to remove listeners when the agent stops
+
+This subscription model allows inputs to continuously monitor external sources
+and feed data to your agent.
+
+## Real-World Examples
+
+### Telegram Integration
+
+Here's how the Telegram extension defines an input to receive messages:
+
+```ts
+export const telegram = extension({
+  name: "telegram",
+  services: [telegramService],
+  contexts: {
+    chat: telegramChat,
+  },
+  inputs: {
+    "telegram:message": input({
+      schema: z.object({
+        user: z.object({ id: z.number(), username: string() }),
+        text: string(),
+      }),
+      // Format messages for the LLM
+      format: ({ user, text }) =>
+        formatMsg({
+          role: "user",
+          content: text,
+          user: user.username,
+        }),
+      // Subscribe to Telegram messages
+      subscribe(send, { container }) {
+        // Get the Telegraf instance from the container
+        container.resolve<Telegraf>("telegraf").on("message", (ctx) => {
+          const chat = ctx.chat;
+          const user = ctx.msg.from;
+
+          if ("text" in ctx.message) {
+            // Send the message to the appropriate context
+            send(
+              telegramChat,
+              { chatId: chat.id }, // Context parameters
+              {
+                // Input data
+                user: {
+                  id: user.id,
+                  username: user.username!,
+                },
+                text: ctx.message.text,
+              }
+            );
+          }
+        });
+
+        // Return cleanup function
+        return () => {};
+      },
+    }),
+  },
+  outputs: {
+    // Output definitions...
+  },
+});
+```
+
+### Twitter Integration
+
+The Twitter extension shows how to poll for data:
+
+```ts
+export const twitter = extension({
+  name: "twitter",
+  services: [twitterService],
+  contexts: {
+    twitter: twitterContext,
+  },
+  inputs: {
+    "twitter:mentions": input({
+      schema: z.object({
+        userId: string(),
+        tweetId: string(),
+        text: string(),
+      }),
+      format: (data) =>
+        formatXml({
+          tag: "tweet",
+          params: { tweetId: data.tweetId },
+          children: data.text,
+        }),
+      subscribe(send, { container }) {
+        const twitter = container.resolve<TwitterClient>("twitter");
+
+        // Check mentions every 10 seconds
+        const interval = setInterval(async () => {
+          const mentions = await twitter.checkMentions();
+
+          for (const mention of mentions) {
+            // Send each mention to the context
+            send(
+              twitterContext,
+              { tweetId: mention.metadata.tweetId || "" },
+              {
+                tweetId: mention.metadata.tweetId || "",
+                userId: mention.metadata.userId || "",
+                text: mention.content,
+              }
+            );
+          }
+        }, 10000);
+
+        // Return cleanup function to clear the interval
+        return () => clearInterval(interval);
+      },
+    }),
+  },
+  outputs: {
+    // Output definitions...
+  },
+});
+```
+
+## Key Components of Extension Inputs
+
+### Schema
+
+Defines the structure of the input data using Zod for validation.
+
+### Format
+
+Transforms the input data into a format suitable for the LLM. This is what the
+LLM will actually see in its context.
+
+### Subscribe
+
+Sets up the connection to external data sources:
+
+* Establishes event listeners or polling mechanisms
+* Processes incoming data
+* Uses the `send` function to route data to the appropriate context
+* Returns a cleanup function
+
+### The `send` Function
+
+The `send` function is crucial for routing data to the right context:
+
+```ts
+send(
+  contextDefinition, // Which context type to use
+  contextParams, // Parameters to identify the context instance
+  inputData // The data to send to the context
+);
+```
+
+## Using Extensions in Your Agent
+
+To use an extension's inputs in your agent:
+
+```ts
+import { createDreams } from "@daydreamsai/core";
+import { telegramExtension } from "@daydreamsai/telegram";
+import { anthropic } from "@ai-sdk/anthropic";
+
+createDreams({
+  model: anthropic("claude-3-7-sonnet-latest"),
+  extensions: [telegramExtension], // Adds Telegram inputs and outputs
+}).start();
+```
+
+## Creating Custom Inputs
+
+While extensions provide many common inputs, you can create custom inputs for
+specific needs:
+
+```ts
+const myCustomInput = input({
+  schema: z.object({
+    data: string(),
+    source: string(),
+  }),
+  format: (data) => `New data from ${data.source}: ${data.data}`,
+  subscribe(send, { container }) {
+    // Set up your custom data source
+    const cleanup = setupCustomDataSource((newData) => {
+      // Send data to all relevant contexts
+      send(
+        myContext,
+        { id: "default" },
+        {
+          data: newData.content,
+          source: newData.source,
+        }
+      );
+    });
+
+    return cleanup;
+  },
+});
+
+// Use in your agent
+createDreams({
+  model: anthropic("claude-3-7-sonnet-latest"),
+  inputs: {
+    myCustom: myCustomInput,
+  },
+}).start();
+```
+
+## Best Practices for Extension Inputs
+
+1. **Use Descriptive Names**: Name inputs with a namespace prefix (e.g.,
+   `telegram:message`)
+2. **Validate Thoroughly**: Use Zod schemas to validate all incoming data
+3. **Format Consistently**: Use consistent formatting for similar types of
+   inputs
+4. **Handle Errors Gracefully**: Add error handling in your subscribe function
+5. **Clean Up Resources**: Always return a cleanup function from subscribe
+6. **Context-Specific Routing**: Send data to the appropriate context based on
+   its content
+7. **Efficient Polling**: If polling external services, use appropriate
+   intervals to avoid rate limits
+
+## Advanced Patterns
+
+### Dynamic Context Creation
+
+Inputs can create new contexts dynamically:
+
+```ts
+subscribe(send, { container, agent }) {
+  setupListener((data) => {
+    // Create a new context for each unique conversation
+    const contextId = `conversation-${data.conversationId}`;
+
+    // Check if context exists, create if not
+    if (!agent.hasContext(contextId)) {
+      agent.createContext(conversationContext, {
+        id: data.conversationId,
+        startedAt: new Date().toISOString(),
+      });
+    }
+
+    // Send to the specific context
+    send(conversationContext, { id: data.conversationId }, {
+      message: data.message,
+      sender: data.sender,
+    });
+  });
+}
+```
+
+This set of inputs demonstrates how a Daydreams agent can receive and process
+information from multiple channels in a customer support context.
+
+
+file: ./content/docs/guides/agents-old/outputs.mdx
+meta: {
+  "title": "Outputs"
+}
+        
+While actions are designed for two-way interaction with the LLM, outputs provide
+a way for the agent to communicate with the outside world without necessarily
+expecting a response. Outputs are primarily used for:
+
+* Sending messages to users or external systems
+* Displaying information
+* Logging data
+* Publishing content
+
+Unlike actions, outputs are typically one-way communications that don't return
+data to the LLM for further reasoning. However, they can still modify context
+state if needed.
+
+### Defining an Output
+
+Here's how to define an output:
+
+```ts
+output({
+  name: "sendMessage",
+  description: "Send a message to the user",
+  schema: z.object({
+    message: z.string().describe("The message to send"),
+    importance: z.enum(["low", "medium", "high"]).optional(),
+  }),
+  handler(call, ctx, agent) {
+    const { message, importance = "medium" } = call.data;
+
+    // Send the message to the user interface
+    userInterface.displayMessage(message, importance);
+
+    // Optionally track in context memory
+    ctx.agentMemory.sentMessages = ctx.agentMemory.sentMessages || [];
+    ctx.agentMemory.sentMessages.push({
+      content: message,
+      importance,
+      timestamp: new Date().toISOString(),
+    });
+  },
+});
+```
+
+### Common Output Use Cases
+
+Outputs are ideal for scenarios where you need to:
+
+#### Social Media Integration
+
+```ts
+output({
+  name: "postToTwitter",
+  description: "Post a message to Twitter/X",
+  schema: z.object({
+    content: z.string().max(280).describe("Tweet content"),
+    media: z.array(z.string()).optional().describe("Media URLs to attach"),
+  }),
+  async handler(call, ctx, agent) {
+    const { content, media = [] } = call.data;
+
+    try {
+      const result = await twitterAPI.postTweet(content, media);
+
+      // Track in context memory
+      ctx.agentMemory.socialPosts = ctx.agentMemory.socialPosts || [];
+      ctx.agentMemory.socialPosts.push({
+        platform: "twitter",
+        content,
+        tweetId: result.id,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Failed to post tweet:", error);
+    }
+  },
+});
+```
+
+#### Data Visualization
+
+```ts
+output({
+  name: "generateChart",
+  description: "Generate and display a chart based on data",
+  schema: z.object({
+    type: z.enum(["bar", "line", "pie", "scatter"]),
+    title: z.string(),
+    data: z.array(
+      z.object({
+        label: z.string(),
+        value: z.number(),
+      })
+    ),
+    options: z
+      .object({
+        colors: z.array(z.string()).optional(),
+        showLegend: z.boolean().optional(),
+      })
+      .optional(),
+  }),
+  handler(call, ctx, agent) {
+    const { type, title, data, options = {} } = call.data;
+
+    // Generate and display the chart
+    visualizationSystem.createChart(type, title, data, options);
+
+    // No need to return anything to the LLM
+  },
+});
+```
+
+#### Notification System
+
+```ts
+output({
+  name: "sendNotification",
+  description: "Send a notification to specified channels",
+  schema: z.object({
+    title: z.string().describe("Notification title"),
+    body: z.string().describe("Notification body"),
+    channels: z.array(z.enum(["email", "sms", "push", "slack"])),
+    priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
+  }),
+  async handler(call, ctx, agent) {
+    const { title, body, channels, priority } = call.data;
+
+    // Send to each channel
+    for (const channel of channels) {
+      await notificationSystem.send(channel, {
+        title,
+        body,
+        priority,
+      });
+    }
+
+    // Track notifications in context
+    ctx.agentMemory.notifications = ctx.agentMemory.notifications || [];
+    ctx.agentMemory.notifications.push({
+      title,
+      body,
+      channels,
+      priority,
+      timestamp: new Date().toISOString(),
+    });
+  },
+});
+```
+
+### Outputs vs. Actions
+
+While outputs and actions share similar structures, they serve different
+purposes:
+
+| Feature         | Actions                                     | Outputs                                        |
+| --------------- | ------------------------------------------- | ---------------------------------------------- |
+| Primary purpose | Two-way interaction with LLM                | One-way communication to external systems      |
+| Return value    | Expected to return data to LLM              | Typically doesn't return data to LLM           |
+| State mutation  | Commonly used to update context state       | Can update state but not primary purpose       |
+| Usage pattern   | Called by LLM during reasoning              | Called by LLM when it needs to communicate out |
+| Error handling  | Should handle errors and return them to LLM | Should handle errors internally                |
+
+### When to Use Outputs vs. Actions
+
+* **Use outputs when**: The primary goal is to communicate outward, and you
+  don't need the result for further reasoning
+* **Use actions when**: You need the result of the operation for the LLM to
+  continue its reasoning process
+
+### Best Practices for Outputs
+
+1. **Keep outputs focused**: Each output should have a single, clear
+   responsibility
+2. **Handle errors gracefully**: Don't let output failures crash your agent
+3. **Consider asynchronous processing**: For outputs that might take time,
+   consider processing them asynchronously
+4. **Track important outputs in context**: If the output represents something
+   the agent should remember, store it in context memory
+5. **Use descriptive names**: Make it clear what the output does from its name
+
+
+file: ./content/docs/guides/agents-old/overview.mdx
+meta: {
+  "title": "Overview"
+}
+        
+Daydreams agents are powerful, composable AI systems built around a React-like
+architecture. This design makes them both flexible and intuitive to work with,
+allowing you to create sophisticated AI applications with minimal boilerplate.
+
+## Core Architecture
+
+A Daydreams agent consists of several key components:
+
+### Contexts
+
+Contexts are the foundation of a Daydreams agent. Similar to React components,
+contexts manage state and rendering for your agent. Each context:
+
+* Has a defined schema for initialization
+* Maintains its own memory state
+* Provides a rendering function that formats its state for the LLM
+
+```ts
+const myContext = context({
+  // Unique identifier for this context type
+  type: "my-context",
+
+  // Schema defining the arguments needed to initialize this context
+  schema: z.object({
+    id: z.string(),
+  }),
+
+  // Function to generate a unique key for this context instance
+  key({ id }) {
+    return id;
+  },
+
+  // Initialize the context's memory state
+  create(state) {
+    return {
+      items: [],
+      currentItem: null,
+    };
+  },
+
+  // Format the context for the LLM
+  render({ memory }) {
+    return `
+      Current Items: ${memory.items.join(", ")}
+      Active Item: ${memory.currentItem || "None"}
+    `;
+  },
+});
+```
+
+### Actions
+
+Actions are functions that your agent can call to interact with its environment
+or modify its state. They're similar to event handlers in React:
+
+```ts
+action({
+  name: "addItem",
+  description: "Add a new item to the list",
+  schema: z.object({
+    item: z.string().describe("The item to add"),
+  }),
+  handler(call, ctx, agent) {
+    // Access the context memory
+    const contextMemory = ctx.agentMemory;
+
+    // Update the state
+    contextMemory.items.push(call.data.item);
+
+    // Return a response
+    return {
+      message: `Added ${call.data.item} to the list`,
+      items: contextMemory.items,
+    };
+  },
+});
+```
+
+### Extensions
+
+Extensions are pre-packaged bundles of inputs, outputs, and actions that add
+specific capabilities to your agent. For example, the `cli` extension adds
+terminal input/output capabilities.
+
+## Creating an Agent
+
+The `createDreams` function is the entry point for creating a Daydreams agent.
+It brings together all the components:
+
+```ts
+import { createDreams } from "@daydreamsai/core";
+import { cli } from "@daydreamsai/core/extensions";
+import { groq } from "@daydreamsai/core/models";
+
+const agent = createDreams({
+  // The LLM to use
+  model: groq("deepseek-r1-distill-llama-70b"),
+
+  // Extensions to include
+  extensions: [cli],
+
+  // Your custom context
+  context: myContext,
+
+  // Custom actions
+  actions: [
+    // Your actions here
+  ],
+}).start();
+```
+
+## The React-like Mental Model
+
+If you're familiar with React, you can think of Daydreams in similar terms:
+
+* **Contexts** are like React components, managing state and rendering
+* **Actions** are like event handlers, responding to inputs and updating state
+* **Extensions** are like pre-built component libraries
+* The agent itself is like a React application, orchestrating everything
+
+This mental model makes it easy to reason about how your agent works and how to
+structure complex behaviors.
+
+## Bootstrapping a New Agent
+
+The easiest way to get started with Daydreams is to use the CLI tool:
+
+### Install the CLI
+
+```bash
+npm install -g @daydreamsai/create-agent
+```
+
+### Create a new agent
+
+```bash
+npx @daydreamsai/create-agent dreaming-agent
+```
+
+This will scaffold a new agent project with all the necessary files and
+dependencies.
+
+### Navigate to your project
+
+```bash
+cd dreaming-agent
+```
+
+### Start your agent
+
+```bash
+npm run dev
+```
+
+## Complete Example
+
+Here's a minimal example of a Daydreams agent:
+
+```ts
+import { createDreams } from "@daydreamsai/core";
+import { cli } from "@daydreamsai/core/extensions";
+import { groq } from "@daydreamsai/core/models";
+
+const agent = createDreams({
+  model: groq("deepseek-r1-distill-llama-70b"),
+  extensions: [cli],
+}).start();
+```
+
+This will run the agent in the terminal. Talk to it!
+
+For more advanced examples, see the [Examples](/examples) section.
