@@ -16,7 +16,7 @@
     "@daydreamsai/core": "workspace:*",
     "@daydreamsai/cli": "workspace:*",
     "@octokit/rest": "^21.1.1",
-    "@tavily/core": "^0.3.1",
+    "@tavily/core": "^0.5.0",
     "discord.js": "^14.18.0",
     "hyperliquid": "^1.6.2",
     "zod": "^3.24.2",

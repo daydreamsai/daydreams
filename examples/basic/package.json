@@ -22,7 +22,7 @@
     "@daydreamsai/mongodb": "workspace:*",
     "@daydreamsai/supabase": "workspace:*",
     "@octokit/rest": "^21.1.1",
-    "@tavily/core": "^0.3.1",
+    "@tavily/core": "^0.5.0",
     "zod": "^3.24.2"
   }
 }

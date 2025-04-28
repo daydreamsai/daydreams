@@ -15,7 +15,7 @@
     "@ai-sdk/groq": "^1.1.12",
     "@daydreamsai/cli": "workspace:*",
     "@daydreamsai/core": "workspace:*",
-    "@tavily/core": "^0.3.1",
+    "@tavily/core": "^0.5.0",
     "zod": "^3.24.2"
   }
 }
