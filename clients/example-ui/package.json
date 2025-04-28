@@ -44,7 +44,7 @@
     "clsx": "^2.1.1",
     "idb-keyval": "^6.2.1",
     "json-schema-to-zod": "^2.6.0",
-    "lucide-react": "^0.475.0",
+    "lucide-react": "^0.503.0",
     "mermaid": "^11.5.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
