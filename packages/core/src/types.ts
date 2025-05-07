@@ -940,6 +940,7 @@ export type Config<TContext extends AnyContext = AnyContext> = Partial<
   exportTrainingData?: boolean;
   /** Path to save training data */
   trainingDataPath?: string;
+  streaming?: boolean;
 };
 
 /** Configuration type for inputs without type field */

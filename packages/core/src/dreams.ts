@@ -96,6 +96,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     reasoningModel,
     exportTrainingData,
     trainingDataPath,
+    streaming = true,
   } = config;
 
   const container = config.container ?? createContainer();
@@ -649,6 +650,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
               prompt,
               workingMemory,
               logger,
+              streaming,
               onError: (error) => {
                 streamError = error;
                 // state.errors.push(error);
@@ -658,7 +660,6 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
               abortSignal,
             }
           );
-
           logger.debug("agent:run", "Processing stream", { step: state.step });
 
           await handleStream(

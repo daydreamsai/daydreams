@@ -17,7 +17,7 @@ import type {
 import type { Logger } from "../logger";
 import { wrapStream } from "../streaming";
 import { modelsResponseConfig, reasoningModels } from "../configs";
-
+import { generateText } from "ai";
 /**
  * Prepares a stream response by handling the stream result and parsing it.
  *
@@ -59,13 +59,14 @@ type GenerateOptions = {
   workingMemory: WorkingMemory;
   logger: Logger;
   model: LanguageModelV1;
+  streaming: boolean;
   onError: (error: unknown) => void;
 };
 
 export const runGenerate = task({
   key: "agent:run:generate",
   handler: async (
-    { prompt, workingMemory, model, onError }: GenerateOptions,
+    { prompt, workingMemory, model, streaming, onError }: GenerateOptions,
     { abortSignal }
   ) => {
     const isReasoningModel = reasoningModels.includes(model.modelId);
@@ -100,24 +101,59 @@ export const runGenerate = task({
       ] as CoreMessage["content"];
     }
 
-    const stream = streamText({
-      model,
-      messages,
-      stopSequences: ["\n</response>"],
-      temperature: 0.6,
-      abortSignal,
-      onError: (event) => {
-        onError(event.error);
-      },
-    });
+    try {
 
-    return prepareStreamResponse({
-      model,
-      stream,
-      isReasoningModel,
-    });
+      if (!streaming) {
+        const response = await generateText({
+          model,
+          messages,
+          temperature: 0.2
+        });
+  
+        let getTextResponse = async () => response.text;
+        let stream = textToStream(response.text);
+  
+        return { getTextResponse, stream };
+      }
+      else {
+  
+        const stream = streamText({
+          model,
+          messages,
+          stopSequences: ["\n</response>"],
+          temperature: 0.5,
+          abortSignal,
+            // experimental_transform: smoothStream({
+            //   chunking: "word",
+            // }),
+          onError: (event) => {
+              console.log({ event });
+            onError(event.error);
+          },
+        }) 
+        
+  
+        return prepareStreamResponse({
+          model,
+          stream,
+          isReasoningModel,
+        });
+      }
+    } catch (error) {
+      onError(error);
+      throw error;
+    }
   },
 });
+
+async function* textToStream(text: string, chunkSize = 10): AsyncGenerator<string> {
+  for (let i = 0; i < text.length; i += chunkSize) {
+    const chunk = text.slice(i, i + chunkSize);
+    yield chunk;
+    // Optional: add a small delay to simulate streaming
+    // await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}
 
 /**
  * Task that executes an action with the given context and parameters.
