@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "^1.1.0",
-    "@ai-sdk/ui-utils": "^1.2.3",
+    "@ai-sdk/ui-utils": "^1.2.10",
     "ai": "^4.2.9",
     "dotenv": "^16.4.7",
     "p-defer": "^4.0.1",
