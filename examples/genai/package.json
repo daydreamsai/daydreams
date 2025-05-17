@@ -1,0 +1,19 @@
+{
+  "name": "genai",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@daydreamsai/core": "workspace:*",
+    "@daydreamsai/discord": "workspace:*",
+    "@daydreamsai/genai": "workspace:*",
+    "zod": "^3.24.2",
+    "@ai-sdk/google": "^1.2.17"
+  }
+}

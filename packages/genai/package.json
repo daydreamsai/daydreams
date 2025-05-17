@@ -1,0 +1,33 @@
+{
+  "name": "@daydreamsai/genai",
+  "version": "0.3.6",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "tsup": "^8.3.6",
+    "vitest": "^3.0.5"
+  },
+  "scripts": {
+    "test": "vitest",
+    "build": "tsup --dts-resolve"
+  },
+  "peerDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@daydreamsai/core": "workspace:*",
+    "zod": "^3.24.2",
+    "ai": "^4.2.9"
+  }
+}

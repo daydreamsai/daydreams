@@ -1,33 +1,47 @@
 import { z } from "zod";
-import { extension, input, output } from "@daydreamsai/core";
+import { extension, input, output, validateEnv, /* action, type LanguageModelV1 */ } from "@daydreamsai/core";
 import { Events, type Message } from "discord.js";
 import { DiscordClient } from "./io";
 import { context } from "@daydreamsai/core";
 import { service } from "@daydreamsai/core";
-import { LogLevel } from "@daydreamsai/core";
 
-/* Implementation of the discord extension */
+const envSchema = z.object({
+  DISCORD_TOKEN: z.string(),
+  DISCORD_BOT_NAME: z.string(),
+  PROCESS_ATTACHMENTS: z.boolean().optional().default(false),
+});
+
 const discordService = service({
   register(container) {
+    const env = validateEnv(envSchema);
+
     container.singleton(
       "discord",
       () =>
         new DiscordClient(
           {
-            discord_token: process.env.DISCORD_TOKEN!,
-            discord_bot_name: process.env.DISCORD_BOT_NAME!,
+            discord_token: env.DISCORD_TOKEN,
+            discord_bot_name: env.DISCORD_BOT_NAME,
           },
-          LogLevel.DEBUG
         )
     );
   },
+});
+
+const attachmentSchema = z.object({
+  url: z.string().describe("URL of the attachment"),
+  filename: z.string().describe("Filename of the attachment"),
+  contentType: z.string().describe("MIME type of the attachment"),
+  size: z.number().describe("Size of the attachment in bytes"),
+  fetchedData: z.custom<Buffer>(val => Buffer.isBuffer(val)).optional()
+    .describe("Pre-fetched attachment data as a Buffer, if processed by the extension.")
 });
 
 export const discordChannelContext = context({
   type: "discord.channel",
   key: ({ channelId }) => channelId,
   schema: z.object({ channelId: z.string() }),
-  async setup(args, setttings, { container }) {
+  async setup(args, settings, { container }) {
     const channel = await container
       .resolve<DiscordClient>("discord")
       .client.channels.fetch(args.channelId);
@@ -42,39 +56,86 @@ export const discordChannelContext = context({
       schema: {
         user: z.object({ id: z.string(), name: z.string() }),
         text: z.string(),
+        attachments: z.array(attachmentSchema).optional(),
       },
       handler(data) {
         return {
-          data: data.text,
-          params: { userId: data.user.id, username: data.user.name },
+          data: {
+            text: data.text,
+            attachments: data.attachments || []
+          },
+          params: {
+            userId: data.user.id,
+            username: data.user.name,
+            hasAttachments: data.attachments && data.attachments.length > 0 ? 'true' : 'false'
+          },
         };
       },
       subscribe(send, { container }) {
+        const env = validateEnv(envSchema);
         function listener(message: Message) {
-          if (
-            message.author.displayName ==
-            container.resolve<DiscordClient>("discord").credentials
-              .discord_bot_name
-          ) {
-            console.log(
-              `Skipping message from ${
-                container.resolve<DiscordClient>("discord").credentials
-                  .discord_bot_name
-              }`
-            );
+          const discordClient = container.resolve<DiscordClient>("discord");
+
+          if (message.author.displayName === discordClient.credentials.discord_bot_name) {
+            console.log(`Skipping message from ${discordClient.credentials.discord_bot_name}`);
             return;
           }
-          send(
-            discord.contexts!.discordChannel,
-            { channelId: message.channelId },
-            {
-              user: {
-                id: message.author.id,
-                name: message.author.displayName,
-              },
-              text: message.content,
+
+          (async () => {
+            let processedAttachments: z.infer<typeof attachmentSchema>[] = [];
+
+            if (message.attachments.size > 0) {
+              if (env.PROCESS_ATTACHMENTS) {
+                processedAttachments = await Promise.all(
+                  message.attachments.map(async (att) => {
+                    const baseAttachmentInfo = {
+                      url: att.url,
+                      filename: att.name || "unknown",
+                      contentType: att.contentType || "application/octet-stream",
+                      size: att.size,
+                    };
+                    if (att.contentType && att.contentType.startsWith('image/')) {
+                      try {
+                        const response = await fetch(att.url);
+                        if (response.ok) {
+                          const buffer = await response.arrayBuffer();
+                          return {
+                            ...baseAttachmentInfo,
+                            fetchedData: Buffer.from(buffer),
+                          };
+                        } else {
+                          console.error(`[Discord Ext] Failed to fetch image ${att.url}: ${response.statusText}`);
+                        }
+                      } catch (fetchError) {
+                        console.error(`[Discord Ext] Error fetching attachment ${att.url}:`, fetchError);
+                      }
+                    }
+                    return baseAttachmentInfo;
+                  })
+                );
+              } else {
+                processedAttachments = message.attachments.map(att => ({
+                  url: att.url,
+                  filename: att.name || "unknown",
+                  contentType: att.contentType || "application/octet-stream",
+                  size: att.size,
+                }));
+              }
             }
-          );
+
+            send(
+              discord.contexts!.discordChannel,
+              { channelId: message.channelId },
+              {
+                user: {
+                  id: message.author.id,
+                  name: message.author.displayName,
+                },
+                text: message.content,
+                attachments: processedAttachments.length > 0 ? processedAttachments : undefined
+              }
+            );
+          })();
         }
 
         const { client } = container.resolve<DiscordClient>("discord");
@@ -105,6 +166,60 @@ export const discordChannelContext = context({
         }
         throw new Error("Invalid channel id");
       },
+    }),
+    "discord:message-with-attachments": output({
+      schema: z.object({
+        content: z.string().describe("Text content of the message"),
+        attachments: z.array(z.object({
+          url: z.string().describe("URL of the attachment to send"),
+          filename: z.string().optional().describe("Optional filename for the attachment"),
+          description: z.string().optional().describe("Optional description of the attachment")
+        }))
+      }),
+      examples: [
+        `<output type="discord:message-with-attachments">
+           {
+             "content": "Here's the image you requested!",
+             "attachments": [
+               {
+                 "url": "https://example.com/image.jpg",
+                 "filename": "result.jpg",
+                 "description": "Generated image"
+               }
+             ]
+           }
+         </output>`
+      ],
+      handler: async (data, ctx, { container }) => {
+        const channel = ctx.options.channel;
+        if (channel && (channel.isTextBased() || channel.isDMBased())) {
+          const env = validateEnv(envSchema);
+
+          const discordClient = container.resolve<DiscordClient>("discord");
+
+          const files = data.attachments.map(att => ({
+            attachment: att.url,
+            name: att.filename || undefined,
+            description: att.description || undefined
+          }));
+
+          const result = await discordClient.sendMessageWithAttachments({
+            channelId: ctx.args.channelId,
+            content: data.content,
+            files: files
+          });
+
+          return {
+            data,
+            timestamp: Date.now(),
+          };
+        }
+        throw new Error("Invalid channel id");
+      },
+      enabled: () => {
+        const env = validateEnv(envSchema);
+        return env.PROCESS_ATTACHMENTS === true;
+      }
     }),
   });
 
