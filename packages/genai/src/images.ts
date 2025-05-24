@@ -3,98 +3,96 @@ import { action, type LanguageModelV1, type Agent } from "@daydreamsai/core";
 import {
   generateText,
   type CoreMessage,
-  type ImagePart,
   type TextPart,
+  type FilePart as VercelFilePart,
 } from "ai";
 
-// This schema is for the data the action *expects* as input.
-const imageAttachmentSchemaForAction = z.object({
-  url: z.string().url().describe("URL of the attachment."),
-  filename: z.string().optional().describe("Filename of the attachment."),
-  contentType: z.string().optional().describe("MIME type of the attachment."),
-  data: z
-    .custom<Buffer>((val) => Buffer.isBuffer(val))
-    .optional()
-    .describe(
-      "Pre-fetched Buffer data, if available and processed by an input extension (e.g., Discord)."
-    ),
+const imageAttachmentSchema = z.object({
+  url: z.string().url().describe("URL of the image attachment."),
+  filename: z.string().optional().describe("Filename of the image attachment."),
+  contentType: z
+    .string()
+    .describe("MIME type of the image attachment (e.g., 'image/png')."),
 });
 
-// analyzeImage schema
+// Schema for the analyzeImage action
 const analyzeImageActionSchema = z.object({
   text: z.string().describe("The text prompt accompanying the image(s)."),
   attachments: z
-    .array(imageAttachmentSchemaForAction)
+    .array(imageAttachmentSchema)
     .min(1, "At least one image attachment is required.")
     .describe("Array of image attachments to analyze."),
 });
-
-// Helper function for multimodal generation, internal to this genai extension
-async function internalGenerateMultimodalResponse(
+// Helper function for multimodal generation with image
+async function internalGenerateImageResponse(
   model: LanguageModelV1,
   inputText: string,
   attachments:
     | Array<{
-        url: string;
-        filename?: string;
-        contentType?: string;
-        data?: Buffer;
-      }>
+      url: string;
+      filename?: string;
+      contentType: string;
+      data?: Buffer;
+    }>
     | undefined
 ): Promise<string> {
-  const parts: (TextPart | ImagePart)[] = [{ type: "text", text: inputText }];
+  const parts: (TextPart | VercelFilePart)[] = [
+    { type: "text", text: inputText },
+  ];
 
   if (attachments && attachments.length > 0) {
     for (const attachment of attachments) {
-      // Ensure it's an image and we have data or a URL
+      // Ensure we have contentType, and a URL or data for the image
       if (
-        attachment.contentType &&
         attachment.contentType.startsWith("image/") &&
-        (attachment.data || attachment.url)
+        (attachment.url || attachment.data) // Check if either URL or data is present
       ) {
         try {
-          let imageBuffer: Buffer;
-          if (attachment.data) {
-            imageBuffer = attachment.data;
-          } else if (attachment.url) {
-            // Fallback to URL if data is not present
-            const response = await fetch(attachment.url);
-            if (!response.ok) {
-              console.error(
-                `[GenAI Pkg] Failed to fetch image ${attachment.url}: ${response.statusText}`
-              );
-              continue; // Skip this attachment
-            }
-            imageBuffer = Buffer.from(await response.arrayBuffer());
+          if (attachment.url) {
+            // Prioritize URL: AI SDK should download it
+            parts.push({
+              type: "file",
+              data: attachment.url, // Pass the URL string directly
+              mimeType: attachment.contentType,
+            });
+          } else if (attachment.data) {
+            // Fallback to Buffer data if no URL but data exists
+            parts.push({
+              type: "file",
+              data: attachment.data, // Pass the Buffer directly
+              mimeType: attachment.contentType,
+            });
           } else {
-            // This case should ideally not be hit if the above condition (attachment.data || attachment.url) is met
+            // This case should ideally not be reached if the outer condition is met,
+            // but as a safeguard:
             console.warn(
-              "[GenAI Pkg] Attachment has no data and no URL after check, skipping."
+              "[GenAI Pkg] Image attachment has no URL and no data, skipping."
             );
             continue;
           }
-          parts.push({
-            type: "image",
-            image: imageBuffer,
-            mimeType: attachment.contentType,
-          });
         } catch (error) {
-          console.error("[GenAI Pkg] Error processing attachment:", error);
+          console.error(
+            "[GenAI Pkg] Error processing image attachment:",
+            error
+          );
         }
       }
     }
   }
 
-  // BOAT: why?? this sucks. need to refact or remove. 05/17/25
-  // Check if any images were actually added. If not, and text is short, maybe don't proceed.
-  const imagePartsCount = parts.filter((p) => p.type === "image").length;
-  if (imagePartsCount === 0 && inputText.length < 10) {
-    // Adjusted minimum text length
-    return "No images were processed. Please provide an image or a more descriptive text prompt.";
+  const filePartsCount = parts.filter((p) => p.type === "file").length;
+  if (filePartsCount === 0) {
+    return "No images were processed. Please provide an image attachment with a valid image MIME type.";
   }
-  if (imagePartsCount > 0 && inputText.trim() === "") {
+  if (filePartsCount > 0 && inputText.trim() === "") {
     inputText = "Describe this image."; // Default prompt if only image is sent
-    parts[0] = { type: "text", text: inputText }; // Update the text part
+    // Update the text part; ensure it's the first element if it exists or add it.
+    const textPartIndex = parts.findIndex((p) => p.type === "text");
+    if (textPartIndex !== -1) {
+      parts[textPartIndex] = { type: "text", text: inputText };
+    } else {
+      parts.unshift({ type: "text", text: inputText });
+    }
   }
 
   const userMessage: CoreMessage = { role: "user", content: parts };
@@ -109,9 +107,9 @@ async function internalGenerateMultimodalResponse(
 export const analyzeImageAction = action({
   name: "analyzeImage",
   description:
-    "Analyzes provided text and accompanying image attachments, then generates a relevant textual response. Use this to describe images, answer questions about them, or perform other vision-related tasks.",
+    "Analyzes provided text and accompanying image attachments, then generates a relevant textual response. Use this to describe images, answer questions about them, or perform other image-related tasks.",
   schema: analyzeImageActionSchema,
-  async handler(data, ctx: any, agent: Agent) {
+  async handler(data, _ctx: any, agent: Agent) {
     const { text, attachments } = data;
 
     if (!agent.model) {
@@ -119,19 +117,6 @@ export const analyzeImageAction = action({
         "No language model configured on the agent for analyzeImage action."
       );
     }
-    // The attachments in `args.attachments` should directly match what `internalGenerateMultimodalResponse` expects
-    return internalGenerateMultimodalResponse(agent.model, text, attachments);
+    return internalGenerateImageResponse(agent.model, text, attachments);
   },
 });
-
-// TO DO:
-// when we finish building out more action integrations, e.g. "videos.ts", let's move
-// the export of the extension to the top level of the package
-// (re-export * from ./) in a dedicated "index.ts" file.
-// this will make it easier to import the extension into other packages.
-// here good time to look into extensions, servives, and exposing bare components if useful
-
-// export const genai = extension({
-// name: "genai",
-// actions: [analyzeImageAction],
-// });
