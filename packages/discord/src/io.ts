@@ -28,7 +28,6 @@ export interface MessageData {
   channelId: string;
   conversationId?: string;
   sendBy?: string;
-  files?: AttachmentData[]; // New field for attachments
 }
 
 export const messageSchema = z.object({
@@ -39,13 +38,6 @@ export const messageSchema = z.object({
     .string()
     .optional()
     .describe("The conversation ID (if applicable)"),
-  files: z.array(
-    z.object({
-      attachment: z.string().describe("URL or file path of the attachment"),
-      name: z.string().optional().describe("Filename of the attachment"),
-      description: z.string().optional().describe("Description of the attachment")
-    })
-  ).optional().describe("Files to attach to the message"),
 });
 
 export class DiscordClient {
@@ -246,127 +238,6 @@ export class DiscordClient {
       };
     } catch (error) {
       this.logger.error("DiscordClient.sendMessage", "Error sending message", {
-        error,
-      });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-    }
-  }
-
-  async sendMessageWithAttachments(data: MessageData): Promise<{
-    success: boolean;
-    messageId?: string;
-    content?: string;
-    error?: string;
-  }> {
-    try {
-      this.logger.info("DiscordClient.sendMessageWithAttachments", "Sending message with attachments", {
-        data,
-      });
-
-      if (!data?.channelId || !data?.content) {
-        return {
-          success: false,
-          error: "Channel ID and content are required",
-        };
-      }
-
-      const channel = this.client.channels.cache.get(data?.channelId);
-      if (!this.getIsValidTextChannel(channel)) {
-        const error = new Error(
-          `Invalid or unsupported channel: ${data.channelId}`
-        );
-        this.logger.error(
-          "DiscordClient.sendMessageWithAttachments",
-          "Error sending message",
-          {
-            error,
-          }
-        );
-        throw error;
-      }
-
-      const MAX_LENGTH = 1500;
-      let sentMessage;
-
-      // Handle content that's too long
-      if (data.content.length > MAX_LENGTH) {
-        // If we have attachments, send the attachments with the first chunk
-        // and send additional chunks as separate messages
-
-        // Split message into chunks as in the original sendMessage
-        const chunks = [];
-        let currentChunk = "";
-        const lines = data.content.split("\n");
-
-        for (const line of lines) {
-          // If adding this line would exceed max length, push current chunk and start new one
-          if (currentChunk.length + line.length + 1 > MAX_LENGTH) {
-            if (currentChunk) {
-              chunks.push(currentChunk);
-              currentChunk = "";
-            }
-
-            // If single line is longer than MAX_LENGTH, split it
-            if (line.length > MAX_LENGTH) {
-              let remainingLine = line;
-              while (remainingLine.length > 0) {
-                chunks.push(remainingLine.slice(0, MAX_LENGTH));
-                remainingLine = remainingLine.slice(MAX_LENGTH);
-              }
-            } else {
-              currentChunk = line;
-            }
-          } else {
-            // Add line to current chunk
-            currentChunk = currentChunk ? currentChunk + "\n" + line : line;
-          }
-        }
-
-        // Push final chunk if it exists
-        if (currentChunk) {
-          chunks.push(currentChunk);
-        }
-
-        // Send first chunk with attachments
-        if (chunks.length > 0 && data.files && data.files.length > 0) {
-          sentMessage = await channel.send({
-            content: chunks[0],
-            files: data.files
-          });
-
-          // Send the rest of the chunks as normal messages
-          for (let i = 1; i < chunks.length; i++) {
-            await channel.send(chunks[i]);
-          }
-        } else {
-          // No attachments, or no chunks - just send the chunks sequentially
-          for (const chunk of chunks) {
-            sentMessage = await channel.send(chunk);
-          }
-        }
-      } else {
-        // Content within limits - send as one message with attachments if any
-        if (data.files && data.files.length > 0) {
-          sentMessage = await channel.send({
-            content: data.content,
-            files: data.files
-          });
-        } else {
-          sentMessage = await channel.send(data.content);
-        }
-      }
-
-      return {
-        success: true,
-        messageId: sentMessage?.id,
-        content: data.content,
-        error: undefined,
-      };
-    } catch (error) {
-      this.logger.error("DiscordClient.sendMessageWithAttachments", "Error sending message with attachments", {
         error,
       });
       return {

@@ -9,14 +9,13 @@ const env = validateEnv(
     GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
     DISCORD_TOKEN: z.string().min(1, "DISCORD_TOKEN is required"),
     DISCORD_BOT_NAME: z.string().min(1, "DISCORD_BOT_NAME is required"),
-    // PROCESS_ATTACHMENTS: z.boolean().optional().default(true),
   })
 );
 
 const agent = createDreams({
   model: createGoogleGenerativeAI({
     apiKey: env.GEMINI_API_KEY,
-  })("gemini-2.5-flash-preview-04-17"),
+  })("gemini-2.0-flash-exp"),
   logger: new Logger({ level: LogLevel.DEBUG }),
   extensions: [discord, genai],
 });

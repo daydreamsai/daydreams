@@ -37,11 +37,11 @@ async function internalGenerateVideoResponse(
   inputText: string,
   attachments:
     | Array<{
-        url: string;
-        filename?: string;
-        contentType: string;
-        data?: Buffer;
-      }>
+      url: string;
+      filename?: string;
+      contentType: string;
+      data?: Buffer;
+    }>
     | undefined
 ): Promise<string> {
   const parts: (TextPart | VercelFilePart)[] = [
@@ -50,37 +50,34 @@ async function internalGenerateVideoResponse(
 
   if (attachments && attachments.length > 0) {
     for (const attachment of attachments) {
-      // Ensure we have contentType, and data or a URL for the video
-      // The Vercel AI SDK FilePart implies contentType is mandatory.
+      // Ensure we have contentType, and a URL or data for the video
       if (
         attachment.contentType.startsWith("video/") &&
-        (attachment.data || attachment.url)
+        (attachment.url || attachment.data) // Check if either URL or data is present
       ) {
         try {
-          let fileBuffer: Buffer;
-          if (attachment.data) {
-            fileBuffer = attachment.data;
-          } else if (attachment.url) {
-            // Fallback to URL if data is not present
-            const response = await fetch(attachment.url);
-            if (!response.ok) {
-              console.error(
-                `[GenAI Pkg] Failed to fetch video ${attachment.url}: ${response.statusText}`
-              );
-              continue; // Skip this attachment
-            }
-            fileBuffer = Buffer.from(await response.arrayBuffer());
+          if (attachment.url) {
+            // Prioritize URL: AI SDK should download it
+            parts.push({
+              type: "file",
+              data: attachment.url, // Pass the URL string directly
+              mimeType: attachment.contentType,
+            });
+          } else if (attachment.data) {
+            // Fallback to Buffer data if no URL but data exists
+            parts.push({
+              type: "file",
+              data: attachment.data, // Pass the Buffer directly
+              mimeType: attachment.contentType,
+            });
           } else {
+            // This case should ideally not be reached if the outer condition is met,
+            // but as a safeguard:
             console.warn(
-              "[GenAI Pkg] Video attachment has no data and no URL after check, skipping."
+              "[GenAI Pkg] Video attachment has no URL and no data, skipping."
             );
             continue;
           }
-          parts.push({
-            type: "file",
-            data: fileBuffer.toString("base64"),
-            mimeType: attachment.contentType,
-          });
         } catch (error) {
           console.error(
             "[GenAI Pkg] Error processing video attachment:",

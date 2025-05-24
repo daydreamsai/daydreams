@@ -110,6 +110,7 @@ export const discordChannelContext = context({
                         att.contentType || "application/octet-stream",
                       size: att.size,
                     };
+                    let fetchedData: Buffer | undefined = undefined;
                     if (
                       att.contentType &&
                       att.contentType.startsWith("image/")
@@ -118,9 +119,10 @@ export const discordChannelContext = context({
                         const response = await fetch(att.url);
                         if (response.ok) {
                           const buffer = await response.arrayBuffer();
+                          fetchedData = Buffer.from(buffer);
                           return {
                             ...baseAttachmentInfo,
-                            fetchedData: Buffer.from(buffer),
+                            fetchedData: fetchedData,
                           };
                         } else {
                           console.error(
@@ -147,6 +149,10 @@ export const discordChannelContext = context({
               }
             }
 
+            const attachmentsForAgent = processedAttachments.map(
+              ({ fetchedData, ...rest }) => rest
+            );
+
             send(
               discord.contexts!.discordChannel,
               { channelId: message.channelId },
@@ -157,8 +163,8 @@ export const discordChannelContext = context({
                 },
                 text: message.content,
                 attachments:
-                  processedAttachments.length > 0
-                    ? processedAttachments
+                  attachmentsForAgent.length > 0
+                    ? attachmentsForAgent
                     : undefined,
               }
             );
@@ -176,8 +182,18 @@ export const discordChannelContext = context({
   })
   .setOutputs({
     "discord:message": output({
-      schema: z.string(),
-      examples: [`<output type="discord:message">Hi!</output>`],
+      schema: z.string().describe(
+        "The text content for the Discord message. This string will be sent directly to the user. " +
+        "If you need to include information from previous action calls (e.g., a URL from an image generation task like 'calls[0].images[0].url'), " +
+        "you MUST directly embed the actual resolved value (e.g., 'https://example.com/image.png') into this string. " +
+        "DO NOT use template placeholders like '{{calls[0].images[0].url}}' or any other '{{...}}' syntax in this output string. " +
+        "Always replace such placeholders with their concrete values before outputting."
+      ),
+      examples: [
+        `<output type="discord:message">Okay, I've completed that task.</output>`,
+        `<output type="discord:message">Here is the image you requested: https://files.catbox.moe/someimage.png</output>`,
+        `<output type="discord:message">The result of the calculation is 42.</output>`
+      ],
       handler: async (data, ctx, { container }) => {
         const channel = ctx.options.channel;
         if (channel && (channel.isTextBased() || channel.isDMBased())) {
@@ -192,68 +208,6 @@ export const discordChannelContext = context({
           };
         }
         throw new Error("Invalid channel id");
-      },
-    }),
-    "discord:message-with-attachments": output({
-      schema: z.object({
-        content: z.string().describe("Text content of the message"),
-        attachments: z.array(
-          z.object({
-            url: z.string().describe("URL of the attachment to send"),
-            filename: z
-              .string()
-              .optional()
-              .describe("Optional filename for the attachment"),
-            description: z
-              .string()
-              .optional()
-              .describe("Optional description of the attachment"),
-          })
-        ),
-      }),
-      examples: [
-        `<output type="discord:message-with-attachments">
-           {
-             "content": "Here's the image you requested!",
-             "attachments": [
-               {
-                 "url": "https://example.com/image.jpg",
-                 "filename": "result.jpg",
-                 "description": "Generated image"
-               }
-             ]
-           }
-         </output>`,
-      ],
-      handler: async (data, ctx, { container }) => {
-        const channel = ctx.options.channel;
-        if (channel && (channel.isTextBased() || channel.isDMBased())) {
-          const env = validateEnv(envSchema);
-
-          const discordClient = container.resolve<DiscordClient>("discord");
-
-          const files = data.attachments.map((att) => ({
-            attachment: att.url,
-            name: att.filename || undefined,
-            description: att.description || undefined,
-          }));
-
-          const result = await discordClient.sendMessageWithAttachments({
-            channelId: ctx.args.channelId,
-            content: data.content,
-            files: files,
-          });
-
-          return {
-            data,
-            timestamp: Date.now(),
-          };
-        }
-        throw new Error("Invalid channel id");
-      },
-      enabled: () => {
-        const env = validateEnv(envSchema);
-        return env.PROCESS_ATTACHMENTS === "true";
       },
     }),
   });
