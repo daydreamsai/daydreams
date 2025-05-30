@@ -1,0 +1,110 @@
+---
+title: Building a Discord Agent
+description:
+  This guide will walk you through creating an AI agent that can interact with
+  Discord using DreamsAI.
+---
+
+## Prerequisites
+
+Before starting, make sure you have:
+
+1. A Discord bot application set up in the Discord Developer Portal
+2. The following environment variables set up:
+   - `GROQ_API_KEY`: Your Groq API key
+   - `DISCORD_TOKEN`: Your Discord bot token
+
+## Getting Your Discord Token
+
+To get your Discord bot token, follow these steps:
+
+1. **Go to the Discord Developer Portal**
+
+   - Visit
+     [https://discord.com/developers/applications](https://discord.com/developers/applications)
+   - Log in with your Discord account
+
+2. **Create a New Application**
+
+   - Click "New Application"
+   - Give your bot a name and click "Create"
+
+3. **Navigate to the Bot Section**
+
+   - In the left sidebar, click "Bot"
+   - Click "Add Bot" if prompted
+
+4. **Get Your Token**
+
+   - Under the "Token" section, click "Reset Token"
+   - Copy the token that appears (keep this secret!)
+   - Add this token to your `.env` file as `DISCORD_TOKEN=your_token_here`
+
+5. **Set Bot Permissions**
+
+   - Scroll down to "Bot Permissions"
+   - Select the permissions your bot needs (at minimum: "Send Messages", "Read
+     Message History")
+
+6. **Invite Your Bot to a Server**
+   - Go to the "OAuth2" > "URL Generator" section
+   - Select "bot" scope and the permissions you need
+   - Use the generated URL to invite your bot to a Discord server
+
+## Creating the Agent
+
+First, let's create a basic Discord agent:
+
+```ts title="agent.ts"
+import { createGroq } from "@ai-sdk/groq";
+import {
+  createContainer,
+  createDreams,
+  LogLevel,
+  discord,
+} from "@daydreamsai/core";
+
+// Initialize Groq client
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY!,
+});
+
+// Create the agent
+const agent = createDreams({
+  logger: LogLevel.DEBUG,
+  container: createContainer(),
+  model: groq("deepseek-r1-distill-llama-70b"),
+  extensions: [discord],
+});
+
+// Start the agent
+await agent.start();
+```
+
+## How It Works
+
+The Discord agent is created using a few key components:
+
+1. **Groq Integration**: We use Groq's language model for processing and
+   understanding Discord interactions.
+
+2. **Logger**: Set to DEBUG level for detailed logging during development.
+
+3. **Container**: Manages dependencies and services.
+
+4. **Discord Extension**: The `discord` extension provides built-in capabilities
+   for:
+   - Listening to messages in channels
+   - Responding to direct messages
+   - Reacting to messages
+   - Managing Discord server interactions
+
+## Next Steps
+
+- Set up Discord bot authentication in your environment variables
+- Customize the agent's behavior by adding your own extensions
+- Implement specific use cases like auto-replies or server moderation
+
+For the full discord example, check out the
+[Example-Discord](https://github.com/daydreamsai/daydreams/tree/main/examples/discord)
+on Github.

@@ -1,0 +1,20 @@
+{
+  "title": "Daydreams Tutorials",
+  "description": "Tutorials for Daydreams",
+  "icon": "Cuboid",
+  "root": true,
+  "pages": [
+    "---Basic---",
+    "examples",
+    "---Gaming---",
+    "gaming",
+    "---Social Media---",
+    "social",
+
+    "---Advanced---",
+    "advanced",
+    "mcp",
+    "---Deployment---",
+    "deployment"
+  ]
+}

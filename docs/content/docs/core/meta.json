@@ -1,4 +1,8 @@
 {
+  "title": "Daydreams Core  ",
+  "description": "The core library",
+  "icon": "Cuboid",
+  "root": true,
   "pages": [
     "---Getting Started---",
     "index",
@@ -6,9 +10,6 @@
     "---Building Agents---",
     "concepts",
     "providers",
-
-    "---Guides---",
-    "guides",
     "advanced",
 
     "---Resources---",

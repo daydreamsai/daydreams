@@ -140,35 +140,27 @@ export function pushToWorkingMemory(workingMemory: WorkingMemory, ref: AnyRef) {
 
   switch (ref.ref) {
     case "action_call":
-      if (!workingMemory.calls) workingMemory.calls = [];
       workingMemory.calls.push(ref);
       break;
     case "action_result":
-      if (!workingMemory.results) workingMemory.results = [];
       workingMemory.results.push(ref);
       break;
     case "input":
-      if (!workingMemory.inputs) workingMemory.inputs = [];
       workingMemory.inputs.push(ref);
       break;
     case "output":
-      if (!workingMemory.outputs) workingMemory.outputs = [];
       workingMemory.outputs.push(ref);
       break;
     case "thought":
-      if (!workingMemory.thoughts) workingMemory.thoughts = [];
       workingMemory.thoughts.push(ref);
       break;
     case "event":
-      if (!workingMemory.events) workingMemory.events = [];
       workingMemory.events.push(ref);
       break;
     case "step":
-      if (!workingMemory.steps) workingMemory.steps = [];
       workingMemory.steps.push(ref);
       break;
     case "run":
-      if (!workingMemory.runs) workingMemory.runs = [];
       workingMemory.runs.push(ref);
       break;
     default:

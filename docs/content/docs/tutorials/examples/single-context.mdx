@@ -1,0 +1,77 @@
+---
+title: Single Context Agent
+description:
+  This guide will walk you through creating an AI agent that can respond to a
+  single context.
+---
+
+## Prerequisites
+
+Before starting, make sure you have:
+
+2. The following environment variables set up:
+   - `OPENAI_API_KEY`: Your OpenAI API key
+
+Create a file named `agent.ts`:
+
+```typescript title="agent.ts"
+import { createDreams, context, input, output } from "@daydreamsai/core";
+import { cliExtension } from "@daydreamsai/cli";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+
+// 1. Define the main context for our agent
+const echoContext = context({
+  type: "echo",
+  // No specific arguments needed for this simple context
+  schema: z.object({}),
+  // Instructions that guide the LLM's behavior
+  instructions:
+    "You are a simple echo bot. Repeat the user's message back to them.",
+});
+
+// 2. Create the agent instance
+const agent = createDreams({
+  // Configure the LLM model to use
+  model: openai("gpt-4o-mini"),
+  // Include the CLI extension for input/output handling
+  extensions: [cliExtension],
+  // Register our custom context
+  contexts: [echoContext],
+});
+
+// 3. Start the agent and run the context
+async function main() {
+  // Initialize the agent (sets up services like readline)
+  await agent.start();
+
+  console.log("Echo agent started. Type 'exit' to quit.");
+
+  // Run our echo context
+  // The cliExtension automatically handles console input/output
+  await agent.run({
+    context: echoContext,
+    args: {}, // Empty object since our schema requires no arguments
+  });
+
+  // Agent stops when the input loop breaks (e.g., user types "exit")
+  console.log("Agent stopped.");
+}
+
+// Start the application
+main();
+```
+
+### Run your agent
+
+Ensure your `OPENAI_API_KEY` environment variable is set, then run:
+
+```bash title="run the agent"
+node agent.ts
+```
+
+Your agent will start listening for input. Type any message and watch as the
+agent echoes it back using the LLM and CLI handlers provided by the
+`cliExtension`.
+
+---

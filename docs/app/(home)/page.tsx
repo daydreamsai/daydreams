@@ -148,7 +148,7 @@ function Hero() {
 
       <div className="flex items-center justify-center gap-3 mb-12">
         <Link
-          href="/docs"
+          href="/docs/core"
           className={cn(
             buttonStyles.secondary,
             "px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors rounded-md"
@@ -165,215 +165,6 @@ function Hero() {
         >
           LLM.txt
         </Link>
-      </div>
-    </div>
-  );
-}
-
-function Feedback() {
-  return (
-    <div className="relative flex flex-col items-center overflow-hidden border-x border-t px-6 py-8 md:py-16">
-      <div
-        className="absolute inset-x-0 bottom-0 z-[-1] h-24 opacity-30 duration-1000 animate-in fade-in"
-        style={{
-          maskImage: "linear-gradient(to bottom,transparent,white)",
-          backgroundImage:
-            "linear-gradient(to right, #4ebfff, transparent, #e92a67)",
-        }}
-      />
-      <p className="text-center font-medium /60">
-        Trusted by builders and developers worldwide
-      </p>
-
-      <div className="mt-6 flex flex-wrap justify-center gap-8">
-        <div className="flex items-center justify-center h-12 w-24 opacity-70 hover:opacity-100 transition-opacity">
-          <div className="text-xl font-bold ">Company 1</div>
-        </div>
-        <div className="flex items-center justify-center h-12 w-24 opacity-70 hover:opacity-100 transition-opacity">
-          <div className="text-xl font-bold ">Company 2</div>
-        </div>
-        <div className="flex items-center justify-center h-12 w-24 opacity-70 hover:opacity-100 transition-opacity">
-          <div className="text-xl font-bold ">Company 3</div>
-        </div>
-        <div className="flex items-center justify-center h-12 w-24 opacity-70 hover:opacity-100 transition-opacity">
-          <div className="text-xl font-bold ">Company 4</div>
-        </div>
-      </div>
-
-      <Link
-        href="/showcase"
-        className={cn(
-          buttonStyles.ghost,
-          "mt-6 px-4 py-2 text-sm font-medium rounded-md transition-colors"
-        )}
-      >
-        View Showcase
-      </Link>
-    </div>
-  );
-}
-
-function Installation() {
-  const [copied, setCopied] = useState(false);
-  const [configCopied, setConfigCopied] = useState(false);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText("npm install @daydreamsai/core");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleConfigCopy = async () => {
-    await navigator.clipboard
-      .writeText(`import { Agent } from "@daydreamsai/core";
-
-const agent = new Agent({
-  apiKey: "your-api-key",
-  chain: "ethereum", // or "solana", "polygon", etc.
-  options: {
-    model: "gpt-4",
-    autoExecute: true,
-  }
-});`);
-    setConfigCopied(true);
-    setTimeout(() => setConfigCopied(false), 2000);
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2">
-      <div className="flex flex-col gap-2 border-l border-t px-6 py-12 md:py-16">
-        <div className="inline-flex size-7 items-center justify-center rounded-full bg-purple-600 font-medium ">
-          1
-        </div>
-        <h3 className="text-xl font-semibold">Install</h3>
-        <p className="mb-8 /80">Install Daydreams with npm or yarn</p>
-
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-6 rounded-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            </div>
-            <button
-              onClick={handleCopy}
-              className="text-xs /60 hover:/90 transition-colors flex items-center gap-1.5"
-            >
-              {copied ? (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
-          </div>
-          <div className="flex items-center justify-center bg-black/30 rounded-lg p-6">
-            <code className="text-base /90 font-mono tracking-tight">
-              npm install @daydreamsai/core
-            </code>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2 border-l border-t px-6 py-12 md:py-16">
-        <div className="inline-flex size-7 items-center justify-center rounded-full bg-purple-600 font-medium ">
-          2
-        </div>
-        <h3 className="text-xl font-semibold">Configure</h3>
-        <p className="mb-8 /80">Set up your Daydreams configuration</p>
-
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-6 rounded-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            </div>
-            <button
-              onClick={handleConfigCopy}
-              className="text-xs /60 hover:/90 transition-colors flex items-center gap-1.5"
-            >
-              {configCopied ? (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
-          </div>
-          <div className="bg-black/30 rounded-lg p-4 overflow-auto">
-            <pre className="text-sm /90 font-mono">
-              <code>{`import { Agent } from "@daydreamsai/core";
-
-const agent = createDreams({
-  apiKey: "your-api-key",
-  chain: "ethereum", // or "solana", "polygon", etc.
-  options: {
-    model: "gpt-4",
-    autoExecute: true,
-  }
-});`}</code>
-            </pre>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -479,16 +270,16 @@ function AgentShowcase() {
                       href={(() => {
                         switch (tab.id) {
                           case "memory":
-                            return "/docs/concepts/memory";
+                            return "/docs/core/concepts/memory";
                           case "contexts":
-                            return "/docs/concepts/contexts";
+                            return "/docs/core/concepts/contexts";
                           case "actions":
-                            return "/docs/concepts/actions";
+                            return "/docs/core/concepts/actions";
                           case "io":
-                            return "/docs/concepts/inputs"; // Link I/O to Inputs page
+                            return "/docs/core/concepts/inputs"; // Link I/O to Inputs page
                           case "ai-sdk": // Link AI SDK to concepts index for now
                           default:
-                            return "/docs/providers/ai-sdk"; // TODO: Link to a new docs page about ai-sdk and providers
+                            return "/docs/core/providers/ai-sdk"; // TODO: Link to a new docs page about ai-sdk and providers
                         }
                       })()}
                       className={cn(
@@ -1700,7 +1491,7 @@ function CallToAction() {
           Join Discord
         </Link>
         <Link
-          href="/docs"
+          href="/docs/core"
           className={cn(
             buttonStyles.secondary,
             "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors rounded-md"
