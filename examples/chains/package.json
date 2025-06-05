@@ -21,6 +21,7 @@
     "discord.js": "catalog:",
     "hyperliquid": "catalog:",
     "zod": "catalog:",
-    "chalk": "catalog:"
+    "chalk": "catalog:",
+    "starknet": "catalog:"
   }
 }
