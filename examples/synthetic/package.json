@@ -1,0 +1,23 @@
+{
+  "name": "synthetic-example",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run example-synthetic.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@ai-sdk/groq": "catalog:",
+    "@openrouter/ai-sdk-provider": "catalog:",
+    "@daydreamsai/core": "workspace:*",
+    "@daydreamsai/synthetic": "workspace:*",
+    "@daydreamsai/cli": "workspace:*",
+    "zod": "catalog:"
+  }
+}

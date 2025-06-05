@@ -1,0 +1,40 @@
+{
+  "name": "@daydreamsai/synthetic",
+  "version": "0.3.7-alpha.7",
+  "description": "Synthetic data generation for AI agent training",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "synthetic-data",
+    "training",
+    "machine-learning",
+    "fine-tuning"
+  ],
+  "author": "Daydreams",
+  "license": "MIT",
+  "dependencies": {
+    "@daydreamsai/core": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.0",
+    "vitest": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "@daydreamsai/core": "workspace:*"
+  }
+}
