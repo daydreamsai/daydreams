@@ -1,0 +1,39 @@
+{
+  "name": "@daydreamsai/transport",
+  "type": "module",
+  "version": "0.0.1-alpha",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.ts",
+      "require": "./dist/types.js",
+      "import": "./dist/types.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "require": "./dist/server.js",
+      "import": "./dist/server.js"
+    },
+    "./http/*": {
+      "types": "./dist/http-*.d.ts",
+      "require": "./dist/http-*.js",
+      "import": "./dist/http-*.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "require": "./dist/client.js",
+      "import": "./dist/client.js"
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "tsup": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:",
+    "zod": "catalog:"
+  },
+  "scripts": {
+    "build": "tsup --dts-resolve"
+  }
+}

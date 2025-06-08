@@ -1,0 +1,15 @@
+{
+  "name": "examples-transport",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@daydreamsai/transport": "catalog:"
+  }
+}
