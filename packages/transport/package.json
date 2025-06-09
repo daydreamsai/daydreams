@@ -9,6 +9,11 @@
       "require": "./dist/types.js",
       "import": "./dist/types.js"
     },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "require": "./dist/client.js",
+      "import": "./dist/client.js"
+    },
     "./server": {
       "types": "./dist/server.d.ts",
       "require": "./dist/server.js",
@@ -19,10 +24,10 @@
       "require": "./dist/http-*.js",
       "import": "./dist/http-*.js"
     },
-    "./client": {
-      "types": "./dist/client.d.ts",
-      "require": "./dist/client.js",
-      "import": "./dist/client.js"
+    "./worker/*": {
+      "types": "./dist/worker-*.d.ts",
+      "require": "./dist/worker-*.js",
+      "import": "./dist/worker-*.js"
     }
   },
   "devDependencies": {

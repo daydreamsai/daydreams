@@ -10,6 +10,8 @@ export default defineConfig({
     "./src/server.ts",
     "./src/http-client.ts",
     "./src/http-server.ts",
+    "./src/worker-client.ts",
+    "./src/worker-server.ts",
   ],
   external: ["@daydreamsai/core"],
 });
