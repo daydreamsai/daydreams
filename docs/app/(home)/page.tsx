@@ -52,8 +52,8 @@ export default function Home() {
           {/* <Feedback /> */}
           {/* <Installation /> */}
           <AgentShowcase />
-          {/* <Features /> */}
-          {/* <Applications /> */}
+          <SyntheticDataSection />
+          <Applications />
           <Providers />
           <Chains />
           {/* <TwitterProof /> */}
@@ -77,16 +77,22 @@ function Hero() {
 
   return (
     <div className="relative z-[2] flex flex-col border-x border-t  px-6 pt-12 max-md:text-center md:px-12 md:pt-16 max-lg:overflow-hidden ">
-      {/* <div className="mx-auto w-full max-w-3xl mb-8">
-        <img className="mx-auto" src="/Daydreams.png" alt="Daydreams Logo" />
-      </div> */}
-
-      <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
-        Typescript autonomous <br /> agent framework
+      <h1 className="text-4xl md:text-5xl font-bold text-center mb-6">
+        Autonomous agents that <br />
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+          learn from their own reasoning
+        </span>
       </h1>
 
-      <p className="text-xl md:text-2xl  text-center mb-12">
-        lose the handrails, start daydreaming
+      <p className="text-xl md:text-2xl text-center mb-4 text-gray-300">
+        TypeScript framework for building AI agents that continuously improve
+        through synthetic data generation
+      </p>
+
+      <p className="text-lg text-center mb-12 text-gray-400 max-w-3xl mx-auto">
+        Create agents that capture their reasoning process and automatically
+        generate training datasets— turning every interaction into learning data
+        for the next generation of models
       </p>
 
       <div className="max-w-2xl mx-auto w-full mb-12">
@@ -146,21 +152,55 @@ function Hero() {
         </div>
       </div>
 
+      {/* Key differentiators */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+          <div className="text-2xl mb-2">🧠</div>
+          <h3 className="font-semibold mb-2">Reasoning Capture</h3>
+          <p className="text-sm text-gray-400">
+            Agents automatically capture their step-by-step reasoning process
+          </p>
+        </div>
+        <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+          <div className="text-2xl mb-2">🔄</div>
+          <h3 className="font-semibold mb-2">Synthetic Training</h3>
+          <p className="text-sm text-gray-400">
+            Generate high-quality training datasets from agent interactions
+          </p>
+        </div>
+        <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+          <div className="text-2xl mb-2">📈</div>
+          <h3 className="font-semibold mb-2">Continuous Learning</h3>
+          <p className="text-sm text-gray-400">
+            Create a symbiotic loop between reasoning and model improvement
+          </p>
+        </div>
+      </div>
+
       <div className="flex items-center justify-center gap-3 mb-12">
         <Link
           href="/docs/core"
           className={cn(
-            buttonStyles.secondary,
-            "px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors rounded-md"
+            buttonStyles.primary,
+            "px-6 py-3 text-base font-semibold shadow-sm transition-colors rounded-md"
           )}
         >
           Get Started
         </Link>
         <Link
+          href="/docs/tutorials/examples"
+          className={cn(
+            buttonStyles.secondary,
+            "px-6 py-3 text-base font-semibold transition-colors rounded-md"
+          )}
+        >
+          View Examples
+        </Link>
+        <Link
           href="/llm.txt"
           className={cn(
             buttonStyles.outline,
-            "px-4 py-2.5 text-sm font-semibold transition-colors rounded-md"
+            "px-4 py-3 text-sm font-semibold transition-colors rounded-md"
           )}
         >
           LLM.txt
@@ -171,51 +211,44 @@ function Hero() {
 }
 
 function AgentShowcase() {
-  const [activeTab, setActiveTab] = useState("ai-sdk");
+  const [activeTab, setActiveTab] = useState("synthetic");
 
   const tabs = [
+    {
+      id: "synthetic",
+      title: "Synthetic Data",
+      icon: RotateCw,
+      content:
+        "Capture agent reasoning in real-time and generate high-quality training datasets automatically. Create a symbiotic relationship between agent performance and model improvement.",
+    },
     {
       id: "ai-sdk",
       title: "AI SDK",
       icon: Brain,
       content:
-        "Built on top of the Vercel AI SDK, Daydreams seamlessly integrates with different AI providers and models",
+        "Built on top of the Vercel AI SDK, Daydreams seamlessly integrates with different AI providers and models with full type safety and streaming support",
     },
     {
       id: "memory",
       title: "Memory",
       icon: Database,
       content:
-        "Persistent memory storage with vector embeddings for long-term recall and contextual understanding",
+        "Persistent memory storage with vector embeddings for long-term recall and contextual understanding across conversations and sessions",
     },
     {
       id: "contexts",
       title: "Contexts",
       icon: Box,
       content:
-        "Maintain state and render structured data to your LLM with React-like components",
+        "Maintain state and render structured data to your LLM with React-like components that update dynamically based on agent interactions",
     },
     {
       id: "actions",
       title: "Actions",
       icon: Zap,
       content:
-        "Define capabilities for your agent with type-safe actions that can interact with external systems",
+        "Define capabilities for your agent with type-safe actions that can interact with external systems, APIs, and blockchain networks",
     },
-    {
-      id: "io",
-      title: "I/O",
-      icon: RotateCw,
-      content:
-        "Handle inputs and outputs with structured formats for consistent agent communication",
-    },
-    // {
-    //   id: "sandbox",
-    //   title: "Sandbox",
-    //   icon: "🏝️",
-    //   content:
-    //     "Develop and test your agents in a controlled environment before deploying to production",
-    // },
   ];
 
   return (
@@ -226,11 +259,12 @@ function AgentShowcase() {
         <span className=" px-2 py-1">_{">"} Agent Architecture</span>
       </h2>
       <p className="text-center /70 mb-8 relative z-10 max-w-2xl mx-auto">
-        Compose powerful agents with a modular, type-safe architecture
+        Compose powerful agents with a modular, type-safe architecture that
+        learns and improves
       </p>
 
       <div className="max-w-5xl mx-auto px-6 relative z-10">
-        <div className="bg-black/5 border border-white/10 overflow-hidden">
+        <div className="bg-black/5 border border-white/10 overflow-hidden rounded-lg">
           <div className="flex overflow-x-auto bg-white/5 backdrop-blur-sm">
             {tabs.map((tab) => (
               <button
@@ -269,17 +303,17 @@ function AgentShowcase() {
                     <Link
                       href={(() => {
                         switch (tab.id) {
+                          case "synthetic":
+                            return "/docs/core/concepts/building-blocks"; // TODO: Create synthetic data docs
                           case "memory":
                             return "/docs/core/concepts/memory";
                           case "contexts":
                             return "/docs/core/concepts/contexts";
                           case "actions":
                             return "/docs/core/concepts/actions";
-                          case "io":
-                            return "/docs/core/concepts/inputs"; // Link I/O to Inputs page
-                          case "ai-sdk": // Link AI SDK to concepts index for now
+                          case "ai-sdk":
                           default:
-                            return "/docs/core/providers/ai-sdk"; // TODO: Link to a new docs page about ai-sdk and providers
+                            return "/docs/core/providers/ai-sdk";
                         }
                       })()}
                       className={cn(
@@ -306,6 +340,87 @@ function AgentShowcase() {
                 </div>
 
                 <div className="md:col-span-2 bg-black/5 rounded-lg border border-white/10 p-5">
+                  {activeTab === "synthetic" && (
+                    <pre className="text-sm font-mono /90 overflow-auto">
+                      <code>
+                        <span className="text-purple-400">import</span> {"{"}{" "}
+                        <span className="/90">createDreams</span> {"}"}{" "}
+                        <span className="text-purple-400">from</span>{" "}
+                        <span className="text-green-400">
+                          "@daydreamsai/core"
+                        </span>
+                        ;
+                        <br />
+                        <span className="text-purple-400">import</span> {"{"}{" "}
+                        <span className="/90">createSyntheticData</span> {"}"}{" "}
+                        <span className="text-purple-400">from</span>{" "}
+                        <span className="text-green-400">
+                          "@daydreamsai/synthetic"
+                        </span>
+                        ;
+                        <br />
+                        <br />
+                        <span className="text-purple-400">const</span>{" "}
+                        <span className="text-blue-300">agent</span> ={" "}
+                        <span className="text-yellow-300">createDreams</span>(
+                        {"{"}
+                        <br />
+                        <span className="/90 pl-4">model:</span>{" "}
+                        <span className="text-yellow-300">groq</span>(
+                        <span className="text-green-400">
+                          "deepseek-r1-distill-llama-70b"
+                        </span>
+                        ),
+                        <br />
+                        <span className="/90 pl-4">extensions:</span> [
+                        <br />
+                        <span className="pl-8">
+                          <span className="text-yellow-300">
+                            createSyntheticData
+                          </span>
+                          ({"{"}
+                        </span>
+                        <br />
+                        <span className="/90 pl-12">enabled:</span>{" "}
+                        <span className="text-orange-300">true</span>,
+                        <br />
+                        <span className="/90 pl-12">formats:</span> [
+                        <span className="text-green-400">
+                          "instruction-tuning"
+                        </span>
+                        , <span className="text-green-400">"grpo"</span>],
+                        <br />
+                        <span className="/90 pl-12">capture:</span> {"{"}
+                        <br />
+                        <span className="/90 pl-16">reasoning:</span>{" "}
+                        <span className="text-orange-300">true</span>,
+                        <br />
+                        <span className="/90 pl-16">preferences:</span>{" "}
+                        <span className="text-orange-300">true</span>
+                        <br />
+                        <span className="pl-12">{"}"}</span>
+                        <br />
+                        <span className="pl-8">{"}),"}</span>
+                        <br />
+                        <span className="pl-4">],</span>
+                        <br />
+                        {"}"});
+                        <br />
+                        <br />
+                        <span className="text-gray-500 italic">
+                          {/*// Agent automatically generates training data*/}
+                        </span>
+                        <br />
+                        <span className="text-purple-400">await</span>{" "}
+                        <span className="text-blue-300">agent</span>.
+                        <span className="text-yellow-300">callAction</span>(
+                        <span className="text-green-400">
+                          "synthetic.process"
+                        </span>
+                        );
+                      </code>
+                    </pre>
+                  )}
                   {activeTab === "ai-sdk" && (
                     <pre className="text-sm font-mono /90 overflow-auto">
                       <code>
@@ -318,11 +433,23 @@ function AgentShowcase() {
                         ;
                         <br />
                         <span className="text-purple-400">import</span> {"{"}{" "}
-                        <span className="/90">openai</span> {"}"}{" "}
+                        <span className="/90">groq</span> {"}"}{" "}
                         <span className="text-purple-400">from</span>{" "}
-                        <span className="text-green-400">"@ai-sdk/openai"</span>
+                        <span className="text-green-400">"@ai-sdk/groq"</span>
                         ;
                         <br />
+                        <span className="text-purple-400">import</span> {"{"}{" "}
+                        <span className="/90">anthropic</span> {"}"}{" "}
+                        <span className="text-purple-400">from</span>{" "}
+                        <span className="text-green-400">
+                          "@ai-sdk/anthropic"
+                        </span>
+                        ;
+                        <br />
+                        <br />
+                        <span className="text-gray-500 italic">
+                          {/*// Mix and match any AI SDK provider*/}
+                        </span>
                         <br />
                         <span className="text-purple-400">const</span>{" "}
                         <span className="text-blue-300">agent</span> ={" "}
@@ -330,8 +457,25 @@ function AgentShowcase() {
                         {"{"}
                         <br />
                         <span className="/90 pl-4">model:</span>{" "}
+                        <span className="text-yellow-300">groq</span>(
+                        <span className="text-green-400">
+                          "llama-3.3-70b-versatile"
+                        </span>
+                        ),
+                        <br />
+                        <span className="/90 pl-4">fallbackModel:</span>{" "}
+                        <span className="text-yellow-300">anthropic</span>(
+                        <span className="text-green-400">
+                          "claude-3-5-haiku-20241022"
+                        </span>
+                        ),
+                        <br />
+                        <span className="/90 pl-4">embeddingModel:</span>{" "}
                         <span className="text-yellow-300">openai</span>(
-                        <span className="text-green-400">"gpt-4o-mini"</span>),
+                        <span className="text-green-400">
+                          "text-embedding-3-small"
+                        </span>
+                        ),
                         <br />
                         {"}"});
                       </code>
@@ -341,14 +485,6 @@ function AgentShowcase() {
                     <pre className="text-sm font-mono /90 overflow-auto">
                       <code>
                         <span className="text-purple-400">import</span> {"{"}{" "}
-                        <span className="/90">openrouter</span> {"}"}{" "}
-                        <span className="text-purple-400">from</span>{" "}
-                        <span className="text-green-400">
-                          "@openrouter/ai-sdk-provider"
-                        </span>
-                        ;
-                        <br />
-                        <span className="text-purple-400">import</span> {"{"}{" "}
                         <span className="/90">createDreams</span> {"}"}{" "}
                         <span className="text-purple-400">from</span>{" "}
                         <span className="text-green-400">
@@ -357,9 +493,19 @@ function AgentShowcase() {
                         ;
                         <br />
                         <span className="text-purple-400">import</span> {"{"}{" "}
-                        <span className="/90">openai</span> {"}"}{" "}
+                        <span className="/90">mongo</span> {"}"}{" "}
                         <span className="text-purple-400">from</span>{" "}
-                        <span className="text-green-400">"@ai-sdk/openai"</span>
+                        <span className="text-green-400">
+                          "@daydreamsai/mongo"
+                        </span>
+                        ;
+                        <br />
+                        <span className="text-purple-400">import</span> {"{"}{" "}
+                        <span className="/90">chroma</span> {"}"}{" "}
+                        <span className="text-purple-400">from</span>{" "}
+                        <span className="text-green-400">
+                          "@daydreamsai/chroma"
+                        </span>
                         ;
                         <br />
                         <br />
@@ -369,32 +515,50 @@ function AgentShowcase() {
                         {"{"}
                         <br />
                         <span className="/90 pl-4">model:</span>{" "}
-                        <span className="text-yellow-300">openrouter</span>(
+                        <span className="text-yellow-300">anthropic</span>(
                         <span className="text-green-400">
-                          "google/gemini-2.0-flash-001"
+                          "claude-3-5-sonnet-20241022"
                         </span>
                         ),
                         <br />
                         <span className="/90 pl-4">memory:</span> {"{"}
                         <br />
                         <span className="/90 pl-8">store:</span>{" "}
-                        <span className="text-blue-300">mongo</span>,
+                        <span className="text-blue-300">mongo</span>({"{"}
+                        <br />
+                        <span className="/90 pl-12">url:</span>{" "}
+                        <span className="text-green-400">
+                          process.env.MONGO_URL
+                        </span>
+                        <br />
+                        <span className="pl-8">{"}"}) ,</span>
                         <br />
                         <span className="/90 pl-8">vector:</span>{" "}
-                        <span className="text-blue-300">chroma</span>,
+                        <span className="text-blue-300">chroma</span>({"{"}
                         <br />
-                        <span className="/90 pl-8">vectorModel:</span>{" "}
-                        <span className="text-yellow-300">openai</span>(
-                        <span className="text-green-400">"gpt-4-turbo"</span>),
+                        <span className="/90 pl-12">url:</span>{" "}
+                        <span className="text-green-400">
+                          process.env.CHROMA_URL
+                        </span>
+                        <br />
+                        <span className="pl-8">{"}"}),</span>
                         <br />
                         <span className="pl-4">{"}"},</span>
                         <br />
                         {"}"});
                         <br />
                         <br />
+                        <span className="text-gray-500 italic">
+                          {/*// Memories persist across sessions*/}
+                        </span>
+                        <br />
                         <span className="text-purple-400">await</span>{" "}
                         <span className="text-blue-300">agent</span>.
-                        <span className="text-yellow-300">start</span>();
+                        <span className="text-yellow-300">remember</span>(
+                        <span className="text-green-400">
+                          "User prefers concise responses"
+                        </span>
+                        );
                       </code>
                     </pre>
                   )}
@@ -415,17 +579,13 @@ function AgentShowcase() {
                         <span className="text-green-400">"zod"</span>;
                         <br />
                         <br />
-                        <span className="text-gray-500 italic">
-                          {/*// Define context for specific tasks or interactions*/}
-                        </span>
-                        <br />
                         <span className="text-purple-400">const</span>{" "}
-                        <span className="text-blue-300">chatContext</span> ={" "}
+                        <span className="text-blue-300">tradingContext</span> ={" "}
                         <span className="text-yellow-300">context</span>({"{"}
                         <br />
                         {"  "}
                         <span className="/90">type:</span>{" "}
-                        <span className="text-green-400">"chatSession"</span>,
+                        <span className="text-green-400">"trading"</span>,
                         <br />
                         {"  "}
                         <span className="/90">schema:</span>{" "}
@@ -433,41 +593,34 @@ function AgentShowcase() {
                         <span className="text-yellow-300">object</span>({"{"}
                         <br />
                         {"    "}
-                        <span className="/90">sessionId:</span>{" "}
+                        <span className="/90">portfolio:</span>{" "}
                         <span className="text-blue-300">z</span>.
-                        <span className="text-yellow-300">string</span>()
-                        <br />
-                        {"  "}
-                        {"}),"}
-                        <br />
-                        {"  "}
-                        <span className="/90">create:</span>{" "}
-                        <span className="text-yellow-300">()</span> {"=>"} (
-                        {"{"}
+                        <span className="text-yellow-300">record</span>(
+                        <span className="text-blue-300">z</span>.
+                        <span className="text-yellow-300">number</span>()),
                         <br />
                         {"    "}
-                        <span className="/90">history:</span> []
+                        <span className="/90">riskTolerance:</span>{" "}
+                        <span className="text-blue-300">z</span>.
+                        <span className="text-yellow-300">enum</span>([
+                        <span className="text-green-400">"low"</span>,
+                        <span className="text-green-400">"medium"</span>,
+                        <span className="text-green-400">"high"</span>])
                         <br />
                         {"  "}
                         {"}),"}
+                        <br />
                         <br />
                         {"  "}
                         <span className="/90">render:</span>{" "}
                         <span className="text-yellow-300">(state)</span> {"=>"}{" "}
-                        {"{"}
-                        <br />
-                        {"    "}
-                        <span className="text-purple-400">return</span>{" "}
+                        <span className="text-green-400">"Portfolio: "</span> +{" "}
+                        <span className="text-blue-300">getTotalValue</span>(
+                        <span className="text-blue-300">state.portfolio</span>)
+                        + <span className="text-green-400">" - Risk: "</span> +{" "}
                         <span className="text-blue-300">
-                          state.memory.history.join('\\n')
+                          state.riskTolerance
                         </span>
-                        ;
-                        <br />
-                        {"  "}
-                        {"}"},
-                        <br />
-                        {"  "}
-                        <span className="/90">{`/* ... instructions, actions, etc. ... */`}</span>
                         <br />
                         {"}"});
                       </code>
@@ -490,22 +643,18 @@ function AgentShowcase() {
                         <span className="text-green-400">"zod"</span>;
                         <br />
                         <br />
-                        <span className="text-gray-500 italic">
-                          {/*// Define an agent capability*/}
-                        </span>
-                        <br />
                         <span className="text-purple-400">const</span>{" "}
-                        <span className="text-blue-300">lookupUser</span> ={" "}
+                        <span className="text-blue-300">executeSwap</span> ={" "}
                         <span className="text-yellow-300">action</span>({"{"}
                         <br />
                         {"  "}
                         <span className="/90">name:</span>{" "}
-                        <span className="text-green-400">"lookupUser"</span>,
+                        <span className="text-green-400">"executeSwap"</span>,
                         <br />
                         {"  "}
                         <span className="/90">description:</span>{" "}
                         <span className="text-green-400">
-                          "Gets user details by ID"
+                          "Execute a token swap on Uniswap V3"
                         </span>
                         ,
                         <br />
@@ -515,36 +664,90 @@ function AgentShowcase() {
                         <span className="text-yellow-300">object</span>({"{"}
                         <br />
                         {"    "}
-                        <span className="/90">userId:</span>{" "}
+                        <span className="/90">tokenIn:</span>{" "}
                         <span className="text-blue-300">z</span>.
-                        <span className="text-yellow-300">string</span>()
+                        <span className="text-yellow-300">string</span>(),
+                        <br />
+                        {"    "}
+                        <span className="/90">tokenOut:</span>{" "}
+                        <span className="text-blue-300">z</span>.
+                        <span className="text-yellow-300">string</span>(),
+                        <br />
+                        {"    "}
+                        <span className="/90">amount:</span>{" "}
+                        <span className="text-blue-300">z</span>.
+                        <span className="text-yellow-300">string</span>(),
+                        <br />
+                        {"    "}
+                        <span className="/90">slippage:</span>{" "}
+                        <span className="text-blue-300">z</span>.
+                        <span className="text-yellow-300">number</span>().
+                        <span className="text-yellow-300">default</span>(
+                        <span className="text-orange-300">0.5</span>)
                         <br />
                         {"  "}
                         {"}),"}
                         <br />
+                        <br />
                         {"  "}
                         <span className="text-purple-400">async</span>{" "}
                         <span className="text-yellow-300">handler</span>({"{"}{" "}
-                        <span className="text-blue-300">userId</span> {"}"},{" "}
-                        <span className="text-blue-300">ctx</span>,{" "}
-                        <span className="text-blue-300">agent</span>) {"{"}
+                        <span className="text-blue-300">
+                          tokenIn, tokenOut, amount, slippage
+                        </span>{" "}
+                        {"}"}, <span className="text-blue-300">ctx</span>) {"{"}
                         <br />
                         {"    "}
                         <span className="text-gray-500 italic">
-                          {/*// ... fetch user from DB or API ...*/}
+                          {/*// Check portfolio state*/}
                         </span>
                         <br />
                         {"    "}
                         <span className="text-purple-400">const</span>{" "}
-                        <span className="text-blue-300">user</span> = {"{"}{" "}
-                        <span className="/90">name:</span>{" "}
-                        <span className="text-green-400">"Example User"</span>,{" "}
-                        <span className="/90">id:</span>{" "}
-                        <span className="text-blue-300">userId</span> {"}"};
+                        <span className="text-blue-300">balance</span> =
+                        <span className="text-blue-300">ctx</span>.
+                        <span className="text-blue-300">state</span>.
+                        <span className="text-blue-300">portfolio</span>[
+                        <span className="text-blue-300">tokenIn</span>] ||
+                        <span className="text-orange-300">0</span>;
+                        <br />
+                        {"    "}
+                        <span className="text-purple-400">if</span> (
+                        <span className="text-blue-300">balance</span> {"<"}{" "}
+                        <span className="text-yellow-300">parseFloat</span>(
+                        <span className="text-blue-300">amount</span>)) {"{"}
+                        <br />
+                        {"      "}
+                        <span className="text-purple-400">throw new Error</span>
+                        (
+                        <span className="text-green-400">
+                          "Insufficient balance"
+                        </span>
+                        );
+                        <br />
+                        {"    "}
+                        {"}"}
+                        <br />
+                        <br />
+                        {"    "}
+                        <span className="text-gray-500 italic">
+                          {/*// Execute swap and update state*/}
+                        </span>
+                        <br />
+                        {"    "}
+                        <span className="text-purple-400">const</span>{" "}
+                        <span className="text-blue-300">result</span> =
+                        <span className="text-purple-400">await</span>{" "}
+                        <span className="text-yellow-300">uniswapV3</span>.
+                        <span className="text-yellow-300">swap</span>({"{"}
+                        <span className="text-blue-300">
+                          tokenIn, tokenOut, amount, slippage
+                        </span>
+                        {"}"});
                         <br />
                         {"    "}
                         <span className="text-purple-400">return</span>{" "}
-                        <span className="text-blue-300">user</span>;
+                        <span className="text-blue-300">result</span>;
                         <br />
                         {"  "}
                         {"}"}
@@ -553,255 +756,257 @@ function AgentShowcase() {
                       </code>
                     </pre>
                   )}
-                  {activeTab === "io" && (
-                    <pre className="text-sm font-mono /90 overflow-auto">
-                      <code>
-                        <span className="text-purple-400">import</span> {"{"}{" "}
-                        <span className="/90">input, output</span> {"}"}{" "}
-                        <span className="text-purple-400">from</span>{" "}
-                        <span className="text-green-400">
-                          "@daydreamsai/core"
-                        </span>
-                        ;
-                        <br />
-                        <span className="text-purple-400">import</span> {"{"}{" "}
-                        <span className="/90">z</span> {"}"}{" "}
-                        <span className="text-purple-400">from</span>{" "}
-                        <span className="text-green-400">"zod"</span>;
-                        <br />
-                        <br />
-                        <span className="text-gray-500 italic">
-                          {/*// Define an input source*/}
-                        </span>
-                        <br />
-                        <span className="text-purple-400">const</span>{" "}
-                        <span className="text-blue-300">cliInput</span> ={" "}
-                        <span className="text-yellow-300">input</span>({"{"}
-                        <br />
-                        {"  "}
-                        <span className="/90">type:</span>{" "}
-                        <span className="text-green-400">"cli:message"</span>,
-                        <br />
-                        {"  "}
-                        <span className="/90">schema:</span>{" "}
-                        <span className="text-blue-300">z</span>.
-                        <span className="text-yellow-300">object</span>({"{"}
-                        <br />
-                        {"    "}
-                        <span className="/90">user:</span>{" "}
-                        <span className="text-blue-300">z</span>.
-                        <span className="text-yellow-300">string</span>(),
-                        <br />
-                        {"    "}
-                        <span className="/90">text:</span>{" "}
-                        <span className="text-blue-300">z</span>.
-                        <span className="text-yellow-300">string</span>()
-                        <br />
-                        {"  "}
-                        {"}),"}
-                        <br />
-                        {"  "}
-                        <span className="/90">subscribe:</span>{" "}
-                        <span className="text-yellow-300">(send, agent)</span>{" "}
-                        {"=>"} {"{"}
-                        <br />
-                        {"    "}
-                        <span className="text-gray-500 italic">
-                          {/*// ... setup readline/CLI listener ...*/}
-                        </span>
-                        <br />
-                        {"  "}
-                        {"}"},
-                        <br />
-                        {"}"});
-                        <br />
-                        <br />
-                        <span className="text-gray-500 italic">
-                          {/*// Define an output handler*/}
-                        </span>
-                        <br />
-                        <span className="text-purple-400">const</span>{" "}
-                        <span className="text-blue-300">cliOutput</span> ={" "}
-                        <span className="text-yellow-300">output</span>({"{"}
-                        <br />
-                        {"  "}
-                        <span className="/90">type:</span>{" "}
-                        <span className="text-green-400">"cli:message"</span>,
-                        <br />
-                        {"  "}
-                        <span className="/90">schema:</span>{" "}
-                        <span className="text-blue-300">z</span>.
-                        <span className="text-yellow-300">string</span>(),
-                        <br />
-                        {"  "}
-                        <span className="text-purple-400">async</span>{" "}
-                        <span className="text-yellow-300">handler</span>({"{"}{" "}
-                        <span className="text-blue-300">data</span>,{" "}
-                        <span className="text-blue-300">ctx</span>,{" "}
-                        <span className="text-blue-300">agent</span> {"}"}){" "}
-                        {"{"}
-                        <br />
-                        {"    "}
-                        <span className="text-gray-500 italic">
-                          {/*// ... console.log(data) ...*/}
-                        </span>
-                        <br />
-                        {"  "}
-                        {"}"},
-                        <br />
-                        {"}"});
-                      </code>
-                    </pre>
-                  )}
-                  {activeTab === "sandbox" && (
-                    <pre className="text-sm font-mono /90 overflow-auto">
-                      <code>
-                        <span className="text-purple-400">import</span> {"{"}
-                        <span className="/90">createDreams, createSandbox</span>
-                        {"}"} <span className="text-purple-400">from</span>{" "}
-                        <span className="text-green-400">
-                          "@daydreamsai/core"
-                        </span>
-                        ;
-                        <br />
-                        <span className="text-purple-400">import</span> {"{"}
-                        <span className="/90">logger</span>
-                        {"}"} <span className="text-purple-400">from</span>{" "}
-                        <span className="text-green-400">
-                          "@daydreamsai/core/debug"
-                        </span>
-                        ;
-                        <br />
-                        <br />
-                        <span className="text-gray-500 italic">
-                          // Create a development sandbox
-                        </span>
-                        <br />
-                        <span className="text-purple-400">const</span>{" "}
-                        <span className="text-blue-300">sandbox</span> ={" "}
-                        <span className="text-yellow-300">createSandbox</span>(
-                        {"{"}
-                        <br />
-                        <span className="text-gray-500 italic pl-4">
-                          // Mock external services
-                        </span>
-                        <br />
-                        <span className="/90 pl-4">services:</span> {"{"}
-                        <br />
-                        <span className="/90 pl-8">database:</span>{" "}
-                        <span className="text-yellow-300">mockDatabase</span>(),
-                        <br />
-                        <span className="/90 pl-8">api:</span>{" "}
-                        <span className="text-yellow-300">mockApiService</span>
-                        ()
-                        <br />
-                        <span className="pl-4">{"}"},</span>
-                        <br />
-                        <br />
-                        <span className="text-gray-500 italic pl-4">
-                          // Record all agent interactions
-                        </span>
-                        <br />
-                        <span className="/90 pl-4">recorder:</span> {"{"}
-                        <br />
-                        <span className="/90 pl-8">enabled:</span>{" "}
-                        <span className="text-orange-300">true</span>,<br />
-                        <span className="/90 pl-8">path:</span>{" "}
-                        <span className="text-green-400">"./recordings"</span>
-                        <br />
-                        <span className="pl-4">{"}"},</span>
-                        <br />
-                        <br />
-                        <span className="text-gray-500 italic pl-4">
-                          // Debugging tools
-                        </span>
-                        <br />
-                        <span className="/90 pl-4">debug:</span> {"{"}
-                        <br />
-                        <span className="/90 pl-8">logLevel:</span>{" "}
-                        <span className="text-green-400">"verbose"</span>,<br />
-                        <span className="/90 pl-8">traceActions:</span>{" "}
-                        <span className="text-orange-300">true</span>,<br />
-                        <span className="/90 pl-8">slowMode:</span>{" "}
-                        <span className="text-orange-300">false</span>
-                        <br />
-                        <span className="pl-4">{"}"},</span>
-                        <br />
-                        <br />
-                        <span className="text-gray-500 italic pl-4">
-                          // Test cases
-                        </span>
-                        <br />
-                        <span className="/90 pl-4">scenarios:</span> [
-                        <br />
-                        <span className="pl-8">{"{"}</span>
-                        <br />
-                        <span className="/90 pl-12">name:</span>{" "}
-                        <span className="text-green-400">
-                          "Basic conversation"
-                        </span>
-                        ,<br />
-                        <span className="/90 pl-12">input:</span>{" "}
-                        <span className="text-green-400">
-                          "Hello, who are you?"
-                        </span>
-                        ,<br />
-                        <span className="/90 pl-12">
-                          expectedOutputContains:
-                        </span>{" "}
-                        <span className="text-green-400">
-                          "I'm an assistant"
-                        </span>
-                        <br />
-                        <span className="pl-8">{"}"}</span>
-                        <br />
-                        <span className="pl-4">]</span>
-                        <br />
-                        {"}"});
-                        <br />
-                        <br />
-                        <span className="text-gray-500 italic">
-                          // Connect agent to sandbox
-                        </span>
-                        <br />
-                        <span className="text-purple-400">const</span>{" "}
-                        <span className="text-blue-300">agent</span> ={" "}
-                        <span className="text-yellow-300">createDreams</span>(
-                        {"{"}
-                        <br />
-                        <span className="/90 pl-4">model:</span>{" "}
-                        <span className="text-yellow-300">openai</span>(
-                        <span className="text-green-400">"gpt-4-turbo"</span>),
-                        <br />
-                        <span className="/90 pl-4">extensions:</span> [
-                        <span className="text-blue-300">logger</span>]<br />
-                        {"}"}).<span className="text-yellow-300">connect</span>(
-                        <span className="text-blue-300">sandbox</span>);
-                        <br />
-                        <br />
-                        <span className="text-gray-500 italic">
-                          // Run test scenarios
-                        </span>
-                        <br />
-                        <span className="text-blue-300">sandbox</span>.
-                        <span className="text-yellow-300">runTests</span>().
-                        <span className="text-yellow-300">then</span>(
-                        <span className="text-blue-300">results</span> {"{"}
-                        <br />
-                        <span className="text-yellow-300 pl-4">console</span>.
-                        <span className="text-yellow-300">log</span>(
-                        <span className="text-green-400">
-                          "Tests completed:"
-                        </span>
-                        , <span className="text-blue-300">results</span>);
-                        <br />
-                        {"}"});
-                      </code>
-                    </pre>
-                  )}
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SyntheticDataSection() {
+  return (
+    <div className="border-x border-t py-16 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-purple-500/5" />
+
+      <h2 className="text-center text-2xl font-semibold mb-2  relative z-10">
+        <span className=" px-2 py-1">_{">"} Synthetic Data Generation</span>
+      </h2>
+      <p className="text-center /70 mb-12 relative z-10 max-w-2xl mx-auto">
+        The power of synthetic data generation
+      </p>
+
+      <div className="max-w-6xl mx-auto px-6 relative z-10">
+        <div className="bg-black/20 border border-white/10 rounded-lg overflow-hidden backdrop-blur-sm">
+          <div className="p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column - Details */}
+              <div>
+                <h3 className="text-2xl font-semibold  mb-4 flex items-center gap-3">
+                  <span className="text-3xl">🔄</span>
+                  Synthetic Data Generation
+                </h3>
+                <p className="/80 text-lg mb-8">
+                  Synthetic data generation is the process of creating
+                  artificial data that mimics real-world data. It's a powerful
+                  tool for training AI models, as it allows for the creation of
+                  large, diverse datasets without the need for collecting and
+                  labeling real data.
+                </p>
+
+                <div className="mb-8">
+                  <h4 className=" font-medium mb-4">Key Features</h4>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <li className="flex items-center gap-2 /80">
+                      <svg
+                        className="w-5 h-5 text-purple-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Large-scale creation
+                    </li>
+                    <li className="flex items-center gap-2 /80">
+                      <svg
+                        className="w-5 h-5 text-purple-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      Customizable
+                    </li>
+                    <li className="flex items-center gap-2 /80">
+                      <svg
+                        className="w-5 h-5 text-purple-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      High-quality
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className=" font-medium mb-4">Benefits</h4>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <li className="flex items-center gap-2 /80">
+                      <svg
+                        className="w-5 h-5 text-purple-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      Cost-effective
+                    </li>
+                    <li className="flex items-center gap-2 /80">
+                      <svg
+                        className="w-5 h-5 text-purple-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      Scalable
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Right Column - Code Example */}
+              <div>
+                <div className="bg-black/30 rounded-lg border border-white/10 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    </div>
+                    <span className="/40 text-sm">agent.ts</span>
+                  </div>
+                  <pre className="p-4 overflow-auto">
+                    <code className="text-sm font-mono /90">
+                      <span className="text-purple-400">import</span> {"{"}{" "}
+                      <span className="/90">createDreams</span> {"}"}{" "}
+                      <span className="text-purple-400">from</span>{" "}
+                      <span className="text-green-400">
+                        "@daydreamsai/core"
+                      </span>
+                      ;
+                      <br />
+                      <span className="text-purple-400">import</span> {"{"}{" "}
+                      <span className="/90">createSyntheticData</span> {"}"}{" "}
+                      <span className="text-purple-400">from</span>{" "}
+                      <span className="text-green-400">
+                        "@daydreamsai/synthetic"
+                      </span>
+                      ;
+                      <br />
+                      <br />
+                      <span className="text-purple-400">const</span>{" "}
+                      <span className="text-blue-300">agent</span> ={" "}
+                      <span className="text-yellow-300">createDreams</span>(
+                      {"{"}
+                      <br />
+                      <span className="/90 pl-4">model:</span>{" "}
+                      <span className="text-yellow-300">groq</span>(
+                      <span className="text-green-400">
+                        "deepseek-r1-distill-llama-70b"
+                      </span>
+                      ),
+                      <br />
+                      <span className="/90 pl-4">extensions:</span> [
+                      <br />
+                      <span className="pl-8">
+                        <span className="text-yellow-300">
+                          createSyntheticData
+                        </span>
+                        ({"{"}
+                      </span>
+                      <br />
+                      <span className="/90 pl-12">enabled:</span>{" "}
+                      <span className="text-orange-300">true</span>,
+                      <br />
+                      <span className="/90 pl-12">formats:</span> [
+                      <span className="text-green-400">
+                        "instruction-tuning"
+                      </span>
+                      , <span className="text-green-400">"grpo"</span>],
+                      <br />
+                      <span className="/90 pl-12">capture:</span> {"{"}
+                      <br />
+                      <span className="/90 pl-16">reasoning:</span>{" "}
+                      <span className="text-orange-300">true</span>,
+                      <br />
+                      <span className="/90 pl-16">preferences:</span>{" "}
+                      <span className="text-orange-300">true</span>
+                      <br />
+                      <span className="pl-12">{"}"}</span>
+                      <br />
+                      <span className="pl-8">{"}),"}</span>
+                      <br />
+                      <span className="pl-4">],</span>
+                      <br />
+                      {"}"});
+                      <br />
+                      <br />
+                      <span className="text-gray-500 italic">
+                        {/*// Agent automatically generates training data*/}
+                      </span>
+                      <br />
+                      <span className="text-purple-400">await</span>{" "}
+                      <span className="text-blue-300">agent</span>.
+                      <span className="text-yellow-300">callAction</span>(
+                      <span className="text-green-400">
+                        "synthetic.process"
+                      </span>
+                      );
+                    </code>
+                  </pre>
+                </div>
+
+                <div className="mt-8 flex justify-end">
+                  <Link
+                    href="/docs/core/concepts/synthetic-data"
+                    className={cn(
+                      buttonStyles.ghost,
+                      "inline-flex items-center px-4 py-2 text-sm rounded-md"
+                    )}
+                  >
+                    <span>Learn more about Synthetic Data Generation</span>
+                    <svg
+                      className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
