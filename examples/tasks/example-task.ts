@@ -15,6 +15,7 @@
 import {
   createDreams,
   context,
+  Logger,
   render,
   action,
   LogLevel,
@@ -215,7 +216,7 @@ type GoalContextMemory = InferContextMemory<typeof goalContexts>;
  * Create the Dreams agent with all necessary components
  */
 createDreams({
-  logger: LogLevel.INFO,
+  logger: new Logger({ level: LogLevel.DEBUG }),
   debugger: async (contextId, keys, data) => {
     const [type, id] = keys;
     await Bun.write(`./logs/tasks/${contextId}/${id}-${type}.md`, data);

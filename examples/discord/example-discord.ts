@@ -4,6 +4,7 @@ import {
   createMemoryStore,
   LogLevel,
   validateEnv,
+  Logger,
 } from "@daydreamsai/core";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { deepResearch } from "../deep-research/research";
@@ -32,7 +33,7 @@ container.singleton("tavily", () =>
 );
 
 const agent = createDreams({
-  logger: LogLevel.DEBUG,
+  logger: new Logger({ level: LogLevel.DEBUG }),
   model: anthropic("claude-3-7-sonnet-latest"),
   extensions: [discord, deepResearch],
   container,

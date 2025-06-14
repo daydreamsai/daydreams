@@ -13,14 +13,18 @@
     "@ai-sdk/anthropic": "catalog:",
     "@ai-sdk/openai": "catalog:",
     "@ai-sdk/groq": "catalog:",
+    "@openrouter/ai-sdk-provider": "catalog:",
     "@daydreamsai/core": "workspace:*",
     "@daydreamsai/cli": "workspace:*",
     "@daydreamsai/defai": "workspace:*",
     "@daydreamsai/hyperliquid": "workspace:*",
+    "@solana/web3.js": "^1.98.0",
     "@tavily/core": "catalog:",
     "discord.js": "catalog:",
     "hyperliquid": "catalog:",
     "zod": "catalog:",
-    "chalk": "catalog:"
+    "chalk": "catalog:",
+    "bs58": "6.0.0",
+    "dotenv": "catalog:"
   }
 }
