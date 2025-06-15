@@ -6,6 +6,7 @@
     "starting-agent",
     "single-context",
     "multi-context-agent",
-    "task-management"
+    "task-management",
+    "file-system-agent"
   ]
 }
