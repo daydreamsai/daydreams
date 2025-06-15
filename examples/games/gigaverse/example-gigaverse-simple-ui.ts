@@ -32,6 +32,7 @@ import {
   createMemoryStore,
   createVectorStore,
   extension,
+  Logger,
 } from "@daydreamsai/core";
 import { cliExtension } from "@daydreamsai/cli";
 import { string, z } from "zod";
@@ -837,7 +838,7 @@ const gigaExtension = extension({
 
 // Create the Gigaverse agent with UI integration
 const agent = createDreams({
-  logger: LogLevel.DEBUG,
+  logger: new Logger({ level: LogLevel.DEBUG }),
   model: anthropic("claude-3-7-sonnet-latest"),
   extensions: [cliExtension, gigaExtension],
   exportTrainingData: true,

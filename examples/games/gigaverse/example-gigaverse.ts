@@ -24,6 +24,7 @@ import {
   action,
   validateEnv,
   LogLevel,
+  Logger,
   type ActionCall,
   type Agent,
 } from "@daydreamsai/core";
@@ -87,7 +88,7 @@ const goalContexts = context({
  * Create the Gigaverse agent with all necessary actions
  */
 createDreams({
-  logger: LogLevel.INFO,
+  logger: new Logger({ level: LogLevel.INFO }),
   model: anthropic("claude-3-7-sonnet-latest"),
   extensions: [cliExtension],
   context: goalContexts,

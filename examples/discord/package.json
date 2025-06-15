@@ -19,6 +19,8 @@
     "@daydreamsai/cli": "workspace:*",
     "@daydreamsai/discord": "workspace:*",
     "@tavily/core": "catalog:",
-    "zod": "catalog:"
+    "@openrouter/ai-sdk-provider": "catalog:",
+    "zod": "catalog:",
+    "discord.js": "catalog:"
   }
 }
