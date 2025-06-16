@@ -1,0 +1,23 @@
+{
+    "name": "lootsurvivor",
+    "module": "index.ts",
+    "type": "module",
+    "private": true,
+    "devDependencies": {
+        "@types/bun": "catalog:"
+    },
+    "peerDependencies": {
+        "typescript": "catalog:"
+    },
+    "dependencies": {
+        "@ai-sdk/anthropic": "catalog:",
+        "@ai-sdk/openai": "catalog:",
+        "@ai-sdk/groq": "catalog:",
+        "@openrouter/ai-sdk-provider": "catalog:",
+        "@daydreamsai/cli": "workspace:*",
+        "@daydreamsai/core": "workspace:*",
+        "@daydreamsai/chromadb": "workspace:*",
+        "@daydreamsai/discord": "workspace:*",
+        "zod": "catalog:"
+    }
+}
