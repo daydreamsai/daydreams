@@ -1,23 +1,28 @@
 {
-    "name": "lootsurvivor",
-    "module": "index.ts",
-    "type": "module",
-    "private": true,
-    "devDependencies": {
-        "@types/bun": "catalog:"
-    },
-    "peerDependencies": {
-        "typescript": "catalog:"
-    },
-    "dependencies": {
-        "@ai-sdk/anthropic": "catalog:",
-        "@ai-sdk/openai": "catalog:",
-        "@ai-sdk/groq": "catalog:",
-        "@openrouter/ai-sdk-provider": "catalog:",
-        "@daydreamsai/cli": "workspace:*",
-        "@daydreamsai/core": "workspace:*",
-        "@daydreamsai/chromadb": "workspace:*",
-        "@daydreamsai/discord": "workspace:*",
-        "zod": "catalog:"
-    }
+  "name": "lootsurvivor",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/bn.js": "^5.1.5"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/groq": "catalog:",
+    "@ai-sdk/openai": "catalog:",
+    "@daydreamsai/chromadb": "workspace:*",
+    "@daydreamsai/cli": "workspace:*",
+    "@daydreamsai/core": "workspace:*",
+    "@daydreamsai/discord": "workspace:*",
+    "@lootsurvivor/core": "0.0.2",
+    "@lootsurvivor/react": "0.0.2",
+    "@openrouter/ai-sdk-provider": "catalog:",
+    "starknet": "latest",
+    "zod": "catalog:",
+    "bn.js": "latest"
+  }
 }
