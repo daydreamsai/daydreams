@@ -5,6 +5,12 @@ import type { ServiceProvider } from "./serviceProvider";
 import type { BaseMemory } from "./memory";
 import type { TaskRunner } from "./task";
 import type { Logger } from "./logger";
+import type {
+  RequestTracking,
+  RequestContext,
+  RequestTrackingConfig,
+} from "./tracking";
+import type { RequestTracker } from "./tracking/tracker";
 
 export { type LanguageModelV1, type Schema } from "ai";
 
@@ -667,6 +673,7 @@ export interface AgentContext<TContext extends AnyContext = AnyContext> {
   settings: ContextSettings;
   memory: InferContextMemory<TContext>;
   workingMemory: WorkingMemory;
+  requestContext?: RequestContext;
 }
 
 export type AnyAgent = Agent<any>;
@@ -713,6 +720,16 @@ interface AgentDef<TContext extends AnyContext = AnyContext> {
    * The task runner used by the agent.
    */
   taskRunner: TaskRunner;
+
+  /**
+   * Request tracker for monitoring model usage and performance.
+   */
+  requestTracker?: RequestTracker;
+
+  /**
+   * Configuration for request tracking.
+   */
+  requestTrackingConfig?: Partial<RequestTrackingConfig>;
 
   /**
    * The primary language model used by the agent.
@@ -841,6 +858,7 @@ export interface Agent<TContext extends AnyContext = AnyContext>
     handlers?: Partial<Handlers>;
     abortSignal?: AbortSignal;
     chain?: Log[];
+    requestContext?: RequestContext;
   }) => Promise<AnyRef[]>;
 
   /**
@@ -1010,21 +1028,6 @@ export enum LogLevel {
   TRACE = 4,
 }
 
-/** Results from a research operation */
-export interface ResearchResult {
-  learnings: string[];
-  visitedUrls: string[];
-}
-
-/** Configuration for research operations */
-export interface ResearchConfig {
-  query: string;
-  breadth: number;
-  depth: number;
-  learnings?: string[];
-  visitedUrls?: string[];
-}
-
 export interface IChain {
   /**
    * A unique identifier for the chain (e.g., "starknet", "ethereum", "solana", etc.)
@@ -1077,12 +1080,6 @@ export type InferSchemaArguments<
   : Schema extends z.ZodTypeAny
   ? z.infer<Schema>
   : never;
-
-type ActionArray<T extends AnyAction[]> = {
-  [K in keyof T]: T[K];
-};
-
-type MergeArrays<T extends Array<any>, C extends Array<any>> = T & C;
 
 interface ContextConfigApi<
   TMemory = any,

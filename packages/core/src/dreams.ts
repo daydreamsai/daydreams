@@ -40,6 +40,12 @@ import { createContextStreamHandler, handleStream } from "./streaming";
 import { mainPrompt, promptTemplate } from "./prompts/main";
 import { createEngine } from "./engine";
 import type { DeferredPromise } from "p-defer";
+import {
+  configureRequestTracking,
+  getRequestTracker,
+} from "./tracking/tracker";
+import { StructuredLogger, LogEventType } from "./logging-events";
+import { createRequestContext } from "./tracking";
 
 export function createDreams<TContext extends AnyContext = AnyContext>(
   config: Config<TContext>
@@ -115,6 +121,16 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
   }
 
   container.instance("logger", logger);
+
+  // Create structured logger
+  const structuredLogger = new StructuredLogger(logger);
+  container.instance("structuredLogger", structuredLogger);
+
+  // Configure request tracking with logger integration
+  if (config.requestTrackingConfig) {
+    // Pass the complete config including cost estimation to the global tracker
+    configureRequestTracking(config.requestTrackingConfig, logger);
+  }
 
   const debug: Debugger = (...args) => {
     if (!config.debugger) return;
@@ -516,7 +532,8 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     },
 
     async run(params) {
-      const { context, args, outputs, handlers, abortSignal } = params;
+      const { context, args, outputs, handlers, abortSignal, requestContext } =
+        params;
       if (!booted) {
         logger.error("agent:run", "Agent not booted");
         throw new Error("Not booted");
@@ -527,6 +544,41 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
 
       if (!model) throw new Error("no model");
 
+      // Create request context if not provided
+      let effectiveRequestContext = requestContext;
+      if (!effectiveRequestContext) {
+        effectiveRequestContext = createRequestContext("agent:run", {
+          trackingEnabled: config.requestTrackingConfig?.enabled ?? false,
+        });
+      }
+
+      // Start agent run tracking if requestContext is provided
+      let agentRunContext = effectiveRequestContext;
+      const tracker = getRequestTracker();
+      const startTime = Date.now();
+
+      if (effectiveRequestContext && effectiveRequestContext.trackingEnabled) {
+        agentRunContext = await tracker.startAgentRun(
+          effectiveRequestContext,
+          "agent"
+        );
+      }
+
+      // Log structured agent start event
+      structuredLogger.logEvent({
+        eventType: LogEventType.AGENT_START,
+        timestamp: startTime,
+        requestContext: agentRunContext,
+        agentName: "agent",
+        configuration: {
+          contextType: context.type,
+          hasArgs: !!args,
+          hasCustomOutputs: !!outputs,
+          hasHandlers: !!handlers,
+          model: model,
+        },
+      });
+
       logger.info("agent:run", "Running context", {
         contextType: context.type,
         hasArgs: !!args,
@@ -534,263 +586,325 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
         hasHandlers: !!handlers,
       });
 
-      const ctxId = agent.getContextId({ context, args });
+      try {
+        const ctxId = agent.getContextId({ context, args });
 
-      // try to move this to state
-      // we need this here now because its needed to create the handler
-      // and we will use that state from contextsRunning so we need to wait before checking and creating
-      const ctxState = await agent.getContext({ context, args });
-      const workingMemory = await agent.getWorkingMemory(ctxId);
-      const agentCtxState = await agent.getAgentContext();
+        // try to move this to state
+        // we need this here now because its needed to create the handler
+        // and we will use that state from contextsRunning so we need to wait before checking and creating
+        const ctxState = await agent.getContext({ context, args });
+        const workingMemory = await agent.getWorkingMemory(ctxId);
+        const agentCtxState = await agent.getAgentContext();
 
-      // todo: allow to control what happens when new input is sent while the ctx is running
-      // context.onInput?
-      // we should allow to abort the current run, or just push it to current run
-      // state.controller.abort()
-      if (contextsRunning.has(ctxId)) {
-        logger.debug("agent:run", "Context already running", {
+        // todo: allow to control what happens when new input is sent while the ctx is running
+        // context.onInput?
+        // we should allow to abort the current run, or just push it to current run
+        // state.controller.abort()
+        if (contextsRunning.has(ctxId)) {
+          logger.debug("agent:run", "Context already running", {
+            id: ctxId,
+          });
+
+          const { defer, push } = contextsRunning.get(ctxId)!;
+          params.chain?.forEach((el) => push(el));
+          return defer.promise;
+        }
+
+        logger.debug("agent:run", "Added context to running set", {
           id: ctxId,
         });
 
-        const { defer, push } = contextsRunning.get(ctxId)!;
-        params.chain?.forEach((el) => push(el));
-        return defer.promise;
-      }
-
-      logger.debug("agent:run", "Added context to running set", {
-        id: ctxId,
-      });
-
-      if (!ctxSubscriptions.has(ctxId)) {
-        ctxSubscriptions.set(ctxId, new Set());
-      }
-
-      if (!__ctxChunkSubscriptions.has(ctxId)) {
-        __ctxChunkSubscriptions.set(ctxId, new Set());
-      }
-
-      const engine = createEngine({
-        agent,
-        ctxState,
-        workingMemory,
-        handlers,
-        agentCtxState,
-        subscriptions: ctxSubscriptions.get(ctxId)!,
-        __chunkSubscriptions: __ctxChunkSubscriptions.get(ctxId)!,
-      });
-
-      contextsRunning.set(ctxId, {
-        controller: engine.controller,
-        push: engine.push,
-        defer: engine.state.defer,
-      });
-
-      const { streamState, streamHandler, tags, __streamChunkHandler } =
-        createContextStreamHandler({
-          abortSignal,
-          pushLog(log, done) {
-            engine.push(log, done, false);
-          },
-          __pushLogChunk(chunk) {
-            engine.pushChunk(chunk);
-          },
-        });
-
-      let maxSteps = 0;
-
-      function getMaxSteps() {
-        return engine.state.contexts.reduce(
-          (maxSteps, ctxState) =>
-            Math.max(
-              maxSteps,
-              ctxState.settings.maxSteps ?? ctxState.context.maxSteps ?? 0
-            ),
-          5
-        );
-      }
-
-      await engine.setParams({
-        actions: params.actions,
-        outputs: params.outputs,
-        contexts: params.contexts,
-      });
-
-      let stepRef = await engine.start();
-
-      //todo: pull unprocessed, unfinished steps/runs
-
-      if (params.chain) {
-        for (const log of params.chain) {
-          await engine.push(log);
+        if (!ctxSubscriptions.has(ctxId)) {
+          ctxSubscriptions.set(ctxId, new Set());
         }
-      }
 
-      await engine.settled();
+        if (!__ctxChunkSubscriptions.has(ctxId)) {
+          __ctxChunkSubscriptions.set(ctxId, new Set());
+        }
 
-      const { state } = engine;
-
-      while ((maxSteps = getMaxSteps()) >= state.step) {
-        logger.info("agent:run", `Starting step ${state.step}/${maxSteps}`, {
-          contextId: ctxState.id,
+        const engine = createEngine({
+          agent,
+          ctxState,
+          workingMemory,
+          handlers,
+          agentCtxState,
+          subscriptions: ctxSubscriptions.get(ctxId)!,
+          __chunkSubscriptions: __ctxChunkSubscriptions.get(ctxId)!,
         });
 
-        try {
-          if (state.step > 1) {
-            stepRef = await engine.nextStep();
-            streamState.index++;
-          }
+        contextsRunning.set(ctxId, {
+          controller: engine.controller,
+          push: engine.push,
+          defer: engine.state.defer,
+        });
 
-          const promptData = mainPrompt.formatter({
-            contexts: state.contexts,
-            actions: state.actions,
-            outputs: state.outputs,
-            workingMemory,
-            chainOfThoughtSize: 0,
-            maxWorkingMemorySize: ctxState.settings.maxWorkingMemorySize,
-          });
-
-          const prompt = mainPrompt.render(promptData);
-
-          stepRef.data.prompt = prompt;
-
-          let streamError: any = null;
-
-          const unprocessed = [
-            ...workingMemory.inputs.filter((i) => i.processed === false),
-            ...state.chain.filter((i) => i.processed === false),
-          ];
-
-          const { stream, getTextResponse } = await taskRunner.enqueueTask(
-            runGenerate,
-            {
-              model,
-              prompt,
-              workingMemory,
-              logger,
-              streaming,
-              contextSettings: ctxState.settings,
-              onError: (error) => {
-                streamError = error;
-                // state.errors.push(error);
-              },
+        const { streamState, streamHandler, tags, __streamChunkHandler } =
+          createContextStreamHandler({
+            abortSignal,
+            pushLog(log, done) {
+              engine.push(log, done, false);
             },
-            {
-              abortSignal,
-            }
-          );
-          logger.debug("agent:run", "Processing stream", { step: state.step });
+            __pushLogChunk(chunk) {
+              engine.pushChunk(chunk);
+            },
+          });
 
-          await handleStream(
-            stream,
-            streamState.index,
-            tags,
-            streamHandler,
-            __streamChunkHandler
-          );
+        let maxSteps = 0;
 
-          if (streamError) {
-            throw streamError;
+        function getMaxSteps() {
+          return engine.state.contexts.reduce(
+            (maxSteps, ctxState) =>
+              Math.max(
+                maxSteps,
+                ctxState.settings.maxSteps ?? ctxState.context.maxSteps ?? 0
+              ),
+            5
+          );
+        }
+
+        await engine.setParams({
+          actions: params.actions,
+          outputs: params.outputs,
+          contexts: params.contexts,
+        });
+
+        let stepRef = await engine.start();
+
+        //todo: pull unprocessed, unfinished steps/runs
+
+        if (params.chain) {
+          for (const log of params.chain) {
+            await engine.push(log);
           }
+        }
 
-          const response = await getTextResponse();
-          stepRef.data.response = response;
+        await engine.settled();
 
-          unprocessed.forEach((i) => {
-            i.processed = true;
-          });
+        const { state } = engine;
 
-          logger.debug("agent:run", "Waiting for action calls to complete", {
-            pendingCalls: state.promises.length,
-          });
-
-          await engine.settled();
-
-          stepRef.processed = true;
-
-          await saveContextWorkingMemory(agent, ctxState.id, workingMemory);
-
-          await Promise.all(
-            state.contexts.map((state) =>
-              state.context.onStep?.(
-                {
-                  ...state,
-                  workingMemory,
-                },
-                agent
-              )
-            )
-          );
-
-          await Promise.all(
-            state.contexts.map((state) => agent.saveContext(state))
-          );
-
-          if (!engine.shouldContinue()) break;
-
-          state.step++;
-        } catch (error) {
-          logger.error("agent:run", "Step execution failed", {
-            error,
-            step: state.step,
+        while ((maxSteps = getMaxSteps()) >= state.step) {
+          logger.info("agent:run", `Starting step ${state.step}/${maxSteps}`, {
             contextId: ctxState.id,
           });
 
-          await Promise.allSettled(
-            [
-              saveContextWorkingMemory(agent, ctxState.id, workingMemory),
-              state.contexts.map((state) => agent.saveContext(state)),
-            ].flat()
-          );
+          try {
+            if (state.step > 1) {
+              stepRef = await engine.nextStep();
+              streamState.index++;
+            }
 
-          if (context.onError) {
-            try {
-              await context.onError(
-                error,
-                {
-                  ...ctxState,
-                  workingMemory,
+            const promptData = mainPrompt.formatter({
+              contexts: state.contexts,
+              actions: state.actions,
+              outputs: state.outputs,
+              workingMemory,
+              chainOfThoughtSize: 0,
+              maxWorkingMemorySize: ctxState.settings.maxWorkingMemorySize,
+            });
+
+            const prompt = mainPrompt.render(promptData);
+
+            stepRef.data.prompt = prompt;
+
+            let streamError: any = null;
+
+            const unprocessed = [
+              ...workingMemory.inputs.filter((i) => i.processed === false),
+              ...state.chain.filter((i) => i.processed === false),
+            ];
+
+            const { stream, getTextResponse } = await taskRunner.enqueueTask(
+              runGenerate,
+              {
+                model,
+                prompt,
+                workingMemory,
+                logger,
+                structuredLogger,
+                streaming,
+                contextSettings: ctxState.settings,
+                requestContext: agentRunContext,
+                onError: (error) => {
+                  streamError = error;
+                  // state.errors.push(error);
                 },
-                agent
-              );
-            } catch (error) {
+              },
+              {
+                abortSignal,
+              }
+            );
+            logger.debug("agent:run", "Processing stream", {
+              step: state.step,
+            });
+
+            await handleStream(
+              stream,
+              streamState.index,
+              tags,
+              streamHandler,
+              __streamChunkHandler
+            );
+
+            if (streamError) {
+              throw streamError;
+            }
+
+            const response = await getTextResponse();
+            stepRef.data.response = response;
+
+            unprocessed.forEach((i) => {
+              i.processed = true;
+            });
+
+            logger.debug("agent:run", "Waiting for action calls to complete", {
+              pendingCalls: state.promises.length,
+            });
+
+            await engine.settled();
+
+            stepRef.processed = true;
+
+            await saveContextWorkingMemory(agent, ctxState.id, workingMemory);
+
+            await Promise.all(
+              state.contexts.map((state) =>
+                state.context.onStep?.(
+                  {
+                    ...state,
+                    workingMemory,
+                  },
+                  agent
+                )
+              )
+            );
+
+            await Promise.all(
+              state.contexts.map((state) => agent.saveContext(state))
+            );
+
+            if (!engine.shouldContinue()) break;
+
+            state.step++;
+          } catch (error) {
+            logger.error("agent:run", "Step execution failed", {
+              error,
+              step: state.step,
+              contextId: ctxState.id,
+            });
+
+            await Promise.allSettled(
+              [
+                saveContextWorkingMemory(agent, ctxState.id, workingMemory),
+                state.contexts.map((state) => agent.saveContext(state)),
+              ].flat()
+            );
+
+            if (context.onError) {
+              try {
+                await context.onError(
+                  error,
+                  {
+                    ...ctxState,
+                    workingMemory,
+                  },
+                  agent
+                );
+              } catch (error) {
+                break;
+              }
+            } else {
               break;
             }
-          } else {
-            break;
           }
         }
-      }
 
-      await Promise.all(
-        state.contexts.map((state) =>
-          state.context.onRun?.(
-            {
-              ...state,
-              workingMemory,
-            },
-            agent
+        await Promise.all(
+          state.contexts.map((state) =>
+            state.context.onRun?.(
+              {
+                ...state,
+                workingMemory,
+              },
+              agent
+            )
           )
-        )
-      );
+        );
 
-      await Promise.all(
-        state.contexts.map((state) => agent.saveContext(state))
-      );
+        await Promise.all(
+          state.contexts.map((state) => agent.saveContext(state))
+        );
 
-      logger.debug("agent:run", "Removing context from running set", {
-        id: ctxState.id,
-      });
+        logger.debug("agent:run", "Removing context from running set", {
+          id: ctxState.id,
+        });
 
-      contextsRunning.delete(ctxState.id);
+        contextsRunning.delete(ctxState.id);
 
-      logger.info("agent:run", "Run completed", {
-        contextId: ctxState.id,
-        chainLength: state.chain.length,
-      });
+        // Complete agent run tracking
+        if (
+          agentRunContext &&
+          agentRunContext.agentRunId &&
+          agentRunContext.trackingEnabled
+        ) {
+          await tracker.completeAgentRun(
+            agentRunContext.agentRunId,
+            "completed"
+          );
+        }
 
-      state.defer.resolve(state.chain);
+        const executionTime = Date.now() - startTime;
 
-      return state.chain;
+        // Log structured agent complete event
+        structuredLogger.logEvent({
+          eventType: LogEventType.AGENT_COMPLETE,
+          timestamp: Date.now(),
+          requestContext: agentRunContext,
+          agentName: "agent",
+          executionTime,
+          // Note: Token usage and cost will be available from tracking if enabled
+        });
+
+        logger.info("agent:run", "Run completed", {
+          contextId: ctxState.id,
+          chainLength: state.chain.length,
+          executionTime,
+        });
+
+        state.defer.resolve(state.chain);
+
+        return state.chain;
+      } catch (error) {
+        // Complete agent run tracking with error
+        if (
+          agentRunContext &&
+          agentRunContext.agentRunId &&
+          agentRunContext.trackingEnabled
+        ) {
+          await tracker.completeAgentRun(agentRunContext.agentRunId, "failed", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            cause: error,
+          });
+        }
+
+        // Log structured agent error event
+        structuredLogger.logEvent({
+          eventType: LogEventType.AGENT_ERROR,
+          timestamp: Date.now(),
+          requestContext: agentRunContext,
+          agentName: "agent",
+          error: {
+            message: error instanceof Error ? error.message : "Unknown error",
+            cause: error,
+          },
+        });
+
+        logger.error("agent:run", "Agent run failed", {
+          error,
+          contextType: context.type,
+        });
+
+        throw error;
+      }
     },
 
     async send(params) {

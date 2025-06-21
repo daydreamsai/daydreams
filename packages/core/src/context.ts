@@ -14,6 +14,7 @@ import type {
 } from "./types";
 import { formatContextLog } from "./formatters";
 import { memory } from "./utils";
+import { LogEventType, StructuredLogger } from "./logging-events";
 
 /**
  * Creates a context configuration
@@ -201,6 +202,22 @@ export async function createContextState<TContext extends AnyContext>({
   const key = context.key ? context.key(args) : undefined;
   const id = key ? [context.type, key].join(":") : context.type;
 
+  // Log structured context create event if structured logger is available
+  const structuredLogger = agent.container?.resolve<StructuredLogger>("structuredLogger");
+  if (structuredLogger) {
+    structuredLogger.logEvent({
+      eventType: LogEventType.CONTEXT_CREATE,
+      timestamp: Date.now(),
+      requestContext: {
+        requestId: "context-create", // Default since we may not have request context
+        trackingEnabled: false,
+      },
+      contextType: context.type,
+      contextId: id,
+      argsHash: key,
+    });
+  }
+
   const settings: ContextSettings = {
     model: context.model,
     maxSteps: context.maxSteps,
@@ -282,6 +299,28 @@ type ContextStateSnapshot = {
 
 export async function saveContextState(agent: AnyAgent, state: ContextState) {
   const { id, context, key, args, settings, contexts } = state;
+  
+  // Log structured context update event
+  const structuredLogger = agent.container?.resolve<StructuredLogger>("structuredLogger");
+  if (structuredLogger) {
+    structuredLogger.logEvent({
+      eventType: LogEventType.CONTEXT_UPDATE,
+      timestamp: Date.now(),
+      requestContext: {
+        requestId: "context-save", // Default since we may not have request context
+        trackingEnabled: false,
+      },
+      contextType: context.type,
+      contextId: id,
+      updateType: "state",
+      details: {
+        hasMemory: !!state.memory,
+        contextCount: contexts.length,
+        hasCustomSave: !!state.context.save,
+      },
+    });
+  }
+
   await agent.memory.store.set<ContextStateSnapshot>(`context:${id}`, {
     id,
     type: context.type,
