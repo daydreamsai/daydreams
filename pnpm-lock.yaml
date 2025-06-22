@@ -807,6 +807,31 @@ importers:
         specifier: ^3.24.1
         version: 3.25.23
 
+  examples/quickbooks:
+    dependencies:
+      '@daydreamsai/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
+      '@daydreamsai/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@daydreamsai/quickbooks':
+        specifier: workspace:*
+        version: link:../../packages/quickbooks
+      '@openrouter/ai-sdk-provider':
+        specifier: 'catalog:'
+        version: 0.4.5(zod@3.25.23)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.23
+    devDependencies:
+      '@types/bun':
+        specifier: 'catalog:'
+        version: 1.2.17
+
   examples/server:
     dependencies:
       '@daydreamsai/core':
@@ -1247,6 +1272,28 @@ importers:
       '@types/bun':
         specifier: latest
         version: 1.2.15
+      tsup:
+        specifier: 'catalog:'
+        version: 8.3.6(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.4)(typescript@5.8.3)(yaml@2.8.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@22.15.21)(jiti@2.4.2)(jsdom@24.1.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@5.0.10))(lightningcss@1.30.1)(tsx@4.19.4)(yaml@2.8.0)
+
+  packages/quickbooks:
+    dependencies:
+      '@daydreamsai/core':
+        specifier: workspace:*
+        version: link:../core
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.23
+    devDependencies:
+      '@types/bun':
+        specifier: latest
+        version: 1.2.17
       tsup:
         specifier: 'catalog:'
         version: 8.3.6(jiti@2.4.2)(postcss@8.5.3)(tsx@4.19.4)(typescript@5.8.3)(yaml@2.8.0)
@@ -4535,6 +4582,9 @@ packages:
   '@types/bun@1.2.15':
     resolution: {integrity: sha512-U1ljPdBEphF0nw1MIk0hI7kPg7dFdPyM7EenHsp6W5loNHl7zqy6JQf/RKCgnUn2KDzUpkBwHPnEJEjII594bA==}
 
+  '@types/bun@1.2.17':
+    resolution: {integrity: sha512-l/BYs/JYt+cXA/0+wUhulYJB6a6p//GTPiJ7nV+QHa8iiId4HZmnu/3J/SowP5g0rTiERY2kfGKXEK5Ehltx4Q==}
+
   '@types/caseless@0.12.5':
     resolution: {integrity: sha512-hWtVTC2q7hc7xZ/RLbxapMvDMgUnDvKvMOpKal4DrMyfGBUfB1oKaZlIRr6mJL+If3bAP6sV/QneGzF6tJjZDg==}
 
@@ -5235,6 +5285,9 @@ packages:
 
   bun-types@1.2.15:
     resolution: {integrity: sha512-NarRIaS+iOaQU1JPfyKhZm4AsUOrwUOqRNHY0XxI8GI8jYxiLXLcdjYMG9UKS+fwWasc1uw1htV9AX24dD+p4w==}
+
+  bun-types@1.2.17:
+    resolution: {integrity: sha512-ElC7ItwT3SCQwYZDYoAH+q6KT4Fxjl8DtZ6qDulUFBmXA8YB4xo+l54J9ZJN+k2pphfn9vk7kfubeSd5QfTVJQ==}
 
   bundle-require@5.1.0:
     resolution: {integrity: sha512-3WrrOuZiyaaZPWiEt4G3+IffISVC9HYlWueJEBWED4ZH4aIAC2PnkdnuRrR94M+w6yGWn4AglWtJtBI8YqvgoA==}
@@ -13865,6 +13918,10 @@ snapshots:
     dependencies:
       bun-types: 1.2.15
 
+  '@types/bun@1.2.17':
+    dependencies:
+      bun-types: 1.2.17
+
   '@types/caseless@0.12.5':
     optional: true
 
@@ -14767,6 +14824,10 @@ snapshots:
   bun-types@1.2.15:
     dependencies:
       '@types/node': 20.17.50
+
+  bun-types@1.2.17:
+    dependencies:
+      '@types/node': 22.15.21
 
   bundle-require@5.1.0(esbuild@0.24.2):
     dependencies:
