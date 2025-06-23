@@ -39,7 +39,7 @@ import type {
   ActionCallContext,
 } from "./types";
 import pDefer, { type DeferredPromise } from "p-defer";
-import { pushToWorkingMemory } from "./context";
+import { pushToWorkingMemory, resolveContextCapabilities } from "./context";
 import { createEventRef, randomUUIDv7 } from "./utils";
 import { ZodError, type ZodIssue } from "zod";
 
@@ -449,6 +449,13 @@ export function createEngine({
     },
 
     async prepare() {
+      // Re-resolve dynamic capabilities for all contexts
+      for (const contextState of [ctxState, agentCtxState].filter(
+        Boolean
+      ) as ContextState<AnyContext>[]) {
+        await resolveContextCapabilities(contextState);
+      }
+
       const { actions, contexts, inputs, outputs } = await prepareContexts({
         agent,
         ctxState,
@@ -534,7 +541,9 @@ function prettifyZodError(error: ZodError): string {
 
   const errorMessages = error.issues.map((issue: ZodIssue) => {
     const pathString = issue.path.join(".");
-    return `- Field \`${pathString || "object root"}\`: ${issue.message} (Code: ${issue.code})`;
+    return `- Field \`${pathString || "object root"}\`: ${
+      issue.message
+    } (Code: ${issue.code})`;
   });
 
   return `Validation Errors:\n${errorMessages.join("\n")}`;

@@ -15,6 +15,11 @@ import type {
 import { formatContextLog } from "./formatters";
 import { memory } from "./utils";
 import { LogEventType, StructuredLogger } from "./logging-events";
+import {
+  resolveCapabilityConfig,
+  createCapabilityIndex,
+  getActiveCapabilities,
+} from "./capabilities";
 
 /**
  * Creates a context configuration
@@ -186,6 +191,174 @@ export function getContextId<TContext extends AnyContext>(
   return key ? [context.type, key].join(":") : context.type;
 }
 
+/**
+ * Resolves a dynamic resolver function or returns the static value
+ */
+async function resolveDynamic<T>(
+  resolver: T | ((state: any) => T | Promise<T>) | undefined,
+  state: any
+): Promise<T | undefined> {
+  if (typeof resolver === "function") {
+    return await (resolver as (state: any) => T | Promise<T>)(state);
+  }
+  return resolver;
+}
+
+/**
+ * Initializes capability awareness for a context state if enabled at framework level
+ */
+async function initializeCapabilityAwareness<TContext extends AnyContext>(
+  contextState: ContextState<TContext>
+): Promise<void> {
+  // Check if capability awareness is enabled at context level or framework level
+  const contextConfig = contextState.context.capabilityAwareness;
+
+  // For now, we'll get the agent from global context or try to resolve it
+  // In the future, this should be passed through the context resolution chain
+  const agent =
+    (contextState as any).agent || (globalThis as any).__currentAgent;
+
+  if (!agent) {
+    // If no agent available, skip capability awareness initialization
+    return;
+  }
+
+  // Get framework-level configuration from agent
+  // Access the agent's capability awareness configuration if available
+  const frameworkConfig = (agent as any).capabilityAwareness || {
+    enabled: true,
+  };
+
+  // Resolve effective configuration
+  const effectiveConfig = resolveCapabilityConfig(
+    frameworkConfig,
+    contextConfig
+  );
+
+  if (!effectiveConfig.enabled) {
+    return; // Capability awareness disabled
+  }
+
+  // Initialize capability namespace if not already present
+  if (!contextState._capabilities) {
+    contextState._capabilities = {
+      index: createCapabilityIndex(),
+      active: [],
+      strategy: {
+        type: "context-aware",
+        maxActiveActions: effectiveConfig.maxActiveCapabilities,
+      },
+      config: effectiveConfig,
+      lastDiscovery: undefined,
+    };
+  }
+
+  // If auto-discovery is enabled and we haven't discovered yet, trigger discovery
+  if (
+    effectiveConfig.autoDiscover &&
+    contextState._capabilities.index.actions.size === 0
+  ) {
+    try {
+      const { discoverAgentCapabilities } = await import("./capabilities");
+      contextState._capabilities.index = await discoverAgentCapabilities(
+        agent,
+        effectiveConfig.sources
+      );
+      contextState._capabilities.lastDiscovery = Date.now();
+    } catch (error) {
+      // If discovery fails, continue without capability awareness
+      console.warn("Failed to auto-discover capabilities:", error);
+    }
+  }
+}
+
+/**
+ * Resolves all dynamic capabilities for a context state
+ */
+export async function resolveContextCapabilities<TContext extends AnyContext>(
+  contextState: ContextState<TContext>
+): Promise<void> {
+  const { context } = contextState;
+  const now = Date.now();
+
+  // Initialize capability awareness if enabled (framework-level)
+  await initializeCapabilityAwareness(contextState);
+
+  // Resolve actions
+  if (context.actions) {
+    contextState._resolvedActions = await resolveDynamic(
+      context.actions,
+      contextState
+    );
+  }
+
+  // Resolve inputs
+  if (context.inputs) {
+    contextState._resolvedInputs = await resolveDynamic(
+      context.inputs,
+      contextState
+    );
+  }
+
+  // Resolve outputs
+  if (context.outputs) {
+    contextState._resolvedOutputs = await resolveDynamic(
+      context.outputs,
+      contextState
+    );
+  }
+
+  // Resolve contexts
+  if (context.contexts) {
+    contextState._resolvedContexts = await resolveDynamic(
+      context.contexts,
+      contextState
+    );
+  }
+
+  // Resolve focus
+  if (context.focus) {
+    contextState._resolvedFocus = await resolveDynamic(
+      context.focus,
+      contextState
+    );
+  }
+
+  // Resolve capabilities
+  if (context.capabilities) {
+    contextState._resolvedCapabilities = await resolveDynamic(
+      context.capabilities,
+      contextState
+    );
+  }
+
+  // Resolve loading strategy
+  if (context.loadingStrategy) {
+    contextState._resolvedLoadingStrategy = await resolveDynamic(
+      context.loadingStrategy,
+      contextState
+    );
+  }
+
+  // Add dynamically loaded capabilities to resolved actions
+  if (
+    contextState._capabilities?.index &&
+    contextState._capabilities.active.length > 0
+  ) {
+    const activeCapabilities = getActiveCapabilities(contextState as any);
+
+    if (activeCapabilities.length > 0) {
+      contextState._resolvedActions = [
+        ...(contextState._resolvedActions || []),
+        ...activeCapabilities,
+      ];
+    }
+  }
+
+  // Update resolution timestamp
+  contextState._lastResolution = now;
+}
+
 export async function createContextState<TContext extends AnyContext>({
   agent,
   context,
@@ -203,7 +376,8 @@ export async function createContextState<TContext extends AnyContext>({
   const id = key ? [context.type, key].join(":") : context.type;
 
   // Log structured context create event if structured logger is available
-  const structuredLogger = agent.container?.resolve<StructuredLogger>("structuredLogger");
+  const structuredLogger =
+    agent.container?.resolve<StructuredLogger>("structuredLogger");
   if (structuredLogger) {
     structuredLogger.logEvent({
       eventType: LogEventType.CONTEXT_CREATE,
@@ -239,14 +413,10 @@ export async function createContextState<TContext extends AnyContext>({
       ? await context.load(id, { options, settings })
       : await agent.memory.store.get(`memory:${id}`)) ??
     (context.create
-      ? await Promise.try(
-          context.create,
-          { key, args, id, options, settings },
-          agent
-        )
+      ? await context.create({ key, args, id, options, settings }, agent)
       : {});
 
-  return {
+  const contextState: ContextState<TContext> = {
     id,
     key,
     args,
@@ -256,6 +426,17 @@ export async function createContextState<TContext extends AnyContext>({
     settings,
     contexts,
   };
+
+  // Store agent reference temporarily for capability resolution
+  (contextState as any).agent = agent;
+
+  // Resolve dynamic capabilities
+  await resolveContextCapabilities(contextState);
+
+  // Clean up agent reference (not needed in persisted state)
+  delete (contextState as any).agent;
+
+  return contextState;
 }
 
 export async function getContextWorkingMemory(
@@ -299,9 +480,10 @@ type ContextStateSnapshot = {
 
 export async function saveContextState(agent: AnyAgent, state: ContextState) {
   const { id, context, key, args, settings, contexts } = state;
-  
+
   // Log structured context update event
-  const structuredLogger = agent.container?.resolve<StructuredLogger>("structuredLogger");
+  const structuredLogger =
+    agent.container?.resolve<StructuredLogger>("structuredLogger");
   if (structuredLogger) {
     structuredLogger.logEvent({
       eventType: LogEventType.CONTEXT_UPDATE,

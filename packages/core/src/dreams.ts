@@ -13,6 +13,7 @@ import type {
   Log,
   AnyRef,
   LogChunk,
+  CapabilityAwarenessConfig,
 } from "./types";
 import { Logger } from "./logger";
 import { createContainer } from "./container";
@@ -39,6 +40,7 @@ import { randomUUIDv7, tryAsync } from "./utils";
 import { createContextStreamHandler, handleStream } from "./streaming";
 import { mainPrompt, promptTemplate } from "./prompts/main";
 import { createEngine } from "./engine";
+import { DEFAULT_CAPABILITY_CONFIG, DISCOVERY_ACTIONS, resolveCapabilityConfig } from "./capabilities";
 import type { DeferredPromise } from "p-defer";
 import {
   configureRequestTracking,
@@ -104,6 +106,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     exportTrainingData,
     trainingDataPath,
     streaming = true,
+    capabilityAwareness,
   } = config;
 
   const container = config.container ?? createContainer();
@@ -171,12 +174,24 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     }
   }
 
+  // Resolve capability awareness configuration
+  const capabilityConfig = resolveCapabilityConfig(capabilityAwareness);
+  
+  // Add discovery actions if capability awareness is enabled
+  const allActions = [...actions];
+  if (capabilityConfig.enabled && capabilityConfig.includeDiscoveryActions) {
+    logger.debug("agent:createDreams", "Adding capability discovery actions", {
+      count: DISCOVERY_ACTIONS.length,
+    });
+    allActions.push(...DISCOVERY_ACTIONS);
+  }
+
   const agent: Agent<TContext> = {
     logger,
     inputs,
     outputs,
     events,
-    actions,
+    actions: allActions,
     experts,
     memory:
       config.memory ?? createMemory(createMemoryStore(), createVectorStore()),
@@ -190,6 +205,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     exportTrainingData,
     trainingDataPath,
     registry,
+    capabilityAwareness: capabilityConfig,
     emit: (event: string, data: any) => {
       logger.debug("agent:event", event, data);
     },
@@ -470,10 +486,11 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       }
 
       logger.debug("agent:start", "Setting up actions", {
-        count: actions.length,
+        count: agent.actions.length,
+        discoveryEnabled: agent.capabilityAwareness?.enabled,
       });
 
-      for (const action of actions) {
+      for (const action of agent.actions) {
         if (action.install) {
           logger.trace("agent:start", "Installing action", {
             name: action.name,

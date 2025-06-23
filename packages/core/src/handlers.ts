@@ -776,45 +776,68 @@ export async function prepareContext(
 
   await ctxState.context.loader?.(ctxState, agent);
 
-  const inputs: Input[] = ctxState.context.inputs
-    ? Object.entries(ctxState.context.inputs).map(([type, input]) => ({
-        type,
-        ...input,
-      }))
-    : [];
+  // Use resolved inputs if available, otherwise resolve dynamically
+  const resolvedInputs = ctxState._resolvedInputs ?? 
+    (ctxState.context.inputs ? await resolve(ctxState.context.inputs, ctxState) : {});
+  
+  const inputs: Input[] = Object.entries(resolvedInputs).map(([type, input]) => ({
+    type,
+    ...input,
+  }));
 
   state.inputs.push(...inputs);
 
-  const outputs: OutputCtxRef[] = ctxState.context.outputs
-    ? await Promise.all(
-        Object.entries(await resolve(ctxState.context.outputs, ctxState)).map(
-          ([type, output]) =>
-            prepareOutput({
-              output: {
-                type,
-                ...output,
-              },
-              context: ctxState.context,
-              state: ctxState,
-            })
-        )
-      ).then((r) => r.filter((a) => !!a))
-    : [];
+  // Use resolved outputs if available, otherwise resolve dynamically
+  const resolvedOutputs = ctxState._resolvedOutputs ?? 
+    (ctxState.context.outputs ? await resolve(ctxState.context.outputs, ctxState) : {});
+
+  const outputs: OutputCtxRef[] = await Promise.all(
+    Object.entries(resolvedOutputs).map(([type, output]) =>
+      prepareOutput({
+        output: {
+          type,
+          ...output,
+        },
+        context: ctxState.context,
+        state: ctxState,
+      })
+    )
+  ).then((r) => r.filter((a) => !!a));
 
   state.outputs.push(...outputs);
 
-  const actions = await prepareContextActions({
-    agent,
-    agentCtxState,
-    context: ctxState.context,
-    state: ctxState,
-    workingMemory,
-  });
+  // Use resolved actions if available, otherwise use the traditional method
+  const actions = ctxState._resolvedActions 
+    ? await Promise.all(
+        ctxState._resolvedActions.map((action: AnyAction) =>
+          prepareAction({
+            action,
+            agent,
+            agentCtxState,
+            context: ctxState.context,
+            state: ctxState,
+            workingMemory,
+          })
+        )
+      ).then((r) => r.filter((a) => !!a))
+    : await prepareContextActions({
+        agent,
+        agentCtxState,
+        context: ctxState.context,
+        state: ctxState,
+        workingMemory,
+      });
 
   state.actions.push(...actions);
 
   const ctxRefs: ContextRef[] = [];
 
+  // Add resolved contexts if available
+  if (ctxState._resolvedContexts) {
+    ctxRefs.push(...ctxState._resolvedContexts);
+  }
+
+  // Also include legacy composer contexts
   if (ctxState.context.__composers) {
     for (const composer of ctxState.context.__composers) {
       ctxRefs.push(...composer(ctxState));

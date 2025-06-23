@@ -1,0 +1,19 @@
+{
+  "name": "dynamic-context-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx example-dynamic-focus.ts",
+    "test": "tsx example-dynamic-focus.ts"
+  },
+  "dependencies": {
+    "@daydreamsai/core": "workspace:*",
+    "@ai-sdk/anthropic": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4",
+    "@types/node": "^22.9.0"
+  }
+}

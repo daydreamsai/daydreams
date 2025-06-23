@@ -800,6 +800,11 @@ interface AgentDef<TContext extends AnyContext = AnyContext> {
    * Path to save training data
    */
   trainingDataPath?: string;
+
+  /**
+   * Capability awareness configuration for the agent
+   */
+  capabilityAwareness?: CapabilityAwarenessConfig;
 }
 
 export type LogChunk =
@@ -993,6 +998,8 @@ export type Config<TContext extends AnyContext = AnyContext> = Partial<
   /** Path to save training data */
   trainingDataPath?: string;
   streaming?: boolean;
+  /** Capability awareness configuration */
+  capabilityAwareness?: CapabilityAwarenessConfig;
 };
 
 /** Configuration type for inputs without type field */
@@ -1166,7 +1173,95 @@ type BaseContextComposer<TContext extends AnyContext> = (
   state: ContextState<TContext>
 ) => ContextRef[];
 
-export type Resolver<Result, Ctx> = Result | ((ctx: Ctx) => Result);
+export type Resolver<Result, Ctx> = Result | ((ctx: Ctx) => Result | Promise<Result>);
+
+// Enhanced resolvers for dynamic capability management
+export type AsyncResolver<Result, Ctx> = (ctx: Ctx) => Promise<Result>;
+export type SyncResolver<Result, Ctx> = (ctx: Ctx) => Result;
+export type DynamicResolver<Result, Ctx> = Result | SyncResolver<Result, Ctx> | AsyncResolver<Result, Ctx>;
+
+// Specific capability resolver types
+export type ActionResolver<TContext extends AnyContext = AnyContext> = 
+  DynamicResolver<AnyAction[], ContextState<TContext>>;
+
+export type InputResolver<TContext extends AnyContext = AnyContext> = 
+  DynamicResolver<Record<string, InputConfig<any, any>>, ContextState<TContext>>;
+
+export type OutputResolver<TContext extends AnyContext = AnyContext> = 
+  DynamicResolver<Record<string, OutputConfig<any, any, any>>, ContextState<TContext>>;
+
+export type ContextRefResolver<TContext extends AnyContext = AnyContext> = 
+  DynamicResolver<ContextRef[], ContextState<TContext>>;
+
+// Capability management types
+export interface CapabilityIndex {
+  actions: Map<string, { 
+    action: AnyAction; 
+    source: string; 
+    lastUsed?: number;
+    usage_count?: number;
+  }>;
+  contexts: Map<string, { 
+    context: AnyContext; 
+    source: string; 
+    active: boolean;
+  }>;
+  inputs: Map<string, { 
+    input: InputConfig<any, any>; 
+    source: string; 
+  }>;
+  outputs: Map<string, { 
+    output: OutputConfig<any, any, any>; 
+    source: string; 
+  }>;
+  lastScan: number;
+  scanCount: number;
+}
+
+export interface CapabilityAwarenessConfig {
+  /** Enable capability awareness for this agent */
+  enabled?: boolean;
+  /** Auto-discover capabilities on first request */
+  autoDiscover?: boolean;
+  /** Include discovery actions (scan_capabilities, list_capabilities, etc.) */
+  includeDiscoveryActions?: boolean;
+  /** Sources to discover capabilities from */
+  sources?: ('agent')[];
+  /** Cache lifetime for discovered capabilities (ms) */
+  cacheLifetime?: number;
+  /** Maximum number of active capabilities */
+  maxActiveCapabilities?: number;
+}
+
+export interface FocusConfig {
+  type: string;
+  intensity: number; // 0-1, how focused vs. how broad
+  domains: string[];
+  activeCapabilities: string[];
+  backgroundCapabilities: string[];
+  timestamp: number;
+  previous?: FocusConfig;
+}
+
+export interface LoadingStrategy {
+  type: 'eager' | 'lazy' | 'context-aware';
+  maxActiveActions?: number;
+  maxActiveContexts?: number;
+  unloadThreshold?: number; // Intensity below which to unload focused capabilities
+}
+
+export interface CapabilityMemory {
+  focus?: FocusConfig;
+  capabilityIndex?: CapabilityIndex;
+  loadingStrategy?: LoadingStrategy;
+  discoveredCapabilities?: string[];
+  relatedContexts?: Array<{ contextType: string; args: any; relationship: string }>;
+  conversationContext?: {
+    domain: string;
+    topics: string[];
+    complexity: number;
+  };
+}
 
 export interface Context<
   TMemory = any,
@@ -1253,25 +1348,45 @@ export interface Context<
 
   maxWorkingMemorySize?: number;
 
-  actions?: Resolver<Action[], ContextState<this>>;
+  // Enhanced dynamic capability resolvers
+  actions?: ActionResolver<this>;
 
   events?: Resolver<Events, ContextState<this>>;
 
   /**
    * A record of input configurations for the context.
    */
-  inputs?: Resolver<
-    Record<string, InputConfig<any, any, AnyAgent>>,
-    ContextState<this>
-  >;
+  inputs?: InputResolver<this>;
 
   /**
    * A record of output configurations for the context.
    */
-  outputs?: Resolver<
-    Record<string, Omit<Output<any, any, AnyContext, any>, "type">>,
-    ContextState<this>
-  >;
+  outputs?: OutputResolver<this>;
+
+  /**
+   * Dynamic context composition - contexts to load based on current state
+   */
+  contexts?: ContextRefResolver<this>;
+
+  /**
+   * Dynamic focus management
+   */
+  focus?: DynamicResolver<FocusConfig, ContextState<this>>;
+
+  /**
+   * Capability discovery and management
+   */
+  capabilities?: DynamicResolver<CapabilityIndex, ContextState<this>>;
+
+  /**
+   * Loading strategy for dynamic capabilities
+   */
+  loadingStrategy?: DynamicResolver<LoadingStrategy, ContextState<this>>;
+
+  /**
+   * Override agent-level capability awareness for this context
+   */
+  capabilityAwareness?: CapabilityAwarenessConfig;
 
   __composers?: BaseContextComposer<this>[];
 
@@ -1358,6 +1473,25 @@ export type ContextState<TContext extends AnyContext = AnyContext> = {
   memory: InferContextMemory<TContext>;
   settings: ContextSettings;
   contexts: string[];
+  
+  // Dynamic resolved capabilities (populated during resolution)
+  _resolvedActions?: AnyAction[];
+  _resolvedInputs?: Record<string, InputConfig<any, any>>;
+  _resolvedOutputs?: Record<string, OutputConfig<any, any, any>>;
+  _resolvedContexts?: ContextRef[];
+  _resolvedFocus?: FocusConfig;
+  _resolvedCapabilities?: CapabilityIndex;
+  _resolvedLoadingStrategy?: LoadingStrategy;
+  _lastResolution?: number; // Timestamp of last resolution
+  
+  // Capability awareness namespace (framework-managed, separate from user memory)
+  _capabilities?: {
+    index: CapabilityIndex;
+    active: string[];
+    strategy: LoadingStrategy;
+    config: CapabilityAwarenessConfig;
+    lastDiscovery?: number;
+  };
 };
 
 export type Extension<
