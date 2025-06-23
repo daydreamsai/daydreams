@@ -195,11 +195,17 @@ export const discordChannelContext = context({
       },
     }),
     "discord:message-with-attachments": output({
+      description:
+        "Sends a message that includes one or more file attachments, such as images. If you have a local file path from another action (e.g., generateImage), use this output to send the file.",
       schema: z.object({
         content: z.string().describe("Text content of the message"),
         attachments: z.array(
           z.object({
-            url: z.string().describe("URL of the attachment to send"),
+            url: z
+              .string()
+              .describe(
+                "URL or local file path of the attachment to send"
+              ),
             filename: z
               .string()
               .optional()

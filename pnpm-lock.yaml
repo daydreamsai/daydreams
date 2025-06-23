@@ -27,6 +27,9 @@ catalogs:
     '@e2b/code-interpreter':
       specifier: 1.0.4
       version: 1.0.4
+    '@google/genai':
+      specifier: 1.6.0
+      version: 1.6.0
     '@modelcontextprotocol/sdk':
       specifier: 1.12.0
       version: 1.12.0
@@ -787,6 +790,9 @@ importers:
       '@ai-sdk/google':
         specifier: 'catalog:'
         version: 1.2.17(zod@3.25.23)
+      '@daydreamsai/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
       '@daydreamsai/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1205,6 +1211,9 @@ importers:
       '@daydreamsai/core':
         specifier: workspace:*
         version: link:../core
+      '@google/genai':
+        specifier: 'catalog:'
+        version: 1.6.0(@modelcontextprotocol/sdk@1.12.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       ai:
         specifier: 'catalog:'
         version: 4.3.16(react@19.1.0)(zod@3.25.23)
@@ -2987,6 +2996,15 @@ packages:
   '@google-cloud/storage@7.16.0':
     resolution: {integrity: sha512-7/5LRgykyOfQENcm6hDKP8SX/u9XxE5YOiWOkgkwcoO+cG8xT/cyOvp9wwN3IxfdYgpHs8CE7Nq2PKX2lNaEXw==}
     engines: {node: '>=14'}
+
+  '@google/genai@1.6.0':
+    resolution: {integrity: sha512-0vn8wMGesjiEsHeFsl10T8+SFqLj7q+RSE6mml66sE+jwI7U9wW2LQ3qYtwUEaI+P8ZYeEYE5IpYmNLcRQUBPQ==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.11.0
+    peerDependenciesMeta:
+      '@modelcontextprotocol/sdk':
+        optional: true
 
   '@gql.tada/cli-utils@1.6.3':
     resolution: {integrity: sha512-jFFSY8OxYeBxdKi58UzeMXG1tdm4FVjXa8WHIi66Gzu9JWtCE6mqom3a8xkmSw+mVaybFW5EN2WXf1WztJVNyQ==}
@@ -11973,6 +11991,20 @@ snapshots:
       - encoding
       - supports-color
     optional: true
+
+  '@google/genai@1.6.0(@modelcontextprotocol/sdk@1.12.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
+    dependencies:
+      google-auth-library: 9.15.1
+      ws: 8.18.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      zod: 3.25.23
+      zod-to-json-schema: 3.24.5(zod@3.25.23)
+    optionalDependencies:
+      '@modelcontextprotocol/sdk': 1.12.0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - utf-8-validate
 
   '@gql.tada/cli-utils@1.6.3(@0no-co/graphqlsp@1.12.16(graphql@16.11.0)(typescript@5.8.3))(graphql@16.11.0)(typescript@5.8.3)':
     dependencies:
