@@ -3,13 +3,14 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { discord } from "@daydreamsai/discord";
 import { genai } from "@daydreamsai/genai";
 import { z } from "zod";
+import { cliExtension } from "@daydreamsai/cli";
 
 const env = validateEnv(
   z.object({
     GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
     DISCORD_TOKEN: z.string().min(1, "DISCORD_TOKEN is required"),
     DISCORD_BOT_NAME: z.string().min(1, "DISCORD_BOT_NAME is required"),
-    // PROCESS_ATTACHMENTS: z.boolean().optional().default(true),
+    PROCESS_ATTACHMENTS: z.string().optional().default("true"),
   })
 );
 
@@ -18,7 +19,7 @@ const agent = createDreams({
     apiKey: env.GEMINI_API_KEY,
   })("gemini-2.5-flash-preview-04-17"),
   logger: new Logger({ level: LogLevel.DEBUG }),
-  extensions: [discord, genai],
+  extensions: [discord, genai, cliExtension],
 });
 
 await agent.start();

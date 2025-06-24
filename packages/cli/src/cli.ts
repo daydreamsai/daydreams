@@ -1,5 +1,12 @@
 import * as readline from "readline/promises";
-import { service, context, input, extension, output } from "@daydreamsai/core";
+import {
+  service,
+  context,
+  input,
+  extension,
+  output,
+  render,
+} from "@daydreamsai/core";
 import { z } from "zod";
 
 export const readlineService = service({
@@ -45,10 +52,14 @@ export const cli = context({
       description: "Send messages to the user",
       instructions: "Use plain text",
       schema: z.string(),
-      handler(data) {
-        console.log("Agent:", { data });
+      async handler(data, ctx, agent) {
+        const workingMemory = await agent.getWorkingMemory(ctx.id);
+        const resolvedData = render(data, {
+          calls: workingMemory.calls,
+        });
+        console.log("Agent:", resolvedData);
         return {
-          data,
+          data: resolvedData,
         };
       },
       examples: [

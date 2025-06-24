@@ -29,6 +29,7 @@
   "dependencies": {
     "@daydreamsai/core": "workspace:*",
     "ai": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@google/genai": "catalog:"
   }
 }

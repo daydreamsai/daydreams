@@ -17,6 +17,7 @@ catalog:
   '@ai-sdk/provider': 1.1.0
   '@ai-sdk/ui-utils': 1.2.3
   '@ai-sdk/google': 1.2.17
+  '@google/genai': 1.6.0
   '@openrouter/ai-sdk-provider': 0.4.5
   '@modelcontextprotocol/sdk': 1.12.0
   '@types/bun': latest

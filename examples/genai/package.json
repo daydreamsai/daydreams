@@ -13,6 +13,7 @@
     "@daydreamsai/core": "workspace:*",
     "@daydreamsai/discord": "workspace:*",
     "@daydreamsai/genai": "workspace:*",
+    "@daydreamsai/cli": "workspace:*",
     "zod": "catalog:",
     "@ai-sdk/google": "catalog:"
   }

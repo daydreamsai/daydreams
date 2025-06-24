@@ -44,6 +44,7 @@ these general AI actions can consume.
     function to get a response.
 
 - **`analyzeVideo`**:
+
   - **Description**: Analyzes provided text and accompanying video attachments,
     then generates a relevant textual response. This action can be used to
     describe videos, answer questions about them, summarize content, or perform
@@ -65,6 +66,30 @@ these general AI actions can consume.
     model provider (e.g., `@ai-sdk/google`) are responsible for processing the
     video content. _Note: The exact capabilities depend on the LLM's support for
     video understanding._
+
+- **`generateImage`**:
+  - **Description**: Generates an image based on a text prompt using the Gemini
+    API. The generated image is saved to a temporary local file, and the action
+    returns an object containing the file path and other metadata. This output
+    is specifically structured to be easily piped into other actions, such as
+    `discord:message-with-attachments`.
+  - **Input Schema**:
+    - `text` (string): The text prompt to generate the image from.
+    - `model` (string, optional): The specific Gemini model to use for
+      generation (defaults to `gemini-2.0-flash-preview-image-generation`).
+  - **Returns Schema**: An object containing:
+    - `success` (boolean): Whether the generation was successful.
+    - `message` (string): A status message.
+    - `attachments` (array of objects): An array structured for use in
+      attachment-based outputs. Contains:
+      - `url` (string): The local file path to the generated image.
+      - `filename` (string): The name of the saved file.
+    - `prompt` (string): The original text prompt used.
+  - **How it works**: This action calls the Google Gen AI SDK with the specified
+    prompt. Upon receiving the base64-encoded image data from the API, it saves
+    the image to a temporary directory on the local file system. It then returns
+    a structured object containing the path, making it easy for the AI to pass
+    this result to another action that can handle file uploads.
 
 ## Usage
 

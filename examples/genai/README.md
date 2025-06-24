@@ -1,56 +1,43 @@
-# Using `@daydreamsai/genai` alongside `@daydreamsai/discord`
+# GenAI Discord Bot Example
 
-Daydreams GenAI depends on `@ai-sdk/google`'s `createGoogleGenerativeAI`
+This example demonstrates a multimodal agent in Discord using the
+`@daydreamsai/genai` extension.
 
----
+## Features
 
-    model: createGoogleGenerativeAI({
-        apiKey: env.GEMINI_API_KEY,
-    })("gemini-2.5-flash-preview-04-17"),
+- Responds to text messages.
+- Generates images from user prompts.
 
----
+## How to Run
 
-## **Setup**
+1.  **Environment Variables**
 
-**1.** Install dependencies from root:
+    Create a `.env` file in the project root with the following:
 
-```bash
-bun install
-```
+    ```
+    GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+    DISCORD_TOKEN="YOUR_DISCORD_BOT_TOKEN"
+    DISCORD_BOT_NAME="YourBotName"
+    PROCESS_ATTACHMENTS="true"
+    ```
 
-**2.** For obvious reasons:
+2.  **Install & Build**
 
-```bash
-bun i @ai-sdk/google
-```
+    From the project root, run:
 
-**3.** Add your google and discord keys to your root `.env`:
+    ```bash
+    pnpm install
+    pnpm build:packages
+    ```
 
-```bash
-GEMINI_API_KEY=
-DISCORD_TOKEN=
-DISCORD_BOT_NAME=
-```
+3.  **Start the Bot**
 
-**4.** Spin up
+    ```bash
+    bun run examples/genai/example-genai.ts
+    ```
 
-```bash
-bun run examples/genai/example-genai.ts
-```
+## Example Usage
 
----
+In your Discord server, mention the bot and ask it to generate an image:
 
-### **Notes**
-
-**_Discord extension use is optional, just remove discord from the extensions
-array in createDreams_**
-
-```ts
-const agent = createDreams({
-  model: createGoogleGenerativeAI({
-    apiKey: env.GEMINI_API_KEY,
-  })("gemini-2.5-flash-preview-04-17"),
-  logger: new Logger({ level: LogLevel.DEBUG }),
-  extensions: [genai],
-});
-```
+`@YourBotName generate an image of a robot developer writing code`
