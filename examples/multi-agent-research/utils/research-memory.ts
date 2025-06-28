@@ -1,4 +1,4 @@
-import { memory, type MemoryStore } from "@daydreamsai/core";
+import { memory, type MemorySystem } from "@daydreamsai/core";
 import type {
   ResearchMemoryType,
   ResearchSession,
@@ -21,16 +21,16 @@ export const researchMemory = memory<ResearchMemoryType>({
 export async function saveSession(
   sessionId: string,
   session: ResearchSession,
-  store: MemoryStore,
+  store: MemorySystem,
   memory: ResearchMemoryType
 ) {
-  await store.set(`session:${sessionId}`, session);
+  await store.kv.set(`session:${sessionId}`, session);
   memory.activeSessions.set(sessionId, session);
 }
 
 export async function loadSession(
   sessionId: string,
-  store: MemoryStore,
+  store: MemorySystem,
   memory: ResearchMemoryType
 ): Promise<ResearchSession | null> {
   // Try memory first, then store
@@ -38,7 +38,7 @@ export async function loadSession(
     return memory.activeSessions.get(sessionId)!;
   }
 
-  const session = await store.get<ResearchSession>(`session:${sessionId}`);
+  const session = await store.kv.get<ResearchSession>(`session:${sessionId}`);
   if (session) {
     memory.activeSessions.set(sessionId, session);
   }
@@ -48,16 +48,16 @@ export async function loadSession(
 export async function saveTask(
   taskId: string,
   task: SubagentTask,
-  store: MemoryStore,
+  store: MemorySystem,
   memory: ResearchMemoryType
 ) {
-  await store.set(`task:${taskId}`, task);
+  await store.kv.set(`task:${taskId}`, task);
   memory.activeTasks.set(taskId, task);
 }
 
 export async function loadTask(
   taskId: string,
-  store: MemoryStore,
+  store: MemorySystem,
   memory: ResearchMemoryType
 ): Promise<SubagentTask | null> {
   // Try memory first, then store
@@ -65,7 +65,7 @@ export async function loadTask(
     return memory.activeTasks.get(taskId)!;
   }
 
-  const task = await store.get<SubagentTask>(`task:${taskId}`);
+  const task = await store.kv.get<SubagentTask>(`task:${taskId}`);
   if (task) {
     memory.activeTasks.set(taskId, task);
   }
@@ -77,7 +77,7 @@ export async function saveSubagentFindings(
   taskId: string,
   findings: string[],
   sources: string[],
-  store: MemoryStore,
+  store: MemorySystem,
   memory: ResearchMemoryType
 ) {
   const session = await loadSession(sessionId, store, memory);

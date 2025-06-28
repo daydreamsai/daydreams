@@ -1,6 +1,3 @@
-export * from "./schema";
-export * from "./types";
-export * from "./supabase";
-export * from "./vector-store";
-export * from "./memory-store";
+// New memory system - preferred API
 export * from "./memory";
+export * from "./providers";

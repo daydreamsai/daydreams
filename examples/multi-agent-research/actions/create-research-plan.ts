@@ -18,7 +18,7 @@ export const createResearchPlanAction = action({
     query: z.string().describe("The research question or topic to analyze"),
     maxSubagents: z.number().min(1).max(10).default(5).optional(),
   }),
-  memory: researchMemory,
+  actionState: researchMemory,
   async handler({ query, maxSubagents = 5 }, ctx, agent) {
     // Determine complexity based on query analysis
     const complexity = analyzeComplexity(query);
@@ -34,7 +34,7 @@ export const createResearchPlanAction = action({
       subagentResults: [],
     };
 
-    await saveSession(sessionId, session, agent.memory.store, ctx.actionMemory);
+    await saveSession(sessionId, session, agent.memory, ctx.actionMemory);
 
     return `<research_plan_created>
 I'll create a comprehensive research plan for: "${query}"

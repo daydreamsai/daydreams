@@ -3,6 +3,53 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [Unreleased] - New Memory System Integration
+
+### ✨ Added
+- **New Memory System**: Implementation of the new DaydreamsAI memory interface
+- **ChromaVectorProvider**: Enhanced vector storage with full VectorProvider interface support
+- **Memory System Factory**: `createChromaMemory()` function for complete memory system setup
+- **Health Monitoring**: Built-in health checks for ChromaDB connectivity
+- **Namespace Support**: Organize vectors by logical namespaces
+- **Metadata Filtering**: Search and filter vectors by custom metadata
+- **Batch Operations**: Efficient bulk indexing and deletion
+- **Embedding Flexibility**: Support for OpenAI, custom, or default embeddings
+- **Comprehensive Documentation**: Updated README with examples and migration guide
+
+### 🔄 Changed
+- **Primary API**: `createChromaMemory()` is now the main entry point
+- **Provider Architecture**: Switched from legacy VectorStore to new provider-based system
+- **Enhanced Features**: Added namespaces, metadata filtering, and better error handling
+
+### ⚠️ Deprecated
+- **Legacy Files**: Old memory system files are now deprecated:
+  - `chroma.ts` - Use `createChromaVectorProvider` instead
+- **Legacy Functions**:
+  - `ChromaVectorStore` class - Use `ChromaVectorProvider`
+  - `createChromaVectorStore()` - Use `createChromaMemory()`
+
+### 🎯 Key Features
+- **Vector-Only Focus**: ChromaDB provides only vector storage (as designed)
+- **In-Memory Fallback**: KV and graph operations use in-memory providers
+- **Persistent Storage**: Vector data persists between application restarts
+- **Performance Optimized**: Efficient similarity search and batch operations
+- **ChromaDB Integration**: Full ChromaDB client integration with auth support
+
+### 📦 Migration Path
+```typescript
+// Old API (deprecated)
+import { createChromaVectorStore } from "@daydreamsai/chroma";
+const store = createChromaVectorStore("collection", "http://localhost:8000");
+
+// New API (recommended)
+import { createChromaMemory } from "@daydreamsai/chroma";
+const memory = createChromaMemory({
+  path: "http://localhost:8000",
+  collectionName: "collection"
+});
+await memory.initialize();
+```
+
 ## [0.3.8](https://github.com/daydreamsai/daydreams/compare/v0.3.7...v0.3.8) (2025-06-18)
 
 **Note:** Version bump only for package @daydreamsai/chromadb

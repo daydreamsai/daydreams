@@ -1,0 +1,35 @@
+{
+  "name": "memory-system-example",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run index.ts",
+    "test-kv": "bun run test-kv-memory.ts",
+    "test-vector": "bun run test-vector-memory.ts",
+    "test-graph": "bun run test-graph-memory.ts",
+    "test-unified": "bun run test-unified-memory.ts",
+    "test-middleware": "bun run test-middleware.ts",
+    "test-learning": "bun run test-learning.ts",
+    "test-all": "bun run test-all-memory-features.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/groq": "catalog:",
+    "@ai-sdk/openai": "catalog:",
+    "@ai-sdk/provider": "catalog:",
+    "@openrouter/ai-sdk-provider": "catalog:",
+    "@daydreamsai/cli": "workspace:*",
+    "@daydreamsai/core": "workspace:*",
+    "@daydreamsai/chromadb": "workspace:*",
+    "@daydreamsai/mongodb": "workspace:*",
+    "@daydreamsai/supabase": "workspace:*",
+    "zod": "catalog:"
+  }
+}

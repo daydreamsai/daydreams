@@ -40,7 +40,7 @@ export const executeResearchSearchesAction = action({
       .string()
       .describe("Instructions for synthesizing the search results"),
   }),
-  memory: researchMemory,
+  actionState: researchMemory,
   async handler({ taskId, searchQueries, synthesisInstructions }, ctx, agent) {
     try {
       ctx.memory.status = "searching";
@@ -167,7 +167,7 @@ Generate your synthesis now:`;
           taskId,
           findings,
           sources,
-          agent.memory.store,
+          agent.memory,
           ctx.actionMemory
         );
       } catch (error) {
@@ -253,11 +253,11 @@ export const synthesizeReportAction = action({
   schema: z.object({
     sessionId: z.string().describe("The research session ID to synthesize"),
   }),
-  memory: researchMemory,
+  actionState: researchMemory,
   async handler({ sessionId }, ctx, agent) {
     const session = await loadSession(
       sessionId,
-      agent.memory.store,
+      agent.memory,
       ctx.actionMemory
     );
     if (!session) {
@@ -359,11 +359,11 @@ export const checkResearchProgressAction = action({
   schema: z.object({
     sessionId: z.string().describe("The research session ID to check"),
   }),
-  memory: researchMemory,
+  actionState: researchMemory,
   async handler({ sessionId }, ctx, agent) {
     const session = await loadSession(
       sessionId,
-      agent.memory.store,
+      agent.memory,
       ctx.actionMemory
     );
     if (!session) {
@@ -464,7 +464,7 @@ export const listSessionsAction = action({
   name: "research.listResearchSessions",
   description: "List all research sessions",
   schema: z.object({}),
-  memory: researchMemory,
+  actionState: researchMemory,
   async handler(params, ctx) {
     const active = Array.from(ctx.actionMemory.activeSessions.values());
     const completed = ctx.actionMemory.completedSessions.slice(-5);
@@ -495,11 +495,11 @@ export const getResultsAction = action({
   schema: z.object({
     sessionId: z.string().describe("Research session ID"),
   }),
-  memory: researchMemory,
+  actionState: researchMemory,
   async handler({ sessionId }, ctx, agent) {
     const session = await loadSession(
       sessionId,
-      agent.memory.store,
+      agent.memory,
       ctx.actionMemory
     );
     const completed = ctx.actionMemory.completedSessions.find(

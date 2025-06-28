@@ -36,7 +36,7 @@ export const delegateResearchTaskAction = action({
       ),
     estimatedQueries: z.number().min(2).max(8).default(4),
   }),
-  memory: researchMemory,
+  actionState: researchMemory,
   async handler(
     {
       sessionId,
@@ -52,7 +52,7 @@ export const delegateResearchTaskAction = action({
   ) {
     const session = await loadSession(
       sessionId,
-      agent.memory.store,
+      agent.memory,
       ctx.actionMemory
     );
     if (!session) {
@@ -80,7 +80,7 @@ export const delegateResearchTaskAction = action({
     };
 
     // Store task in shared memory for the subagent to access
-    await saveTask(taskId, task, agent.memory.store, ctx.actionMemory);
+    await saveTask(taskId, task, agent.memory, ctx.actionMemory);
 
     session.subagentResults.push({
       taskId,
@@ -99,7 +99,7 @@ export const delegateResearchTaskAction = action({
     session.status = "researching";
 
     // Save updated session
-    await saveSession(sessionId, session, agent.memory.store, ctx.actionMemory);
+    await saveSession(sessionId, session, agent.memory, ctx.actionMemory);
 
     return `<task_delegated>
 ✅ Successfully delegated research task to ${role} subagent

@@ -7,7 +7,9 @@
     "examples/*"
   ],
   "scripts": {
-    "test": "bun run packages/core",
+    "test": "pnpm -r test",
+    "test:core": "pnpm --filter @daydreamsai/core test",
+    "test:watch": "pnpm -r test --watch",
     "build:packages": "./scripts/build.sh",
     "build:packages:watch": "./scripts/build.sh --watch",
     "release": "./scripts/release.sh",
@@ -21,16 +23,17 @@
     "knip": "knip",
     "docs:dev": "cd docs && bun run dev",
     "docs:build": "cd docs && bun run docs:build",
-    "docs:start": "cd docs && bun run start"
+    "docs:start": "cd docs && bun run start",
+    "docs:build:api": "typedoc"
   },
   "devDependencies": {
     "@types/bun": "^1.2.2",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "knip": "^5.43.6",
-    "typedoc": "^0.27.6",
-    "typedoc-plugin-frontmatter": "^1.1.2",
-    "typedoc-plugin-markdown": "^4.4.1",
+    "typedoc": "^0.28.2",
+    "typedoc-plugin-frontmatter": "^1.3.0",
+    "typedoc-plugin-markdown": "^4.7.0",
     "typescript": "catalog:",
     "husky": "9.1.7"
   },

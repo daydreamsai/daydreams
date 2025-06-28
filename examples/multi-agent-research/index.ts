@@ -22,7 +22,7 @@ container.singleton("tavily", () =>
 const agent = createDreams({
   logLevel: LogLevel.DEBUG,
   logger: new Logger({
-    style: "enhanced", // Better for seeing cost information
+    style: "verbose", // Better for seeing cost information
     enableColors: true,
     enableStructuredData: true, // Ensure structured data is shown
   }),

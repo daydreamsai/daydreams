@@ -1,0 +1,16 @@
+{
+  "name": "twitter",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "catalog:"
+  },
+  "dependencies": {
+    "@ai-sdk/groq": "catalog:",
+    "@daydreamsai/core": "workspace:*",
+    "@daydreamsai/twitter": "workspace:*",
+    "@daydreamsai/cli": "workspace:*",
+    "zod": "catalog:"
+  }
+}

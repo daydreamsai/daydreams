@@ -1,8 +1,25 @@
 {
-  "entryPoints": ["../packages/core/src/core/v1/index.ts"],
-  "out": "docs/pages/api-reference",
-  "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-frontmatter"],
-  "hidePageHeader": true,
-  "hideBreadcrumbs": true,
-  "outputFileStrategy": "modules"
+  "entryPoints": ["packages/core/src/types.ts"],
+  "out": "docs/content/docs/api",
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-plugin-frontmatter",
+    "./scripts/custom-types.mjs"
+  ],
+  "hideGenerator": true,
+  "router": "structure",
+  "tsconfig": "packages/core/tsconfig.json",
+  "exclude": [
+    "**/__tests__/**/*",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "clients/**/*",
+    "examples/**/*",
+    "docs/**/*",
+    "packages/!(core)/**/*"
+  ],
+  "skipErrorChecking": true,
+  "flattenOutputFiles": true,
+  "mergeReadme": true,
+  "entryFileName": "api-reference"
 }

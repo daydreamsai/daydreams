@@ -6,7 +6,6 @@ import type {
   Debugger,
   Subscription,
   ContextState,
-  Episode,
   Registry,
   InputRef,
   WorkingMemory,
@@ -29,11 +28,16 @@ import {
   getContexts,
   deleteContext,
 } from "./context";
-import { createMemoryStore } from "./memory";
-import { createMemory } from "./memory";
-import { createVectorStore } from "./memory/base";
+import {
+  InMemoryGraphProvider,
+  InMemoryKeyValueProvider,
+  InMemoryVectorProvider,
+  MemorySystem,
+  ExportManager,
+  JSONExporter,
+  MarkdownExporter,
+} from "./memory";
 import { runGenerate } from "./tasks";
-import { exportEpisodesAsTrainingData } from "./memory/utils";
 import { LogLevel } from "./types";
 import { randomUUIDv7, tryAsync } from "./utils";
 import { createContextStreamHandler, handleStream } from "./streaming";
@@ -47,13 +51,41 @@ import {
 import { StructuredLogger, LogEventType } from "./logging-events";
 import { createRequestContext } from "./tracking";
 
+/**
+ * Creates and configures a new Dreams AI agent instance
+ *
+ * This is the main factory function for creating a Dreams agent with the specified
+ * configuration. The agent manages contexts, actions, memory, and provides a complete
+ * framework for building conversational AI applications.
+ *
+ * @template TContext - The primary context type for this agent
+ * @param config - Configuration object defining the agent's capabilities and behavior
+ * @returns A fully configured agent instance ready to be started and used
+ *
+ * @example
+ * ```typescript
+ * const agent = createDreams({
+ *   model: openai("gpt-4"),
+ *   memory: new MemorySystem({...}),
+ *   actions: [myAction],
+ *   contexts: [myContext]
+ * });
+ *
+ * await agent.start();
+ * const results = await agent.run({
+ *   context: myContext,
+ *   args: { message: "Hello" }
+ * });
+ * ```
+ */
 export function createDreams<TContext extends AnyContext = AnyContext>(
   config: Config<TContext>
 ): Agent<TContext> {
+  // Agent state management
   let booted = false;
 
+  // Subscription and execution state
   const inputSubscriptions = new Map<string, Subscription>();
-
   const contextIds = new Set<string>();
   const contexts = new Map<string, ContextState>();
   const contextsRunning = new Map<
@@ -65,19 +97,18 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     }
   >();
 
+  // Memory and event management
   const workingMemories = new Map<string, WorkingMemory>();
-
   const ctxSubscriptions = new Map<
     string,
     Set<(ref: AnyRef, done: boolean) => void>
   >();
-
   const __ctxChunkSubscriptions = new Map<
     string,
     Set<(chunk: LogChunk) => void>
   >();
 
-  // todo register everything into registry, remove from agent
+  // Internal registry for managing agent components
   const registry: Registry = {
     contexts: new Map(),
     actions: new Map(),
@@ -90,6 +121,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
 
   registry.prompts.set("step", promptTemplate);
 
+  // Extract configuration with defaults
   const {
     inputs = {},
     outputs = {},
@@ -141,12 +173,14 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     }
   };
 
+  // Initialize service management
   const serviceManager = createServiceManager(container);
 
   for (const service of services) {
     serviceManager.register(service);
   }
 
+  // Register contexts and process extensions
   if (config.contexts) {
     for (const ctx of config.contexts) {
       registry.contexts.set(ctx.type, ctx);
@@ -171,6 +205,22 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     }
   }
 
+  // Initialize memory system
+  const memory =
+    config.memory ??
+    new MemorySystem({
+      providers: {
+        kv: new InMemoryKeyValueProvider(),
+        vector: new InMemoryVectorProvider(),
+        graph: new InMemoryGraphProvider(),
+      },
+    });
+
+  // Initialize export manager
+  const exportManager = new ExportManager();
+  exportManager.registerExporter(new JSONExporter());
+  exportManager.registerExporter(new MarkdownExporter());
+
   const agent: Agent<TContext> = {
     logger,
     inputs,
@@ -178,8 +228,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     events,
     actions,
     experts,
-    memory:
-      config.memory ?? createMemory(createMemoryStore(), createVectorStore()),
+    memory,
     container,
     model,
     reasoningModel,
@@ -190,14 +239,25 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     exportTrainingData,
     trainingDataPath,
     registry,
+    exports: exportManager,
     emit: (event: string, data: any) => {
       logger.debug("agent:event", event, data);
     },
 
+    /**
+     * Checks if the agent has been started and is ready to process requests
+     * @returns True if the agent is booted and ready, false otherwise
+     */
     isBooted() {
       return booted;
     },
 
+    /**
+     * Subscribes to log events for a specific context
+     * @param contextId - The ID of the context to subscribe to
+     * @param handler - Function to handle log events
+     * @returns Unsubscribe function to remove the handler
+     */
     subscribeContext(contextId, handler) {
       if (!ctxSubscriptions.has(contextId)) {
         ctxSubscriptions.set(contextId, new Set());
@@ -234,6 +294,10 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       };
     },
 
+    /**
+     * Retrieves the agent's own context state if configured
+     * @returns The agent's context state or undefined if not configured
+     */
     async getAgentContext() {
       return agent.context
         ? await agent.getContext({
@@ -243,10 +307,20 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
         : undefined;
     },
 
+    /**
+     * Retrieves all active context states managed by this agent
+     * @returns Array of context metadata objects
+     */
     async getContexts() {
       return getContexts(contextIds, contexts);
     },
 
+    /**
+     * Retrieves a specific context state by its ID
+     * @template TContext - The context type to retrieve
+     * @param id - The unique identifier of the context
+     * @returns The context state or null if not found
+     */
     async getContextById<TContext extends AnyContext>(
       id: string
     ): Promise<ContextState<TContext> | null> {
@@ -277,6 +351,12 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       return null;
     },
 
+    /**
+     * Gets or creates a context state for the given context and arguments
+     * This method will create a new context if it doesn't exist
+     * @param params - Object containing context definition and arguments
+     * @returns The context state (existing or newly created)
+     */
     async getContext(params) {
       if (!registry.contexts.has(params.context.type))
         registry.contexts.set(params.context.type, params.context);
@@ -319,6 +399,11 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       return contexts.get(id)! as ContextState<typeof params.context>;
     },
 
+    /**
+     * Loads an existing context state without creating a new one
+     * @param params - Object containing context definition and arguments
+     * @returns The existing context state or null if not found
+     */
     async loadContext(params) {
       if (!registry.contexts.has(params.context.type))
         registry.contexts.set(params.context.type, params.context);
@@ -350,6 +435,12 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       return (contexts.get(id) as ContextState<typeof params.context>) ?? null;
     },
 
+    /**
+     * Saves a context state and optionally its working memory to persistent storage
+     * @param ctxState - The context state to save
+     * @param workingMemory - Optional working memory to save with the context
+     * @returns Always returns true on successful save
+     */
     async saveContext(ctxState, workingMemory) {
       contextIds.add(ctxState.id);
       contexts.set(ctxState.id, ctxState);
@@ -366,28 +457,44 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       return true;
     },
 
+    /**
+     * Generates a unique context ID from context definition and arguments
+     * @param params - Object containing context and arguments
+     * @returns Unique context identifier string
+     */
     getContextId(params) {
-      // logger.trace("agent:getContextId", "Getting context id", params);
       return getContextId(params.context, params.args);
     },
 
+    /**
+     * Retrieves the working memory for a specific context
+     * @param contextId - The ID of the context
+     * @returns The working memory data for the context
+     * @throws Error if no working memory is found for the context
+     */
     async getWorkingMemory(contextId) {
       logger.trace("agent:getWorkingMemory", "Getting working memory", {
         contextId,
       });
 
       if (!workingMemories.has(contextId)) {
-        workingMemories.set(
-          contextId,
-          await getContextWorkingMemory(agent, contextId)
-        );
+        const memory = await getContextWorkingMemory(agent, contextId);
+        if (!memory) {
+          throw new Error(`No working memory found for context: ${contextId}`);
+        }
+        workingMemories.set(contextId, memory);
       }
 
       return workingMemories.get(contextId)!;
     },
 
+    /**
+     * Deletes a context and all its associated data
+     * @param contextId - The ID of the context to delete
+     * @note Currently does not handle running contexts - they should be stopped first
+     */
     async deleteContext(contextId) {
-      //todo: handle if its running;
+      // TODO: handle if context is currently running
 
       contexts.delete(contextId);
       contextIds.delete(contextId);
@@ -400,11 +507,28 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       await saveContextsIndex(agent, contextIds);
     },
 
+    /**
+     * Starts the agent and initializes all systems
+     *
+     * This method performs the complete agent startup sequence:
+     * - Initializes the memory system
+     * - Boots all services
+     * - Installs extensions, inputs, outputs, and actions
+     * - Loads saved contexts from storage
+     * - Sets up the agent's own context if configured
+     *
+     * @param args - Optional arguments for the agent's context
+     * @returns The agent instance for method chaining
+     * @throws Error if agent is already booted
+     */
     async start(args) {
       if (booted) return agent;
       logger.info("agent:start", "Starting agent", { args, booted });
 
       booted = true;
+
+      logger.debug("agent:start", "Initializing memory system");
+      await agent.memory.initialize();
 
       logger.debug("agent:start", "Booting services");
       await serviceManager.bootAll();
@@ -483,7 +607,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       }
 
       logger.debug("agent:start", "Loading saved contexts");
-      const savedContexts = await agent.memory.store.get<string[]>("contexts");
+      const savedContexts = await agent.memory.kv.get<string[]>("contexts");
 
       if (savedContexts) {
         logger.trace("agent:start", "Restoring saved contexts", {
@@ -512,6 +636,15 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       return agent;
     },
 
+    /**
+     * Stops the agent and cleans up all resources
+     *
+     * This method performs graceful shutdown by:
+     * - Unsubscribing from all input subscriptions
+     * - Aborting any running contexts
+     * - Stopping all services
+     * - Closing the memory system
+     */
     async stop() {
       logger.info("agent:stop", "Stopping agent");
       booted = false;
@@ -529,8 +662,36 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       try {
         await serviceManager.stopAll();
       } catch (error) {}
+
+      try {
+        await agent.memory.close();
+      } catch (error) {}
     },
 
+    /**
+     * Runs the agent with a specific context and arguments
+     *
+     * This is the main execution method that processes a context through multiple
+     * steps until completion. It handles:
+     * - Context setup and validation
+     * - Working memory management
+     * - Step-by-step execution with LLM interactions
+     * - Action calling and result processing
+     * - Error handling and recovery
+     * - Request tracking and structured logging
+     *
+     * @param params - Configuration object for the run
+     * @param params.context - The context definition to execute
+     * @param params.args - Arguments for the context
+     * @param params.model - Optional model override
+     * @param params.outputs - Optional custom outputs
+     * @param params.handlers - Optional event handlers
+     * @param params.abortSignal - Optional abort signal for cancellation
+     * @param params.requestContext - Optional request tracking context
+     * @param params.chain - Optional chain of previous logs to continue from
+     * @returns Array of log references representing the execution history
+     * @throws Error if agent is not booted or if no model is available
+     */
     async run(params) {
       const { context, args, outputs, handlers, abortSignal, requestContext } =
         params;
@@ -589,17 +750,13 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       try {
         const ctxId = agent.getContextId({ context, args });
 
-        // try to move this to state
-        // we need this here now because its needed to create the handler
-        // and we will use that state from contextsRunning so we need to wait before checking and creating
+        // Get context state and working memory - needed for engine creation
         const ctxState = await agent.getContext({ context, args });
         const workingMemory = await agent.getWorkingMemory(ctxId);
         const agentCtxState = await agent.getAgentContext();
 
-        // todo: allow to control what happens when new input is sent while the ctx is running
-        // context.onInput?
-        // we should allow to abort the current run, or just push it to current run
-        // state.controller.abort()
+        // Handle concurrent runs for the same context
+        // TODO: Add configuration for concurrent execution behavior (abort, queue, or merge)
         if (contextsRunning.has(ctxId)) {
           logger.debug("agent:run", "Context already running", {
             id: ctxId,
@@ -651,6 +808,10 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
 
         let maxSteps = 0;
 
+        /**
+         * Calculates the maximum steps allowed across all contexts
+         * @returns The highest maxSteps value from all active contexts, with a minimum of 5
+         */
         function getMaxSteps() {
           return engine.state.contexts.reduce(
             (maxSteps, ctxState) =>
@@ -670,7 +831,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
 
         let stepRef = await engine.start();
 
-        //todo: pull unprocessed, unfinished steps/runs
+        // TODO: Implement recovery for unprocessed/unfinished steps from previous runs
 
         if (params.chain) {
           for (const log of params.chain) {
@@ -907,6 +1068,20 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       }
     },
 
+    /**
+     * Sends input to the agent and runs it with the specified context
+     *
+     * This is a convenience method that creates an InputRef from the provided
+     * input data and calls the run method with it added to the chain.
+     *
+     * @param params - Configuration object for sending input
+     * @param params.context - The context definition to execute
+     * @param params.args - Arguments for the context
+     * @param params.input - Input data to send to the agent
+     * @param params.input.type - Type identifier for the input
+     * @param params.input.data - The actual input data
+     * @returns Array of log references representing the execution history
+     */
     async send(params) {
       const inputRef: InputRef = {
         id: randomUUIDv7(),
@@ -924,52 +1099,14 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       });
     },
 
+    /**
+     * Evaluates the provided context (placeholder implementation)
+     * @param ctx - The agent context to evaluate
+     * @deprecated This method is not fully implemented
+     */
     async evaluator(ctx) {
       const { id, memory } = ctx;
       logger.debug("agent:evaluator", "memory", memory);
-    },
-
-    /**
-     * Exports all episodes as training data
-     * @param filePath Optional path to save the training data
-     */
-    async exportAllTrainingData(filePath?: string) {
-      logger.info(
-        "agent:exportTrainingData",
-        "Exporting episodes as training data"
-      );
-
-      // Get all contexts
-      const contexts = await agent.getContexts();
-
-      // Collect all episodes from all contexts
-      const allEpisodes: Episode[] = [];
-
-      for (const { id } of contexts) {
-        const episodes = await agent.memory.vector.query(id, "");
-        if (episodes.length > 0) {
-          allEpisodes.push(...episodes);
-        }
-      }
-
-      logger.info(
-        "agent:exportTrainingData",
-        `Found ${allEpisodes.length} episodes to export`
-      );
-
-      // Export episodes as training data
-      if (allEpisodes.length > 0) {
-        await exportEpisodesAsTrainingData(
-          allEpisodes,
-          filePath || config.trainingDataPath || "./training-data.jsonl"
-        );
-        logger.info(
-          "agent:exportTrainingData",
-          "Episodes exported successfully"
-        );
-      } else {
-        logger.warn("agent:exportTrainingData", "No episodes found to export");
-      }
     },
   };
 

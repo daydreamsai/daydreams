@@ -1,0 +1,532 @@
+---
+title: Episode Export
+description: Export conversation episodes to various formats for analysis, backup, or integration
+---
+
+## Quick Start
+
+Export conversation episodes from your agent's memory to JSON or Markdown:
+
+```typescript title="export-episodes.ts"
+// Export recent episodes to JSON
+const episodes = await agent.memory.episodes.getByContext('context:user-123');
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  options: { pretty: true }
+});
+
+// Save to file
+fs.writeFileSync('conversation-history.json', result.metadata.content);
+```
+
+## What is Episode Export?
+
+Episode export provides a mechanism to extract conversation data from the agent's memory system into portable formats. Each episode represents a complete interaction cycle (input → processing → output) with associated metadata, timestamps, and context.
+
+The export system transforms the internal episode structure into standard formats like JSON or human-readable Markdown, with support for filtering, sanitization, and custom transformations.
+
+## Export Architecture
+
+The export system consists of three core components:
+
+### 1. Export Manager
+
+The `ExportManager` coordinates export operations and manages registered exporters:
+
+```typescript title="using-export-manager.ts"
+// Access the export manager
+const exportManager = agent.exports;
+
+// List available exporters
+const exporters = exportManager.listExporters();
+// [
+//   { name: 'json', formats: ['json', 'jsonl'] },
+//   { name: 'markdown', formats: ['md', 'markdown'] }
+// ]
+
+// Export with specific format
+const result = await exportManager.export({
+  episodes: myEpisodes,
+  exporter: 'json',
+  format: 'jsonl', // JSON Lines format
+});
+```
+
+### 2. Episode Structure
+
+Episodes contain structured conversation data:
+
+```typescript title="episode-structure.ts"
+interface Episode {
+  id: string;
+  type: "conversation" | "action" | "event" | "compression";
+  input?: any;        // User input
+  output?: any;       // Agent response
+  context: string;    // Context identifier
+  timestamp: number;  // Unix timestamp
+  duration?: number;  // Processing time in ms
+  metadata?: Record<string, any>;
+  summary?: string;   // Optional summarization
+}
+```
+
+### 3. Export Result
+
+All exporters return a standardized result:
+
+```typescript title="export-result.ts"
+interface ExportResult {
+  success: boolean;
+  location?: string;  // 'memory' for in-memory results
+  format: string;     // 'json', 'jsonl', 'md', etc.
+  size?: number;      // Content size in bytes
+  metadata?: {
+    content: string;        // The exported content
+    episodeCount?: number;  // Number of episodes exported
+  };
+  error?: Error;      // Error details if failed
+}
+```
+
+## JSON Export
+
+The JSON exporter supports two formats:
+
+### Standard JSON Array
+
+```typescript title="json-export.ts"
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  options: { 
+    pretty: true  // Pretty print with indentation
+  }
+});
+
+// Result contains array of episodes
+const episodes = JSON.parse(result.metadata.content);
+```
+
+### JSON Lines (JSONL)
+
+For streaming or large datasets:
+
+```typescript title="jsonl-export.ts"
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  options: { format: 'jsonl' }
+});
+
+// Each line is a complete JSON object
+result.metadata.content.split('\n').forEach(line => {
+  const episode = JSON.parse(line);
+  processEpisode(episode);
+});
+```
+
+## Markdown Export
+
+Generate human-readable conversation logs:
+
+```typescript title="markdown-export.ts"
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'markdown',
+  options: {
+    includeMetadata: true,    // Include metadata section
+    includeTimestamps: true,  // Show timestamps
+    separator: '\n---\n'      // Between episodes
+  }
+});
+
+// Save as markdown file
+fs.writeFileSync('conversation.md', result.metadata.content);
+```
+
+Example output:
+
+```markdown
+# Episode: 7f3a2b1c-4d5e-6789
+
+**Type**: conversation  
+**Date**: 2024-01-15T10:30:00.000Z  
+**Duration**: 1.2s  
+**Context**: user:123
+
+## Conversation
+
+### User
+
+How do I export episodes?
+
+### Assistant
+
+You can export episodes using the export manager...
+
+## Metadata
+
+```json
+{
+  "model": "gpt-4",
+  "temperature": 0.7
+}
+```
+```
+
+## Data Transformation
+
+Apply transformations during export:
+
+### Field Filtering
+
+```typescript title="field-filtering.ts"
+// Include only specific fields
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  transform: {
+    fields: {
+      include: ['id', 'type', 'input', 'output', 'timestamp']
+    }
+  }
+});
+
+// Or exclude sensitive fields
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  transform: {
+    fields: {
+      exclude: ['metadata', 'context']
+    }
+  }
+});
+```
+
+### Custom Sanitization
+
+```typescript title="sanitization.ts"
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  transform: {
+    sanitize: (episode) => ({
+      ...episode,
+      input: redactPII(episode.input),
+      output: redactPII(episode.output),
+      metadata: undefined  // Remove all metadata
+    })
+  }
+});
+
+function redactPII(content: any): any {
+  if (typeof content === 'string') {
+    return content
+      .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL]')
+      .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE]');
+  }
+  return content;
+}
+```
+
+### Sorting
+
+```typescript title="sorting.ts"
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  transform: {
+    sortBy: 'timestamp',
+    sortOrder: 'desc'  // Most recent first
+  }
+});
+```
+
+## Creating Custom Exporters
+
+Implement the `EpisodeExporter` interface:
+
+```typescript title="custom-csv-exporter.ts"
+import { EpisodeExporter, ExportResult, Episode } from '@daydreams/core';
+
+interface CSVOptions {
+  delimiter?: string;
+  headers?: boolean;
+}
+
+class CSVExporter implements EpisodeExporter<CSVOptions> {
+  name = 'csv';
+  description = 'Export episodes as CSV';
+  formats = ['csv', 'tsv'];
+
+  async exportEpisode(
+    episode: Episode, 
+    options?: CSVOptions
+  ): Promise<ExportResult> {
+    const delimiter = options?.delimiter || ',';
+    const row = [
+      episode.id,
+      episode.type,
+      episode.timestamp,
+      JSON.stringify(episode.input || ''),
+      JSON.stringify(episode.output || '')
+    ].join(delimiter);
+
+    return {
+      success: true,
+      format: 'csv',
+      metadata: { content: row }
+    };
+  }
+
+  async exportBatch(
+    episodes: Episode[], 
+    options?: CSVOptions
+  ): Promise<ExportResult> {
+    const delimiter = options?.delimiter || ',';
+    const rows: string[] = [];
+    
+    if (options?.headers !== false) {
+      rows.push(['id', 'type', 'timestamp', 'input', 'output'].join(delimiter));
+    }
+    
+    episodes.forEach(episode => {
+      rows.push([
+        episode.id,
+        episode.type,
+        episode.timestamp.toString(),
+        JSON.stringify(episode.input || ''),
+        JSON.stringify(episode.output || '')
+      ].join(delimiter));
+    });
+
+    return {
+      success: true,
+      format: 'csv',
+      size: rows.join('\n').length,
+      metadata: { 
+        content: rows.join('\n'),
+        episodeCount: episodes.length
+      }
+    };
+  }
+}
+
+// Register the custom exporter
+agent.exports.registerExporter(new CSVExporter());
+
+// Use it
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'csv',
+  options: { delimiter: '\t' }  // Tab-separated
+});
+```
+
+## Best Practices
+
+### ✅ DO: Batch Operations
+
+```typescript title="good-batch.ts"
+// Export all episodes for a context at once
+const episodes = await agent.memory.episodes.getByContext(contextId);
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json'
+});
+```
+
+### ❌ DON'T: Export One by One
+
+```typescript title="bad-individual.ts"
+// Inefficient - multiple export calls
+for (const episode of episodes) {
+  const result = await agent.exports.export({
+    episodes: [episode],
+    exporter: 'json'
+  });
+  // Process each result...
+}
+```
+
+### ✅ DO: Handle Errors
+
+```typescript title="good-error-handling.ts"
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json'
+});
+
+if (!result.success) {
+  console.error('Export failed:', result.error);
+  // Handle error appropriately
+} else {
+  // Process successful export
+  await saveToStorage(result.metadata.content);
+}
+```
+
+### ✅ DO: Sanitize Sensitive Data
+
+```typescript title="good-sanitization.ts"
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  transform: {
+    sanitize: (episode) => ({
+      ...episode,
+      metadata: {
+        ...episode.metadata,
+        apiKey: undefined,
+        userEmail: undefined
+      }
+    })
+  }
+});
+```
+
+## Performance Considerations
+
+### Memory Usage
+
+Large exports are held in memory:
+
+```typescript title="streaming-export.ts"
+// For very large datasets, process in chunks
+const batchSize = 1000;
+const allResults: string[] = [];
+
+for (let offset = 0; offset < totalEpisodes; offset += batchSize) {
+  const batch = await agent.memory.episodes.query({
+    limit: batchSize,
+    offset
+  });
+  
+  const result = await agent.exports.export({
+    episodes: batch,
+    exporter: 'json',
+    options: { format: 'jsonl' }
+  });
+  
+  allResults.push(result.metadata.content);
+}
+
+// Combine results
+const finalContent = allResults.join('\n');
+```
+
+### Transformation Performance
+
+Transformations are applied sequentially:
+
+```typescript title="transformation-order.ts"
+// Order matters - filter first to reduce processing
+const result = await agent.exports.export({
+  episodes,
+  exporter: 'json',
+  transform: {
+    fields: { include: ['id', 'type', 'timestamp'] },  // 1. Filter fields
+    sanitize: (e) => ({ ...e, type: e.type.toUpperCase() }),  // 2. Then transform
+    sortBy: 'timestamp'  // 3. Finally sort
+  }
+});
+```
+
+## Real-World Usage
+
+### Automated Backups
+
+```typescript title="automated-backup.ts"
+import { CronJob } from 'cron';
+
+// Daily backup of all conversations
+const backupJob = new CronJob('0 0 * * *', async () => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const episodes = await agent.memory.episodes.getTimeline(
+    yesterday,
+    new Date()
+  );
+  
+  const result = await agent.exports.export({
+    episodes,
+    exporter: 'json',
+    options: { format: 'jsonl' },
+    transform: {
+      sortBy: 'timestamp',
+      sortOrder: 'asc'
+    }
+  });
+  
+  if (result.success) {
+    const filename = `backup-${yesterday.toISOString().split('T')[0]}.jsonl`;
+    await uploadToS3(filename, result.metadata.content);
+  }
+});
+
+backupJob.start();
+```
+
+### Analytics Export
+
+```typescript title="analytics-export.ts"
+// Export for analytics processing
+async function exportForAnalytics(contextId: string) {
+  const episodes = await agent.memory.episodes.getByContext(contextId);
+  
+  const result = await agent.exports.export({
+    episodes,
+    exporter: 'json',
+    transform: {
+      fields: {
+        include: ['id', 'type', 'timestamp', 'duration', 'metadata']
+      },
+      sanitize: (episode) => ({
+        ...episode,
+        // Extract only analytics-relevant metadata
+        metadata: {
+          model: episode.metadata?.model,
+          tokenCount: episode.metadata?.tokenCount,
+          errorCount: episode.metadata?.errorCount
+        }
+      })
+    }
+  });
+  
+  // Send to analytics pipeline
+  await sendToAnalytics(result.metadata.content);
+}
+```
+
+### Compliance Export
+
+```typescript title="compliance-export.ts"
+// GDPR data export for user
+async function exportUserData(userId: string) {
+  const userContexts = await agent.getContexts();
+  const userEpisodes: Episode[] = [];
+  
+  for (const ctx of userContexts) {
+    if (ctx.id.includes(userId)) {
+      const episodes = await agent.memory.episodes.getByContext(ctx.id);
+      userEpisodes.push(...episodes);
+    }
+  }
+  
+  // Export with full PII redaction for other users
+  const result = await agent.exports.export({
+    episodes: userEpisodes,
+    exporter: 'json',
+    transform: {
+      sanitize: (episode) => sanitizeForUser(episode, userId),
+      sortBy: 'timestamp',
+      sortOrder: 'asc'
+    }
+  });
+  
+  return result.metadata.content;
+}
+```

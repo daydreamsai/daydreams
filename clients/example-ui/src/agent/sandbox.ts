@@ -168,7 +168,7 @@ Maximum time a sandbox can be kept alive is 1 hour`,
 
       console.log(`sandbox:://${sandboxId}/${path}`);
 
-      await agent.memory.store.set(`sandbox:://${sandboxId}/${path}`, content);
+      await agent.memory.kv.set(`sandbox:://${sandboxId}/${path}`, content);
 
       return "Saved";
     },
