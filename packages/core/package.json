@@ -1,0 +1,50 @@
+{
+  "name": "@daydreamsai/core",
+  "version": "0.3.8",
+  "type": "module",
+  "main": "./dist/index.ts",
+  "module": "./dist/index.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./src/index.ts",
+      "require": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      "./package.json": "./package.json",
+      ".": {
+        "types": "./dist/index.d.ts",
+        "require": "./dist/index.js",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "tsup": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:"
+  },
+  "scripts": {
+    "test": "vitest",
+    "build": "tsup --dts-resolve"
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "catalog:",
+    "@ai-sdk/ui-utils": "catalog:",
+    "ai": "catalog:",
+    "dotenv": "^16.5.0",
+    "p-defer": "^4.0.1",
+    "uuid": "^11.1.0",
+    "zod": "catalog:",
+    "zod-to-json-schema": "^3.24.5"
+  }
+}
