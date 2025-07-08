@@ -1,6 +1,0 @@
-{
-  "title": "Web and Research",
-  "description": "Explore advanced capabilities of Daydreams agents.",
-  "icon": "BrainCircuit",
-  "pages": ["browser", "deep-research", "web-search-actions"]
-}

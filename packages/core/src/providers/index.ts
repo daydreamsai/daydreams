@@ -1,1 +1,0 @@
-export { fetchGraphQL } from "./api";

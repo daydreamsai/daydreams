@@ -1,48 +1,13 @@
 {
   "name": "daydreams",
-  "version": "0.0.0",
   "workspaces": [
-    "packages/*",
-    "clients/*",
-    "examples/*"
+    "packages/*"
   ],
-  "scripts": {
-    "test": "bun run packages/core",
-    "build:packages": "./scripts/build.sh",
-    "build:packages:watch": "./scripts/build.sh --watch",
-    "release": "./scripts/release.sh",
-    "release:dry-run": "./scripts/release.sh --dry-run",
-    "clean": "./scripts/clean.sh",
-    "clean:dry-run": "./scripts/clean.sh --dry-run",
-    "clean:deps": "./scripts/clean.sh --deps-only",
-    "clean:builds": "./scripts/clean.sh --builds-only",
-    "prettier-check": "pnpx prettier --check packages",
-    "prettier": "pnpx prettier --write packages",
-    "knip": "knip",
-    "docs:dev": "cd docs && bun run dev",
-    "docs:build": "cd docs && bun run docs:build",
-    "docs:start": "cd docs && bun run start"
-  },
+  "private": true,
   "devDependencies": {
-    "@types/bun": "^1.2.2",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "knip": "^5.43.6",
-    "typedoc": "^0.27.6",
-    "typedoc-plugin-frontmatter": "^1.1.2",
-    "typedoc-plugin-markdown": "^4.4.1",
-    "typescript": "catalog:",
-    "husky": "9.1.7"
+    "@types/bun": "latest"
   },
-  "resolutions": {
-    "@mysten/sui": "1.7.0"
-  },
-  "dependencies": {
-    "@ai-sdk/anthropic": "catalog:",
-    "@ai-sdk/groq": "catalog:",
-    "@ai-sdk/openai": "catalog:",
-    "@ai-sdk/provider": "catalog:",
-    "@ai-sdk/ui-utils": "catalog:",
-    "ai": "catalog:"
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }
