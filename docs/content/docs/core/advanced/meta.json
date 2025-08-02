@@ -1,9 +1,13 @@
 {
   "pages": [
     "introduction",
+    "memory-system",
+    "episode-export",
     "extensions-vs-services",
     "extensions",
     "services",
-    "grpo-training-export"
+    "supabase",
+    "grpo-training-export",
+    "deep"
   ]
 }

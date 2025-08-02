@@ -4,7 +4,7 @@ import type {
   OutputRef,
   ActionCall,
   ActionResult,
-  Thought,
+  ThoughtRef,
   AgentContext,
   AnyContext,
   AnyAgent,
@@ -310,7 +310,7 @@ export class RealtimeSyntheticCollector implements SyntheticCollector {
 
       for (const item of sequence) {
         if (item.log.ref === "thought") {
-          const thought = item.log as Thought;
+          const thought = item.log as ThoughtRef;
           reasoning.push({
             step: stepNumber++,
             thought: thought.content,
@@ -434,7 +434,7 @@ export class RealtimeSyntheticCollector implements SyntheticCollector {
     // Extract thoughts and actions
     for (const item of group) {
       if (item.log.ref === "thought") {
-        const thought = item.log as Thought;
+        const thought = item.log as ThoughtRef;
         thoughts.push(thought.content);
       } else if (item.log.ref === "action_call") {
         const actionCall = item.log as ActionCall;

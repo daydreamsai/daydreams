@@ -10,18 +10,19 @@
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "catalog:",
-    "@ai-sdk/groq": "catalog:",
-    "@ai-sdk/openai": "catalog:",
-    "@ai-sdk/provider": "catalog:",
-    "@openrouter/ai-sdk-provider": "catalog:",
+    "@ai-sdk/anthropic": "2.0.0-beta.13",
+    "@ai-sdk/google": "2.0.0-beta.19",
+    "@ai-sdk/groq": "2.0.0-beta.12",
+    "@ai-sdk/openai": "2.0.0-beta.16",
+    "@ai-sdk/provider": "2.0.0-beta.2",
+    "@daydreamsai/chromadb": "workspace:*",
     "@daydreamsai/cli": "workspace:*",
     "@daydreamsai/core": "workspace:*",
     "@daydreamsai/discord": "workspace:*",
-    "@daydreamsai/chromadb": "workspace:*",
     "@daydreamsai/mongodb": "workspace:*",
     "@daydreamsai/supabase": "workspace:*",
     "@octokit/rest": "catalog:",
+    "@openrouter/ai-sdk-provider": "catalog:",
     "@tavily/core": "catalog:",
     "zod": "catalog:"
   }

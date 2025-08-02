@@ -10,7 +10,7 @@ import type {
   Extension,
   InputConfig,
   InputRef,
-  Memory,
+  ActionState,
   Optional,
   OutputConfig,
   OutputRef,
@@ -53,7 +53,7 @@ export function action<
   TError = any,
   TContext extends AnyContext = AnyContext,
   TAgent extends AnyAgent = AnyAgent,
-  TMemory extends Memory<any> = Memory<any>
+  TMemory extends ActionState<any> = ActionState<any>
 >(
   action: Optional<
     Action<TSchema, Result, TError, TContext, TAgent, TMemory>,
@@ -140,7 +140,7 @@ export function splitTextIntoChunks(
  * @param memory - Memory configuration object
  * @returns Typed memory configuration
  */
-export function memory<Data = any>(memory: Memory<Data>) {
+export function memory<Data = any>(memory: ActionState<Data>) {
   return memory;
 }
 

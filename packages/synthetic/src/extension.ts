@@ -314,51 +314,51 @@ export function createSyntheticExtension(config: SyntheticConfig): Extension {
         },
       }),
 
-      // Action to export all agent episodes as training data
-      action({
-        name: "synthetic.exportAllEpisodes",
-        description: "Export all stored episodes as synthetic training data",
-        schema: {
-          format: z
-            .enum([
-              "instruction-tuning",
-              "conversation",
-              "reasoning-chains",
-              "action-sequences",
-              "episodes",
-            ])
-            .optional()
-            .default("episodes"),
-        },
-        handler: async ({ format = "episodes" }) => {
-          try {
-            // Use the agent's built-in export functionality if available
-            if (agent.exportAllTrainingData) {
-              const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-              const filename = `episodes-export-${timestamp}.jsonl`;
-              const outputPath = path.join(validatedConfig.outputDir, filename);
+      // // Action to export all agent episodes as training data
+      // action({
+      //   name: "synthetic.exportAllEpisodes",
+      //   description: "Export all stored episodes as synthetic training data",
+      //   schema: {
+      //     format: z
+      //       .enum([
+      //         "instruction-tuning",
+      //         "conversation",
+      //         "reasoning-chains",
+      //         "action-sequences",
+      //         "episodes",
+      //       ])
+      //       .optional()
+      //       .default("episodes"),
+      //   },
+      //   handler: async ({ format = "episodes" }) => {
+      //     try {
+      //       // Use the agent's built-in export functionality if available
+      //       if (agent.exportAllTrainingData) {
+      //         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      //         const filename = `episodes-export-${timestamp}.jsonl`;
+      //         const outputPath = path.join(validatedConfig.outputDir, filename);
 
-              await agent.exportAllTrainingData(outputPath);
+      //         await agent.exportAllTrainingData(outputPath);
 
-              return {
-                exported: true,
-                path: outputPath,
-                format,
-              };
-            } else {
-              return {
-                error: "Agent does not support episode export",
-              };
-            }
-          } catch (error) {
-            return {
-              error: `Failed to export episodes: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            };
-          }
-        },
-      }),
+      //         return {
+      //           exported: true,
+      //           path: outputPath,
+      //           format,
+      //         };
+      //       } else {
+      //         return {
+      //           error: "Agent does not support episode export",
+      //         };
+      //       }
+      //     } catch (error) {
+      //       return {
+      //         error: `Failed to export episodes: ${
+      //           error instanceof Error ? error.message : String(error)
+      //         }`,
+      //       };
+      //     }
+      //   },
+      // }),
 
       // Action to clear accumulated data
       action({

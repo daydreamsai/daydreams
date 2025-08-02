@@ -1,0 +1,617 @@
+---
+title: Memory System
+description:
+  The Daydreams memory architecture with providers, middleware, and
+  multi-tier storage.
+---
+
+## Quick Start
+
+Here's how to set up an agent with persistent memory:
+
+```typescript title="agent-with-memory.ts"
+import { createDreams } from "@daydreamsai/core";
+import { openai } from "@ai-sdk/openai";
+import { createSupabaseMemory } from "@daydreamsai/supabase";
+
+const agent = createDreams({
+  model: openai("gpt-4o"),
+  memory: createSupabaseMemory({
+    url: process.env.SUPABASE_URL!,
+    key: process.env.SUPABASE_SERVICE_KEY!,
+  }),
+});
+
+// Agent automatically remembers across conversations
+await agent.send("I prefer detailed weather reports");
+// Later...
+await agent.send("What's the weather like?");
+// Agent remembers your preference for detailed reports
+```
+
+## Memory Types
+
+Daydreams provides three types of memory storage:
+
+### Key-Value Memory
+Store structured data with keys - perfect for user preferences, session data, and configuration.
+
+### Vector Memory  
+Store text with semantic search capabilities - ideal for finding relevant information based on meaning rather than exact matches.
+
+### Graph Memory
+Store relationships between entities - useful for tracking connections, dependencies, and complex data relationships.
+
+## Unified Memory Architecture
+
+Daydreams features a **unified memory system** that provides sophisticated
+memory operations across multiple storage types with middleware, learning
+capabilities, and provider abstraction. This system enables agents to remember,
+learn, and evolve from every interaction.
+
+## Memory System Overview
+
+```typescript title="unified-memory-system.ts"
+// Unified, powerful memory system
+const memory = createMemorySystem({
+  providers: {
+    kv: createMongoKVProvider({ uri }),
+    vector: createChromaVectorProvider({ collection: "vectors" }),
+    graph: createSupabaseGraphProvider({ url, key }),
+  },
+  middleware: [
+    cachingMiddleware({ ttl: 3600 }),
+    metricsMiddleware(),
+    compressionMiddleware(),
+  ],
+  options: {
+    learning: { enabled: true },
+    evolution: { enabled: true },
+  },
+});
+
+// Unified operations across all storage types
+await memory.remember("User likes detailed weather", { type: "fact" });
+const results = await memory.recall("weather preferences");
+```
+
+## Architecture Overview
+
+The memory system consists of three main layers:
+
+### 1. Memory System Core
+
+The orchestrator that manages all memory operations and coordinates between
+providers.
+
+### 2. Provider Layer
+
+Specialized implementations for different storage types:
+
+- **KV Providers**: Key-value storage (MongoDB, Firebase, Supabase)
+- **Vector Providers**: Semantic search (ChromaDB, Supabase pgvector)
+- **Graph Providers**: Relationship mapping (Supabase, in-memory)
+
+### 3. Middleware Layer
+
+Extensible processing pipeline for memory operations:
+
+- **Caching**: Reduce database load
+- **Compression**: Optimize storage usage
+- **Metrics**: Monitor memory performance
+- **Learning**: Extract knowledge automatically
+
+## Provider Implementations
+
+We've created comprehensive provider packages that follow this architecture:
+
+### Supabase Package (Full-Featured)
+
+```typescript title="supabase-memory.ts"
+import { createSupabaseMemory } from "@daydreamsai/supabase";
+
+const memory = createSupabaseMemory({
+  url: process.env.SUPABASE_URL!,
+  key: process.env.SUPABASE_SERVICE_KEY!,
+
+  // All storage types supported
+  kvTable: "kv_store",
+  vectorTable: "vectors",
+  graphTable: "graph_edges",
+
+  // Advanced features
+  embeddingDimension: 1536,
+  enableGraphAnalytics: true,
+});
+```
+
+**Features:**
+
+- ✅ **KV Storage**: PostgreSQL with TTL, tags, batch operations
+- ✅ **Vector Storage**: pgvector with semantic search
+- ✅ **Graph Storage**: Relationship mapping with analytics
+- ✅ **Health Monitoring**: Connection status and performance metrics
+- ✅ **Auto-Migration**: Automatic table and index creation
+
+### MongoDB Package (KV-Focused)
+
+```typescript title="mongo-memory.ts"
+import { createMongoMemory } from "@daydreamsai/mongo";
+
+const memory = createMongoMemory({
+  uri: "mongodb://localhost:27017",
+  dbName: "agent_memory",
+
+  // KV storage with advanced features
+  collectionName: "kv_store",
+  enableTTL: true,
+  enableIndexing: true,
+});
+```
+
+**Features:**
+
+- ✅ **KV Storage**: MongoDB with TTL, indexing, aggregation
+- ✅ **In-Memory Fallback**: Vector and graph use in-memory providers
+- ✅ **Performance Optimized**: Connection pooling, batch operations
+- ✅ **Health Monitoring**: MongoDB connectivity and performance
+
+### Firebase Package (KV-Focused)
+
+```typescript title="firebase-memory.ts"
+import { createFirebaseMemory } from "@daydreamsai/firebase";
+
+const memory = createFirebaseMemory({
+  serviceAccount: {
+    projectId: "my-project",
+    clientEmail: "service@my-project.iam.gserviceaccount.com",
+    privateKey: process.env.FIREBASE_PRIVATE_KEY!,
+  },
+
+  // Firestore-based KV storage
+  collectionName: "agent_kv",
+  maxRetries: 5,
+  retryDelay: 1000,
+});
+```
+
+**Features:**
+
+- ✅ **KV Storage**: Firestore with retry logic, TTL, batch operations
+- ✅ **In-Memory Fallback**: Vector and graph use in-memory providers
+- ✅ **Error Resilience**: Automatic retry with exponential backoff
+- ✅ **Firebase Integration**: Full Firebase Admin SDK support
+
+### ChromaDB Package (Vector-Focused)
+
+```typescript title="chroma-memory.ts"
+import { createChromaMemory } from "@daydreamsai/chroma";
+
+const memory = createChromaMemory({
+  path: "http://localhost:8000",
+  collectionName: "agent_vectors",
+
+  // Embedding configuration
+  embeddingFunction: new OpenAIEmbeddingFunction({
+    openai_api_key: process.env.OPENAI_API_KEY!,
+    openai_model: "text-embedding-3-large",
+  }),
+});
+```
+
+**Features:**
+
+- ✅ **Vector Storage**: ChromaDB with semantic search, namespaces, metadata
+- ✅ **In-Memory Fallback**: KV and graph use in-memory providers
+- ✅ **Embedding Flexibility**: OpenAI, custom, or default embeddings
+- ✅ **Deployment Options**: Embedded, Docker, or remote server
+
+### Key-Value Memory
+
+```typescript title="kv-operations.ts"
+// Basic operations
+await memory.kv.set("user:123", {
+  name: "Alice",
+  preferences: { theme: "dark" },
+});
+const user = await memory.kv.get<UserProfile>("user:123");
+
+// Advanced operations
+await memory.kv.setBatch(
+  new Map([
+    ["session:abc", { token: "xyz", expires: Date.now() + 3600000 }],
+    ["cache:weather", { data: weatherData, timestamp: Date.now() }],
+  ]),
+  { ttl: 3600 }
+);
+
+// Pattern matching
+const sessionKeys = await memory.kv.keys("session:*");
+for await (const [key, value] of memory.kv.scan("cache:*")) {
+  console.log(`${key}: ${JSON.stringify(value)}`);
+}
+```
+
+### Vector Memory
+
+```typescript title="vector-operations.ts"
+// Index documents for semantic search
+await memory.vector.index([
+  {
+    id: "doc1",
+    content:
+      "User prefers detailed weather reports with humidity and wind speed",
+    metadata: { type: "preference", user: "alice" },
+    namespace: "user-preferences",
+  },
+]);
+
+// Semantic search
+const results = await memory.vector.search({
+  query: "weather information style",
+  namespace: "user-preferences",
+  limit: 5,
+  minScore: 0.8,
+  includeMetadata: true,
+});
+```
+
+### Graph Memory
+
+```typescript title="graph-operations.ts"
+// Add relationships
+await memory.graph.addEdge("user:alice", "likes", "detailed-weather");
+await memory.graph.addEdge("detailed-weather", "includes", "humidity");
+await memory.graph.addEdge("detailed-weather", "includes", "wind-speed");
+
+// Query relationships
+const preferences = await memory.graph.getNeighbors("user:alice", {
+  direction: "outgoing",
+  edgeType: "likes",
+});
+
+// Path finding
+const path = await memory.graph.findPath("user:alice", "humidity");
+```
+
+## Memory Middleware
+
+Middleware provides extensible processing for memory operations:
+
+### Caching Middleware
+
+```typescript title="caching-middleware.ts"
+import { cachingMiddleware } from "@daydreamsai/core";
+
+const memory = createMemorySystem({
+  // ... providers
+  middleware: [
+    cachingMiddleware({
+      ttl: 3600, // 1 hour cache
+      maxSize: 1000, // Max 1000 cached items
+      strategy: "lru", // Least recently used eviction
+    }),
+  ],
+});
+
+// Automatic caching for expensive operations
+const result = await memory.recall("complex semantic query");
+// First call: hits database
+// Second call: returns from cache
+```
+
+### Metrics Middleware
+
+```typescript title="metrics-middleware.ts"
+import { metricsMiddleware } from "@daydreamsai/core";
+
+const memory = createMemorySystem({
+  // ... providers
+  middleware: [
+    metricsMiddleware({
+      collectLatency: true,
+      collectThroughput: true,
+      collectErrors: true,
+    }),
+  ],
+});
+
+// Monitor memory performance
+const metrics = await memory.getMetrics();
+console.log({
+  avgLatency: metrics.operations.remember.avgLatency,
+  throughput: metrics.operations.recall.requestsPerSecond,
+  errorRate: metrics.errors.rate,
+});
+```
+
+### Compression Middleware
+
+```typescript title="compression-middleware.ts"
+import { compressionMiddleware } from "@daydreamsai/core";
+
+const memory = createMemorySystem({
+  // ... providers
+  middleware: [
+    compressionMiddleware({
+      algorithm: "gzip",
+      minSize: 1024, // Only compress data > 1KB
+      level: 6, // Compression level (1-9)
+    }),
+  ],
+});
+
+// Automatic compression for large data
+await memory.remember(largeDocument, { type: "episode" });
+// Automatically compressed before storage
+```
+
+## Learning & Evolution
+
+The memory system includes automatic learning capabilities:
+
+### Factual Memory Learning
+
+```typescript title="factual-learning.ts"
+const memory = createMemorySystem({
+  // ... providers
+  options: {
+    learning: {
+      enabled: true,
+      model: openai("gpt-4o"),
+      extractFacts: true,
+      threshold: 0.8, // Confidence threshold for fact extraction
+    },
+  },
+});
+
+// Automatic fact extraction from conversations
+await memory.remember(
+  `
+  User mentioned they live in San Francisco and work as a software engineer.
+  They prefer morning meetings and use TypeScript for most projects.
+`,
+  { type: "conversation", context: "user:alice" }
+);
+
+// System automatically extracts and stores:
+// - Fact: "Alice lives in San Francisco"
+// - Fact: "Alice works as a software engineer"
+// - Fact: "Alice prefers morning meetings"
+// - Fact: "Alice uses TypeScript"
+```
+
+### Semantic Memory Evolution
+
+```typescript title="semantic-evolution.ts"
+const memory = createMemorySystem({
+  // ... providers
+  options: {
+    evolution: {
+      enabled: true,
+      interval: 24 * 60 * 60 * 1000, // Daily evolution
+      learningRate: 0.1,
+      patternDetection: true,
+    },
+  },
+});
+
+// System automatically evolves understanding
+// - Detects usage patterns
+// - Strengthens important memories
+// - Weakens outdated information
+// - Creates conceptual associations
+```
+
+## Getting Started
+
+### Quick Setup
+
+```typescript title="memory-setup.ts"
+import { createSupabaseMemory } from "@daydreamsai/supabase";
+
+const memory = createSupabaseMemory({
+  url: process.env.SUPABASE_URL!,
+  key: process.env.SUPABASE_SERVICE_KEY!,
+});
+
+await memory.initialize();
+```
+
+## Performance Improvements
+
+The system includes significant performance optimizations:
+
+### Memory Management
+
+```typescript title="memory-optimization.ts"
+// Improved token estimation with content-type awareness
+function estimateTokens(content: string, type: "prose" | "code" | "json") {
+  switch (type) {
+    case "prose":
+      return content.length / 3.5; // More efficient
+    case "code":
+      return content.length / 4.5; // Less efficient
+    case "json":
+      return content.length / 4.8; // Least efficient
+  }
+}
+
+// Efficient array deduplication with ID-based comparison
+function deduplicateEntries<T extends { id: string }>(entries: T[]): T[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    if (seen.has(entry.id)) return false;
+    seen.add(entry.id);
+    return true;
+  });
+}
+```
+
+### Error Handling
+
+```typescript title="error-resilience.ts"
+// Graceful provider initialization with fallbacks
+async initialize() {
+  // KV provider is critical - must succeed
+  try {
+    await this.providers.kv.initialize();
+  } catch (error) {
+    throw new Error(`Critical KV provider failed: ${error.message}`);
+  }
+
+  // Vector/graph providers are optional - graceful degradation
+  try {
+    await this.providers.vector.initialize();
+  } catch (error) {
+    console.warn("Vector provider failed, using in-memory fallback");
+  }
+}
+```
+
+### Connection Management
+
+```typescript title="connection-optimization.ts"
+// Automatic connection pooling and retry logic
+class ProviderBase {
+  private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (!this.isRetryableError(error)) throw error;
+
+        const delay =
+          this.retryDelay * Math.pow(2, attempt) * (0.5 + Math.random() * 0.5);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+    throw new Error("Operation failed after maximum retries");
+  }
+}
+```
+
+## Real-World Usage
+
+### Multi-Provider Setup
+
+```typescript title="production-memory.ts"
+// Production-ready memory system with multiple providers
+const memory = createMemorySystem({
+  providers: {
+    // Supabase for comprehensive storage
+    kv: createSupabaseKVProvider({ url, key, tableName: "agent_kv" }),
+    vector: createSupabaseVectorProvider({
+      url,
+      key,
+      tableName: "agent_vectors",
+    }),
+    graph: createSupabaseGraphProvider({ url, key, tableName: "agent_graph" }),
+  },
+
+  middleware: [
+    // Performance optimizations
+    cachingMiddleware({ ttl: 3600, maxSize: 1000 }),
+    compressionMiddleware({ minSize: 1024 }),
+
+    // Monitoring and metrics
+    metricsMiddleware({ collectAll: true }),
+
+    // Custom business logic
+    auditMiddleware({ logOperations: true }),
+  ],
+
+  options: {
+    learning: {
+      enabled: true,
+      model: openai("gpt-4o"),
+      extractFacts: true,
+      extractEntities: true,
+    },
+    evolution: {
+      enabled: true,
+      interval: 24 * 60 * 60 * 1000, // Daily
+      strengthenFrequentMemories: true,
+    },
+  },
+});
+
+// Unified agent with sophisticated memory
+const agent = createDreams({
+  model: openai("gpt-4o"),
+  memory,
+
+  // Agent automatically gets all memory capabilities
+  // - Context persistence across sessions
+  // - Semantic search for relevant memories
+  // - Relationship tracking between concepts
+  // - Automatic fact extraction and learning
+  // - Performance optimization through caching
+});
+```
+
+### Specialized Setups
+
+```typescript title="specialized-memory.ts"
+// Vector-focused setup for semantic search applications
+const semanticMemory = createChromaMemory({
+  path: "http://localhost:8000",
+  embeddingFunction: new OpenAIEmbeddingFunction({
+    openai_model: "text-embedding-3-large",
+  }),
+  options: {
+    learning: { enabled: true, extractConcepts: true },
+  },
+});
+
+// KV-focused setup for traditional applications
+const kvMemory = createMongoMemory({
+  uri: process.env.MONGODB_URI!,
+  options: {
+    performance: { batchSize: 100, connectionPoolSize: 10 },
+  },
+});
+
+// Hybrid setup with specialized providers
+const hybridMemory = createMemorySystem({
+  providers: {
+    kv: createFirebaseKVProvider({
+      /* Firebase config */
+    }),
+    vector: createChromaVectorProvider({
+      /* ChromaDB config */
+    }),
+    graph: createInMemoryGraphProvider(), // Fast in-memory graph
+  },
+});
+```
+
+## Key Benefits
+
+### For Developers
+
+- **Unified API**: Single interface for all memory operations
+- **Provider Flexibility**: Mix and match storage backends
+- **Type Safety**: Full TypeScript support with proper generics
+- **Middleware Extensibility**: Add custom processing logic
+- **Performance Optimization**: Built-in caching, compression, batching
+
+### For Applications
+
+- **Scalability**: Efficient handling of large datasets
+- **Reliability**: Graceful error handling and fallbacks
+- **Intelligence**: Automatic learning and evolution
+- **Monitoring**: Built-in metrics and health checks
+- **Future-Proof**: Extensible architecture for new capabilities
+
+### For Memory
+
+- **Persistence**: Data survives application restarts
+- **Search**: Semantic search across all memory types
+- **Relationships**: Track connections between concepts
+- **Learning**: Automatic knowledge extraction
+- **Evolution**: Memories strengthen and weaken over time
+
+This memory system transforms Daydreams from a stateless framework into a
+truly intelligent platform that learns, remembers, and evolves with every
+interaction.

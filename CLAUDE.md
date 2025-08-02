@@ -434,3 +434,43 @@ Based on deep analysis of the core package, here are key areas where Daydreams c
 1. **Immediate**: Error handling, type safety, memory windowing
 2. **Medium-term**: Testing infrastructure, debugging tools, performance
 3. **Long-term**: Advanced contexts, distributed support, extension marketplace
+
+## Documentation Structure
+
+### README Files
+The repository follows a comprehensive README structure to help developers navigate the codebase:
+
+#### Package READMEs (`packages/*/README.md`)
+Every package has its own README with:
+- Package description and purpose
+- Installation instructions
+- Quick start example
+- API reference or link to full docs
+- Configuration options
+- Links to relevant examples
+
+#### Example READMEs (`examples/*/README.md`)
+Each example directory contains a README explaining:
+- What concepts are demonstrated
+- Prerequisites and setup instructions
+- How to run the example
+- Expected output
+- Key files and their purpose
+
+#### Sub-module READMEs
+Complex sub-modules have their own documentation:
+- `packages/core/src/memory/README.md` - Memory system details
+- `packages/core/src/memory/exporters/README.md` - Export system usage
+
+### Finding Information
+When looking for documentation:
+1. **Start with package README** - Check `packages/[name]/README.md` for package-specific info
+2. **Check examples** - Look in `examples/` for practical implementations
+3. **Sub-module docs** - Complex features may have README in their source directory
+4. **Main docs site** - Full documentation at `docs/content/docs/`
+
+### Documentation Standards
+- **Technical focus** - Direct, engineering-focused content without marketing language
+- **Example-first** - Show working code before explaining concepts
+- **Complete examples** - All code snippets should be runnable
+- **Clear structure** - Consistent sections across all READMEs

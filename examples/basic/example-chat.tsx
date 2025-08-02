@@ -57,7 +57,7 @@ const agent = await createDreams({
     const [type, id] = keys;
     await Bun.write(`./logs/chat/${contextId}/${id}-${type}.md`, data);
   },
-  model: anthropic("claude-3-5-haiku-latest"),
+  model: anthropic("claude-sonnet-4-20250514"),
   contexts: [thread],
 }).start();
 

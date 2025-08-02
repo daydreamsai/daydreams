@@ -1,15 +1,5 @@
 import type { BaseLayoutProps, LinkItemType } from "fumadocs-ui/layouts/shared";
-import Link from "next/link";
-import {
-  AlbumIcon,
-  Book,
-  ComponentIcon,
-  Heart,
-  Layout,
-  LayoutTemplate,
-  Pencil,
-  Server,
-} from "lucide-react";
+
 /**
  * Shared layout configurations
  *

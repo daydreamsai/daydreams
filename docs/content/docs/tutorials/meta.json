@@ -1,7 +1,7 @@
 {
   "title": "Daydreams Tutorials  ",
   "description": "Examples and Guides",
-  "icon": "Cuboid",
+  "icon": "User",
   "root": true,
   "pages": [
     "index",

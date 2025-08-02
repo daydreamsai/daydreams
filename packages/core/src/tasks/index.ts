@@ -1,7 +1,7 @@
 import {
   streamText,
   type CoreMessage,
-  type LanguageModelV1,
+  type LanguageModel,
   type StreamTextResult,
   type ToolSet,
 } from "ai";
@@ -37,7 +37,7 @@ function prepareStreamResponse({
   stream,
   isReasoningModel,
 }: {
-  model: LanguageModelV1;
+  model: LanguageModel;
   stream: StreamTextResult<ToolSet, never>;
   isReasoningModel: boolean;
 }) {
@@ -62,7 +62,7 @@ type GenerateOptions = {
   workingMemory: WorkingMemory;
   logger: Logger;
   structuredLogger?: StructuredLogger;
-  model: LanguageModelV1;
+  model: LanguageModel;
   streaming: boolean;
   onError: (error: unknown) => void;
   requestContext?: RequestContext;
@@ -189,9 +189,9 @@ export const runGenerate = task({
             {
               tokenUsage: response.usage
                 ? {
-                    inputTokens: response.usage.promptTokens,
-                    outputTokens: response.usage.completionTokens,
-                    totalTokens: response.usage.totalTokens,
+                    inputTokens: response.usage.inputTokens ?? 0,
+                    outputTokens: response.usage.outputTokens ?? 0,
+                    totalTokens: response.usage.totalTokens ?? 0,
                     reasoningTokens: (response.usage as any).reasoningTokens,
                   }
                 : undefined,
@@ -200,7 +200,7 @@ export const runGenerate = task({
                 provider: model.provider || "unknown",
                 totalTime: endTime - startTime,
                 tokensPerSecond: response.usage
-                  ? response.usage.completionTokens /
+                  ? (response.usage.outputTokens ?? 0) /
                     ((endTime - startTime) / 1000)
                   : undefined,
               },
@@ -211,9 +211,9 @@ export const runGenerate = task({
         // Log structured model call complete event
         if (structuredLogger && actionTrackingContext && response.usage) {
           const tokenUsage = {
-            inputTokens: response.usage.promptTokens,
-            outputTokens: response.usage.completionTokens,
-            totalTokens: response.usage.totalTokens,
+            inputTokens: response.usage.inputTokens ?? 0,
+            outputTokens: response.usage.outputTokens ?? 0,
+            totalTokens: response.usage.totalTokens ?? 0,
             reasoningTokens: (response.usage as any).reasoningTokens,
           };
 
@@ -225,13 +225,17 @@ export const runGenerate = task({
             // Try multiple provider key combinations for better matching
             const providerKeys = [
               `${model.provider}/${model.modelId}`, // e.g., "openrouter.chat/google/gemini-2.5-pro"
-              model.provider || "unknown",          // e.g., "openrouter.chat"
-              model.modelId.split('/')[0]            // e.g., "google"
+              model.provider || "unknown", // e.g., "openrouter.chat"
+              model.modelId.split("/")[0], // e.g., "google"
             ];
-            
+
             let cost = 0;
             for (const providerKey of providerKeys) {
-              cost = estimateCost(tokenUsage, providerKey, config.costEstimation);
+              cost = estimateCost(
+                tokenUsage,
+                providerKey,
+                config.costEstimation
+              );
               if (cost > 0) break; // Found a matching cost configuration
             }
             (tokenUsage as any).estimatedCost = cost;
@@ -250,7 +254,7 @@ export const runGenerate = task({
               provider: model.provider || "unknown",
               totalTime: endTime - startTime,
               tokensPerSecond:
-                response.usage.completionTokens /
+                (response.usage.outputTokens ?? 0) /
                 ((endTime - startTime) / 1000),
             },
           });
@@ -301,9 +305,9 @@ export const runGenerate = task({
                 {
                   tokenUsage: usage
                     ? {
-                        inputTokens: usage.promptTokens,
-                        outputTokens: usage.completionTokens,
-                        totalTokens: usage.totalTokens,
+                        inputTokens: usage.inputTokens ?? 0,
+                        outputTokens: usage.outputTokens ?? 0,
+                        totalTokens: usage.totalTokens ?? 0,
                         reasoningTokens: (usage as any).reasoningTokens,
                       }
                     : undefined,
@@ -312,7 +316,8 @@ export const runGenerate = task({
                     provider: model.provider || "unknown",
                     totalTime: endTime - startTime,
                     tokensPerSecond: usage
-                      ? usage.completionTokens / ((endTime - startTime) / 1000)
+                      ? (usage.outputTokens ?? 0) /
+                        ((endTime - startTime) / 1000)
                       : undefined,
                   },
                 }
@@ -321,9 +326,9 @@ export const runGenerate = task({
               // Log structured model call complete event for streaming
               if (structuredLogger && actionTrackingContext && usage) {
                 const tokenUsage = {
-                  inputTokens: usage.promptTokens,
-                  outputTokens: usage.completionTokens,
-                  totalTokens: usage.totalTokens,
+                  inputTokens: usage.inputTokens ?? 0,
+                  outputTokens: usage.outputTokens ?? 0,
+                  totalTokens: usage.totalTokens ?? 0,
                   reasoningTokens: (usage as any).reasoningTokens,
                 };
 
@@ -335,13 +340,17 @@ export const runGenerate = task({
                   // Try multiple provider key combinations for better matching
                   const providerKeys = [
                     `${model.provider}/${model.modelId}`, // e.g., "openrouter.chat/google/gemini-2.5-pro"
-                    model.provider || "unknown",          // e.g., "openrouter.chat"
-                    model.modelId.split('/')[0]            // e.g., "google"
+                    model.provider || "unknown", // e.g., "openrouter.chat"
+                    model.modelId.split("/")[0], // e.g., "google"
                   ];
-                  
+
                   let cost = 0;
                   for (const providerKey of providerKeys) {
-                    cost = estimateCost(tokenUsage, providerKey, config.costEstimation);
+                    cost = estimateCost(
+                      tokenUsage,
+                      providerKey,
+                      config.costEstimation
+                    );
                     if (cost > 0) break; // Found a matching cost configuration
                   }
                   (tokenUsage as any).estimatedCost = cost;
@@ -360,7 +369,8 @@ export const runGenerate = task({
                     provider: model.provider || "unknown",
                     totalTime: endTime - startTime,
                     tokensPerSecond:
-                      usage.completionTokens / ((endTime - startTime) / 1000),
+                      (usage.outputTokens ?? 0) /
+                      ((endTime - startTime) / 1000),
                   },
                 });
               }
