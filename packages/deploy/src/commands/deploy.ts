@@ -30,6 +30,16 @@ export async function deployCommand(options: any) {
     spinner.start("Preparing Docker configuration...");
     
     const projectPath = process.cwd();
+    const dockerfilePath = path.join(projectPath, "Dockerfile.daydreams");
+    const dockerignorePath = path.join(projectPath, ".dockerignore");
+    const hadDockerfile = await fs
+      .access(dockerfilePath)
+      .then(() => true)
+      .catch(() => false);
+    const hadDockerignore = await fs
+      .access(dockerignorePath)
+      .then(() => true)
+      .catch(() => false);
     const packageManager = await detectPackageManager(projectPath);
     
     const dockerConfig = {
@@ -38,6 +48,8 @@ export async function deployCommand(options: any) {
       port: parseInt(config.port),
       entryFile: config.file,
       packageManager,
+      healthCheckUrl: options.healthUrl,
+      disableHealthcheck: options.noHealthcheck,
     };
 
     const dockerfile = await generateDockerfile(dockerConfig);
@@ -61,7 +73,8 @@ export async function deployCommand(options: any) {
         projectPath,
         config.name,
         config.project,
-        config.region
+        config.region,
+        config.registry
       );
       
       spinner.succeed(`Container image built: ${chalk.gray(imageUrl)}`);
@@ -78,7 +91,9 @@ export async function deployCommand(options: any) {
       console.log(chalk.bold("Service Details:"));
       console.log(`  Name: ${chalk.cyan(deployment.name)}`);
       console.log(`  URL: ${chalk.blue(deployment.url)}`);
-      console.log(`  Custom Domain: ${chalk.blue(`https://${deployment.customDomain}`)}`);
+      if (deployment.customDomain) {
+        console.log(`  Custom Domain: ${chalk.blue(`https://${deployment.customDomain}`)}`);
+      }
       console.log(`  Region: ${deployment.region}`);
       console.log(`  Memory: ${deployment.config.memory}`);
       console.log(`  Scaling: ${deployment.config.minInstances}-${deployment.config.maxInstances} instances`);
@@ -86,9 +101,6 @@ export async function deployCommand(options: any) {
       console.log("\n" + chalk.gray("Note: Custom domain may take a few minutes to become available."));
       console.log(chalk.gray("If using a custom domain, ensure DNS records are configured properly.\n"));
 
-      // Clean up temporary files
-      await fs.unlink(path.join(projectPath, "Dockerfile.daydreams")).catch(() => {});
-      await fs.unlink(path.join(projectPath, ".dockerignore")).catch(() => {});
     }
 
   } catch (error) {
@@ -99,8 +111,30 @@ export async function deployCommand(options: any) {
     if (error instanceof Error && error.stack && process.env.DEBUG) {
       console.error(chalk.gray(error.stack));
     }
-    
-    process.exit(1);
+    throw error;
+  } finally {
+    // Clean up generated files if we created them
+    try {
+      const projectPath = process.cwd();
+      const dockerfilePath = path.join(projectPath, "Dockerfile.daydreams");
+      const dockerignorePath = path.join(projectPath, ".dockerignore");
+      // Recompute whether files existed prior to this command
+      // We cannot access the earlier flags here directly if an early return occurred.
+      // To avoid deleting user files, only delete our Dockerfile variant and
+      // delete .dockerignore only if it contains our marker header.
+      await fs.unlink(dockerfilePath).catch(() => {});
+      // For .dockerignore, best-effort: only remove if we can read it and it includes common markers
+      const content = await fs.readFile(dockerignorePath, "utf-8").catch(() => undefined);
+      if (typeof content === "string") {
+        const markers = ["Dockerfile*", "node_modules", ".DS_Store"]; // heuristic
+        const looksGenerated = markers.every((m) => content.includes(m));
+        if (looksGenerated) {
+          await fs.unlink(dockerignorePath).catch(() => {});
+        }
+      }
+    } catch {
+      // ignore cleanup errors
+    }
   }
 }
 
@@ -127,8 +161,7 @@ async function validateConfig(options: any): Promise<DeployConfig> {
     },
   ], {
     onCancel: () => {
-      console.log(chalk.red("\n✖ Deployment cancelled"));
-      process.exit(0);
+      throw new Error("CANCELLED");
     },
   });
 
@@ -138,16 +171,30 @@ async function validateConfig(options: any): Promise<DeployConfig> {
   
   try {
     await fs.access(entryPath);
-  } catch {
-    // Try .js extension
-    const jsPath = entryPath.replace(/\.ts$/, ".js");
-    try {
-      await fs.access(jsPath);
-      options.file = entryFile.replace(/\.ts$/, ".js");
     } catch {
-      console.error(chalk.red(`✖ Entry file not found: ${entryFile}`));
-      console.log(chalk.gray(`  Looked in: ${entryPath}`));
-      process.exit(1);
+      // Try .js extension
+      const jsPath = entryPath.replace(/\.ts$/, ".js");
+      try {
+        await fs.access(jsPath);
+        options.file = entryFile.replace(/\.ts$/, ".js");
+      } catch {
+      throw new Error(`Entry file not found: ${entryFile} (looked in ${entryPath})`);
+      }
+    }
+
+  // Parse inline vars (KEY=VALUE) and secret refs (NAME=secret:version)
+  const vars: Array<{ name: string; value: string }> = [];
+  const secrets: Array<{ name: string; secret: string; version: string }> = [];
+  const toArray = (v: any): string[] => (Array.isArray(v) ? v : v ? [v] : []);
+  for (const kv of toArray(options.var)) {
+    const idx = String(kv).indexOf("=");
+    if (idx > 0) vars.push({ name: kv.slice(0, idx), value: kv.slice(idx + 1) });
+  }
+  for (const sv of toArray(options.secret)) {
+    const [name, ref] = String(sv).split("=");
+    if (name && ref) {
+      const [secret, version = "latest"] = ref.split(":");
+      if (secret) secrets.push({ name, secret, version });
     }
   }
 
@@ -157,12 +204,18 @@ async function validateConfig(options: any): Promise<DeployConfig> {
     project: options.project || responses.project,
     region: options.region || "us-central1",
     env: options.env,
+    vars,
+    secrets,
     memory: options.memory || "256Mi",
     maxInstances: options.maxInstances || "100",
     minInstances: options.minInstances || "0",
     port: options.port || "8080",
     timeout: options.timeout || "60",
-    domain: options.domain || "agent.daydreams.systems",
+    domain: options.domain, // optional
+    registry: options.registry,
+    cpu: options.cpu,
+    concurrency: options.concurrency ? parseInt(options.concurrency) : undefined,
+    cpuBoost: options.cpuBoost === true,
     noBuild: options.noBuild,
     dryRun: options.dryRun,
   };

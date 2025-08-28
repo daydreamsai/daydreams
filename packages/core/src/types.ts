@@ -1,5 +1,6 @@
 import {
   type LanguageModel,
+  type ImageModel,
   type Schema,
   type StreamTextResult,
   type ToolSet,
@@ -611,6 +612,11 @@ interface AgentDef<TContext extends AnyContext = AnyContext> {
   model?: LanguageModel;
 
   /**
+   * Optional image generation model (AI SDK) for multimodal outputs.
+   */
+  imageModel?: ImageModel;
+
+  /**
    * Model settings for the agent.
    */
   modelSettings?: {
@@ -933,6 +939,7 @@ export type Config<TContext extends AnyContext = AnyContext> = Partial<
   AgentDef<TContext>
 > & {
   model?: Agent["model"];
+  imageModel?: Agent["imageModel"];
   modelSettings?: {
     temperature?: number;
     maxTokens?: number;
@@ -958,6 +965,8 @@ export type Config<TContext extends AnyContext = AnyContext> = Partial<
   /** Optional custom response adapter */
   response?: ResponseAdapter;
 };
+
+// No fallback type needed; rely on AI SDK's ImageModel type for strictness
 
 /** Configuration type for inputs without type field */
 export type InputConfig<

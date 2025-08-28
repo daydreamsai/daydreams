@@ -385,12 +385,15 @@ export function createContextStreamHandler({
           ref: "output",
         });
         const { name, ...params } = el.attributes;
+        // Sanitize large inline payloads for image outputs (e.g., base64) in streaming content
+        const content =
+          name === "image" ? sanitizeImageContent(el.content) : el.content;
         pushLog(
           {
             ...ref,
             name,
             params,
-            content: el.content,
+            content,
             data: undefined,
           },
           el.done
@@ -408,4 +411,14 @@ export function createContextStreamHandler({
     tags: defaultTags,
     __streamChunkHandler,
   };
+}
+
+function sanitizeImageContent(content: string): string {
+  try {
+    // Replace any base64 fields with a placeholder to avoid flooding the stream
+    // Matches: "base64": "..."
+    return content.replace(/("base64"\s*:\s*")([^"]+)(")/g, '$1[hidden]$3');
+  } catch {
+    return content;
+  }
 }

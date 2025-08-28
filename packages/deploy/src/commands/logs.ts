@@ -64,6 +64,6 @@ export async function logsCommand(name: string, options: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(chalk.red("\n❌ Error:"), errorMessage);
     console.log(chalk.gray("\nMake sure you have gcloud CLI installed and authenticated."));
-    process.exit(1);
+    throw error;
   }
 }

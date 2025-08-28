@@ -4,12 +4,18 @@ export interface DeployConfig {
   project: string;
   region: string;
   env?: string;
+  vars?: Array<{ name: string; value: string }>;
+  secrets?: Array<{ name: string; secret: string; version: string }>;
   memory: string;
   maxInstances: string;
   minInstances: string;
   port: string;
   timeout: string;
-  domain: string;
+  domain?: string;
+  registry?: string; // full registry/repo path or image base
+  cpu?: string; // e.g., "1", "2"
+  concurrency?: number; // containerConcurrency
+  cpuBoost?: boolean; // hint to disable throttling (best-effort)
   noBuild?: boolean;
   dryRun?: boolean;
 }
@@ -49,4 +55,6 @@ export interface DockerConfig {
   port: number;
   entryFile: string;
   packageManager: "npm" | "pnpm" | "bun" | "yarn";
+  healthCheckUrl?: string;
+  disableHealthcheck?: boolean;
 }

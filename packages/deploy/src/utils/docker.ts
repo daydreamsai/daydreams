@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 
 export async function generateDockerfile(config: DockerConfig): Promise<string> {
-  const { baseImage, workDir, port, entryFile, packageManager } = config;
+  const { baseImage, workDir, port, entryFile, packageManager, healthCheckUrl, disableHealthcheck } = config;
 
   let installCommand = "npm ci --production";
   let lockFile = "package-lock.json";
@@ -70,9 +70,11 @@ EXPOSE ${port}
 # Set environment to production
 ENV NODE_ENV=production
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:${port}/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
+${(() => {
+  if (disableHealthcheck) return "";
+  const url = healthCheckUrl || `http://localhost:${port}/health`;
+  return `# Health check\nHEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \\\n+  CMD node -e \"require('http').get('${url}', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\" || exit 1`;
+})()}
 
 # Run the application
 CMD ["${runCommand}", "${entryFile}"]

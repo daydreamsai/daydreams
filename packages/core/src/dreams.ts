@@ -1,4 +1,8 @@
 import * as z from "zod";
+import {
+  createDefaultImageOutput,
+  createDefaultImageAction,
+} from "./handlers/create-image-output";
 import type {
   Agent,
   AnyContext,
@@ -126,10 +130,22 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     services = [],
     extensions = [],
     model,
+    imageModel,
 
     modelSettings,
     streaming = true,
   } = config;
+
+  // If an image model is provided, install a default image output (unless user provided one)
+  if (imageModel && !outputs.image) {
+    outputs.image = createDefaultImageOutput<TContext, Agent<TContext>>(
+      imageModel
+    );
+  }
+  // Also register an action alias 'image' to handle models that prefer action_call.
+  if (imageModel && !actions.some((a) => a.name === "image")) {
+    actions.push(createDefaultImageAction());
+  }
 
   const container = config.container ?? createContainer();
 
@@ -271,6 +287,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
     memory,
     container,
     model,
+    imageModel,
     modelSettings,
     taskRunner,
     debugger: debug,

@@ -31,7 +31,7 @@ export async function deleteCommand(name: string, options: any) {
     spinner.start(`Deleting agent ${chalk.cyan(name)}...`);
 
     const gcloud = new GCloudService(options.project);
-    await gcloud.deleteDeployment(name, options.project, options.region);
+    await gcloud.deleteDeployment(name, options.project, options.region, options.domain);
 
     spinner.succeed(`Agent ${chalk.cyan(name)} deleted successfully`);
 
@@ -41,6 +41,6 @@ export async function deleteCommand(name: string, options: any) {
     spinner.fail("Failed to delete agent");
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(chalk.red("\n❌ Error:"), errorMessage);
-    process.exit(1);
+    throw error;
   }
 }

@@ -35,10 +35,32 @@ export class GCloudService {
     const parent = `projects/${config.project}/locations/${config.region}`;
     const servicePath = `${parent}/services/${serviceName}`;
 
+    // Prepare environment variables; ensure PORT reflects config.port
+    const baseEnv = await this.loadEnvVars(config.env);
+    const envMap = new Map<string, string>(baseEnv.map((e) => [e.name, e.value]));
+    if (!envMap.has("NODE_ENV")) envMap.set("NODE_ENV", "production");
+    envMap.set("PORT", String(parseInt(config.port)));
+    const finalEnv = Array.from(envMap.entries()).map(([name, value]) => ({ name, value }));
+
+    // Add inline env vars
+    if (config.vars) {
+      for (const v of config.vars) envMap.set(v.name, v.value);
+    }
+    // Build env list, including secret refs
+    const secretEnv = (config.secrets || []).map((s) => ({
+      name: s.name,
+      valueSource: { secretKeyRef: { secret: s.secret, version: s.version || "latest" } },
+    }));
+    const finalEnv = [
+      ...Array.from(envMap.entries()).map(([name, value]) => ({ name, value })),
+      ...secretEnv,
+    ];
+
     // Build the service configuration for Cloud Run v2 API
     const serviceConfig: any = {
       name: servicePath,
       template: {
+        containerConcurrency: typeof config.concurrency === "number" ? config.concurrency : undefined,
         scaling: {
           maxInstanceCount: parseInt(config.maxInstances),
           minInstanceCount: parseInt(config.minInstances),
@@ -57,12 +79,13 @@ export class GCloudService {
             resources: {
               limits: {
                 memory: config.memory,
-                cpu: "1",
+                cpu: config.cpu || "1",
               },
             },
-            env: await this.loadEnvVars(config.env),
+            env: finalEnv,
           },
         ],
+        annotations: config.cpuBoost ? { "run.googleapis.com/cpu-throttling": "false" } : undefined,
       },
       ingress: "INGRESS_TRAFFIC_ALL",
     };
@@ -99,8 +122,8 @@ export class GCloudService {
       await this.makeServicePublic(serviceName, config.region, config.project);
     }
 
-    // Set up custom domain mapping
-    if (!config.dryRun) {
+    // Set up custom domain mapping (only if provided)
+    if (!config.dryRun && config.domain) {
       await this.setupDomainMapping(
         serviceName,
         config.name,
@@ -113,7 +136,7 @@ export class GCloudService {
     return {
       name: config.name,
       url,
-      customDomain,
+      customDomain: config.domain ? customDomain : undefined,
       service: serviceName,
       region: config.region,
       project: config.project,
@@ -135,9 +158,13 @@ export class GCloudService {
     projectPath: string,
     agentName: string,
     projectId: string,
-    region: string
+    region: string,
+    registry?: string
   ): Promise<string> {
-    const imageName = `gcr.io/${projectId}/daydreams-agent-${agentName}`;
+    // Prefer provided registry or default to Artifact Registry
+    // Default repo: <region>-docker.pkg.dev/<projectId>/daydreams/agent-<name>
+    const repoBase = registry || `${region}-docker.pkg.dev/${projectId}/daydreams/agent-${agentName}`;
+    const imageName = repoBase;
     const tag = `${Date.now()}`;
     const imageUrl = `${imageName}:${tag}`;
 
@@ -165,6 +192,11 @@ export class GCloudService {
       },
     };
 
+    // Ensure Artifact Registry repository exists if using default
+    if (!registry) {
+      await this.ensureArtifactRegistry(projectId, region).catch(() => {});
+    }
+
     // Upload source code to GCS
     await this.uploadSourceToGCS(projectPath, projectId, agentName, tag);
 
@@ -178,6 +210,25 @@ export class GCloudService {
     await this.waitForBuildOperation(operation);
 
     return imageUrl;
+  }
+
+  private async ensureArtifactRegistry(projectId: string, region: string) {
+    try {
+      const { exec } = await import("child_process");
+      const { promisify } = await import("util");
+      const execAsync = promisify(exec);
+      // Create repo 'daydreams' if it does not exist
+      const cmd = `gcloud artifacts repositories create daydreams --repository-format=docker --location=${region} --project=${projectId}`;
+      await execAsync(cmd);
+      console.log(chalk.gray(`✓ Artifact Registry repo ensured`));
+    } catch (error) {
+      const msg = String((error as any)?.stderr || (error as any)?.stdout || "");
+      if (msg.toLowerCase().includes("already exists") || msg.includes("409")) {
+        // Already exists; ok
+        return;
+      }
+      // Ignore other errors here; Cloud Build/push will surface issues
+    }
   }
 
   private async uploadSourceToGCS(
@@ -199,12 +250,48 @@ export class GCloudService {
       });
     }
 
-    // Create tar archive and upload
+    // Create tar archive and upload (exclude common ignored paths + .dockerignore)
     const tar = await import("tar");
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    let ignores: string[] = [];
+    try {
+      const dockerignorePath = path.join(projectPath, ".dockerignore");
+      const content = await fs.readFile(dockerignorePath, "utf-8");
+      ignores = content
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith("#"));
+    } catch {}
+    const ignoreDirs = [
+      "node_modules/",
+      ".git/",
+      "dist/",
+      "build/",
+      "coverage/",
+      ".vscode/",
+      ".idea/",
+    ];
+    const ignoreFiles = [/\.log$/i, /^Dockerfile/i, /^\.dockerignore$/i, /^\.DS_Store$/];
     const stream = tar.create(
       {
         gzip: true,
         cwd: projectPath,
+        filter: (p: string) => {
+          const pathLower = p.toLowerCase();
+          if (ignoreDirs.some((d) => pathLower.includes(d))) return false;
+          const base = p.split("/").pop() || p;
+          if (ignoreFiles.some((re) => re.test(base))) return false;
+          // crude .dockerignore matching: treat entries as prefixes or basename matches
+          for (const rule of ignores) {
+            if (rule.endsWith("/")) {
+              if (p.startsWith(rule) || p.includes(`/${rule}`)) return false;
+            } else {
+              if (p === rule || base === rule) return false;
+            }
+          }
+          return true;
+        },
       },
       ["."]
     );
@@ -224,19 +311,21 @@ export class GCloudService {
     projectId: string
   ): Promise<void> {
     try {
-      // Make the service publicly accessible
-      const policy = {
-        bindings: [
-          {
-            role: "roles/run.invoker",
-            members: ["allUsers"],
-          },
-        ],
-      };
-
+      const resource = `projects/${projectId}/locations/${region}/services/${serviceName}`;
+      // Fetch existing policy, merge binding, and set with etag
+      const [existing] = await this.run.getIamPolicy({ resource });
+      const bindings = existing.bindings || [];
+      const invoker = bindings.find((b: any) => b.role === "roles/run.invoker");
+      if (invoker) {
+        const members = new Set(invoker.members || []);
+        members.add("allUsers");
+        invoker.members = Array.from(members);
+      } else {
+        bindings.push({ role: "roles/run.invoker", members: ["allUsers"] });
+      }
       await this.run.setIamPolicy({
-        resource: `projects/${projectId}/locations/${region}/services/${serviceName}`,
-        policy,
+        resource,
+        policy: { ...existing, bindings },
       });
 
       console.log(chalk.green(`✓ Service made publicly accessible`));
@@ -270,15 +359,15 @@ export class GCloudService {
       await execAsync(command);
       console.log(chalk.green(`✓ Domain mapping created: ${agentName}.${domain}`));
     } catch (error) {
+      const err = error as any;
+      const msg = String(err?.stderr || err?.stdout || err?.message || "").toLowerCase();
+      if (msg.includes("already exists") || msg.includes("already-exists") || msg.includes("409")) {
+        console.log(chalk.gray(`✓ Domain mapping already exists: ${agentName}.${domain}`));
+        return;
+      }
       // Fallback to manual instructions
-      console.log(
-        chalk.yellow(`\n⚠ Domain mapping needs manual setup:`)
-      );
-      console.log(
-        chalk.gray(
-          `  Run this command to complete setup:`
-        )
-      );
+      console.log(chalk.yellow(`\n⚠ Domain mapping needs manual setup:`));
+      console.log(chalk.gray(`  Run this command to complete setup:`));
       console.log(
         chalk.gray(
           `  gcloud run domain-mappings create --service=${serviceName} --domain=${agentName}.${domain} --region=${region}`
@@ -303,11 +392,8 @@ export class GCloudService {
       }
     }
 
-    // Add default environment variables
-    envVars.push(
-      { name: "NODE_ENV", value: "production" },
-      { name: "PORT", value: "8080" }
-    );
+    // Add default environment variables (PORT is set later based on config)
+    envVars.push({ name: "NODE_ENV", value: "production" });
 
     return envVars;
   }
@@ -356,7 +442,7 @@ export class GCloudService {
         deployments.push({
           name,
           url: service.uri || "",
-          customDomain: `${name}.agent.daydreams.systems`,
+          // customDomain depends on deployment config; omit here
           service: serviceName,
           region,
           project: projectId,
@@ -383,7 +469,8 @@ export class GCloudService {
   async deleteDeployment(
     name: string,
     projectId: string,
-    region: string
+    region: string,
+    domain?: string
   ): Promise<void> {
     const serviceName = `agent-${name}`;
     const servicePath = `projects/${projectId}/locations/${region}/services/${serviceName}`;
@@ -393,5 +480,25 @@ export class GCloudService {
     });
 
     await this.waitForOperation(operation);
+
+    // Attempt to delete domain mapping if provided
+    if (domain) {
+      try {
+        const { exec } = await import("child_process");
+        const { promisify } = await import("util");
+        const execAsync = promisify(exec);
+        const cmd = `gcloud run domain-mappings delete --domain=${name}.${domain} --region=${region} --project=${projectId} --quiet`;
+        await execAsync(cmd);
+        console.log(chalk.gray(`✓ Domain mapping removed: ${name}.${domain}`));
+      } catch (error) {
+        const msg = String((error as any)?.stderr || (error as any)?.stdout || (error as any)?.message || "").toLowerCase();
+        if (msg.includes("not found") || msg.includes("404")) {
+          console.log(chalk.gray(`Domain mapping not found: ${name}.${domain}`));
+        } else {
+          console.log(chalk.yellow(`Could not remove domain mapping automatically for ${name}.${domain}`));
+          console.log(chalk.gray(`  Try: gcloud run domain-mappings delete --domain=${name}.${domain} --region=${region} --project=${projectId}`));
+        }
+      }
+    }
   }
 }

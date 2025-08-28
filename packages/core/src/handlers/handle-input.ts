@@ -63,6 +63,32 @@ export async function handleInput({
     throw new ParsingError(inputRef, error);
   }
 
+  // Allow inputs to normalize/transform data prior to recall for better relevance
+  if (input.handler) {
+    logger.debug("agent:send", "Using custom input handler", {
+      type: inputRef.type,
+    });
+
+    const { data, params } = await Promise.try(
+      input.handler,
+      inputRef.data,
+      {
+        ...ctxState,
+        workingMemory,
+      },
+      agent
+    );
+
+    inputRef.data = data;
+
+    if (params) {
+      inputRef.params = {
+        ...inputRef.params,
+        ...params,
+      };
+    }
+  }
+
   const queryText =
     typeof inputRef.data === "string"
       ? inputRef.data
@@ -141,30 +167,7 @@ export async function handleInput({
 
   workingMemory.relevantMemories = relevantMemories;
 
-  if (input.handler) {
-    logger.debug("agent:send", "Using custom input handler", {
-      type: inputRef.type,
-    });
-
-    const { data, params } = await Promise.try(
-      input.handler,
-      inputRef.data,
-      {
-        ...ctxState,
-        workingMemory,
-      },
-      agent
-    );
-
-    inputRef.data = data;
-
-    if (params) {
-      inputRef.params = {
-        ...inputRef.params,
-        ...params,
-      };
-    }
-  }
+  // No-op: custom handler already applied before recall
 
   inputRef.formatted = input.format ? input.format(inputRef) : undefined;
 }

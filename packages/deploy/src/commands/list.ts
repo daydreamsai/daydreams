@@ -34,7 +34,9 @@ export async function listCommand(options: any) {
 
       console.log(`${status} ${chalk.cyan(deployment.name)}`);
       console.log(`    URL: ${chalk.blue(deployment.url)}`);
-      console.log(`    Custom: ${chalk.blue(`https://${deployment.customDomain}`)}`);
+      if (deployment.customDomain) {
+        console.log(`    Custom: ${chalk.blue(`https://${deployment.customDomain}`)}`);
+      }
       console.log(`    Region: ${deployment.region}`);
       console.log(`    Memory: ${deployment.config.memory}`);
       console.log(`    Scaling: ${deployment.config.minInstances}-${deployment.config.maxInstances} instances`);
@@ -46,6 +48,6 @@ export async function listCommand(options: any) {
     spinner.fail("Failed to list deployments");
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(chalk.red("\n❌ Error:"), errorMessage);
-    process.exit(1);
+    throw error;
   }
 }
