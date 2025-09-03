@@ -92,7 +92,7 @@ lines.forEach(line => {
 ## Creating Custom Exporters
 
 ```typescript
-import { EpisodeExporter, ExportResult } from '@daydreams/core';
+import { EpisodeExporter, ExportResult } from '@daydreamsai/core';
 
 class CSVExporter implements EpisodeExporter<CSVOptions> {
   name = 'csv';
