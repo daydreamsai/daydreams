@@ -42,7 +42,8 @@ _openapi:
 
           - **size**: Target dimensions for output
 
-          - **quality**: "standard" or "hd" (HD costs 2x)
+          - **quality**: Model-specific tier (e.g., "low/medium/high" for
+          GPT-Image 1, "standard/hd" for Imagen)
 
           - **response_format**: "url" or "b64_json"
 
@@ -69,7 +70,7 @@ Edit existing images using AI models with text prompts and optional masks. Suppo
 - **mask**: Optional base64-encoded mask image (areas to edit)
 - **n**: Number of edited variations to generate (1-8)
 - **size**: Target dimensions for output
-- **quality**: "standard" or "hd" (HD costs 2x)
+- **quality**: Model-specific tier (e.g., "low/medium/high" for GPT-Image 1, "standard/hd" for Imagen)
 - **response_format**: "url" or "b64_json"
 
 ## Pricing
