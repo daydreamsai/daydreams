@@ -23,9 +23,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fast-glob": "^3.3.3",
-    "fumadocs-core": "15.6.10",
+    "fumadocs-core": "15.8.2",
     "fumadocs-mdx": "11.5.7",
-    "fumadocs-openapi": "9.1.12",
+    "fumadocs-openapi": "9.4.0",
     "fumadocs-twoslash": "3.1.6",
     "fumadocs-typescript": "4.0.6",
     "fumadocs-ui": "15.6.10",
@@ -34,8 +34,8 @@
     "lucide-react": "^0.484.0",
     "next": "15.2.3",
     "pnpm": "10.14.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-syntax-highlighter": "^15.6.1",
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
@@ -60,6 +60,6 @@
     "tailwindcss": "^4.0.15",
     "typedoc": "0.28.5",
     "typedoc-plugin-markdown": "4.7.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   }
 }
