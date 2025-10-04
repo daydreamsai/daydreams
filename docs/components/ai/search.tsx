@@ -282,7 +282,7 @@ export default function AISearch(props: DialogProps) {
           aria-describedby={undefined}
           className="fixed flex flex-col w-[calc(100%-1rem)] bg-fd-popover/80 backdrop-blur-xl p-1 rounded-2xl shadow-2xl border max-md:top-12 md:bottom-12 left-1/2 z-50 max-w-screen-sm -translate-x-1/2 focus-visible:outline-none data-[state=open]:animate-fd-dialog-in data-[state=closed]:animate-fd-dialog-out"
         >
-          <ChatContext value={chat}>
+          <ChatContext.Provider value={chat}>
             <div className="px-3 py-2">
               <DialogTitle className="text-sm font-medium">
                 Inkeep AI
@@ -323,7 +323,7 @@ export default function AISearch(props: DialogProps) {
               <SearchAIInput />
               <SearchAIActions className="flex flex-row items-center gap-1.5 p-1 empty:hidden" />
             </div>
-          </ChatContext>
+          </ChatContext.Provider>
         </DialogContent>
       </DialogPortal>
     </Dialog>

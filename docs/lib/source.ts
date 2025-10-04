@@ -11,7 +11,7 @@ export const source = loader({
   source: docs.toFumadocsSource(),
   pageTree: {
     // adds a badge to each page item in page tree
-    attachFile,
+    // attachFile,
   },
   icon(icon: string | undefined): ReactElement<any, any> | undefined {
     if (!icon) {

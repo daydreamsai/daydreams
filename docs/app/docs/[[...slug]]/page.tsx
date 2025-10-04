@@ -28,13 +28,17 @@ export default async function Page(props: {
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
         <MDXContent
-          components={{
-            ...defaultMdxComponents,
-            // this allows you to link to other pages with relative file paths
-            a: createRelativeLink(source, page),
-            APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
-            // you can add other MDX components here
-          }}
+          components={
+            {
+              ...defaultMdxComponents,
+              // this allows you to link to other pages with relative file paths
+              a: createRelativeLink(source, page),
+              APIPage: (props: any) => (
+                <APIPage {...openapi.getAPIPageProps(props)} />
+              ),
+              // you can add other MDX components here
+            } as any
+          }
         />
       </DocsBody>
     </DocsPage>

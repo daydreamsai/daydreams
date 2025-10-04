@@ -1,7 +1,7 @@
-import { remark } from 'remark';
-import remarkGfm from 'remark-gfm';
-import remarkRehype from 'remark-rehype';
-import { toJsxRuntime } from 'hast-util-to-jsx-runtime';
+import { remark } from "remark";
+import remarkGfm from "remark-gfm";
+import remarkRehype from "remark-rehype";
+import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import {
   Children,
   type ComponentProps,
@@ -10,10 +10,10 @@ import {
   Suspense,
   use,
   useDeferredValue,
-} from 'react';
-import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
+} from "react";
+import { Fragment, jsx, jsxs } from "react/jsx-runtime";
+import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+import defaultMdxComponents from "fumadocs-ui/mdx";
 
 export interface Processor {
   process: (content: string) => Promise<ReactNode>;
@@ -36,26 +36,26 @@ function createProcessor(): Processor {
           ...defaultMdxComponents,
           pre: Pre,
           img: undefined, // use JSX
-        },
+        } as any,
       });
     },
   };
 }
 
-function Pre(props: ComponentProps<'pre'>) {
+function Pre(props: ComponentProps<"pre">) {
   const code = Children.only(props.children) as ReactElement;
-  const codeProps = code.props as ComponentProps<'code'>;
+  const codeProps = code.props as ComponentProps<"code">;
 
   let lang =
     codeProps.className
-      ?.split(' ')
-      .find((v) => v.startsWith('language-'))
-      ?.slice('language-'.length) ?? 'text';
+      ?.split(" ")
+      .find((v) => v.startsWith("language-"))
+      ?.slice("language-".length) ?? "text";
 
-  if (lang === 'mdx') lang = 'md';
+  if (lang === "mdx") lang = "md";
 
   return (
-    <DynamicCodeBlock lang={lang} code={(codeProps.children ?? '') as string} />
+    <DynamicCodeBlock lang={lang} code={(codeProps.children ?? "") as string} />
   );
 }
 
