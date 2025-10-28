@@ -29,14 +29,14 @@ echo -e "${BLUE}Building packages...${NC}"
 echo -e "${GREEN}Building core package first...${NC}"
 if [ "$WATCH_MODE" = true ]; then
   # Run build in watch mode
-  (cd "packages/core" && bun run build --watch) &
+  (cd "packages/daydreams/core" && bun run build --watch) &
 else
   # Run build normally
-  (cd "packages/core" && bun run build)
+  (cd "packages/daydreams/core" && bun run build)
 fi
 
 # Get all package directories except core
-PACKAGES=$(find packages -maxdepth 1 -mindepth 1 -type d -not -name "core" | sort)
+PACKAGES=$(find packages/daydreams -maxdepth 1 -mindepth 1 -type d -not -name "core" | sort)
 
 # Build each remaining package
 for package in $PACKAGES; do
