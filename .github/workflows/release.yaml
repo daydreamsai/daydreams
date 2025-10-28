@@ -28,17 +28,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-          registry-url: "https://registry.npmjs.org"
+          bun-version: latest
 
       - name: Configure Git
         run: |
@@ -51,7 +44,7 @@ jobs:
       - name: Install dependencies
         env:
           HUSKY: 0
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: bun install --no-scripts
 
       - name: Ensure prepublishOnly hooks
         run: |
@@ -59,10 +52,10 @@ jobs:
           ./scripts/add-prepublish-hook.sh
 
       - name: Build packages
-        run: pnpm run build:packages
+        run: bun run build:packages
 
       - name: Run tests
-        run: pnpm test || echo "No tests configured"
+        run: bun test || echo "No tests configured"
 
       - name: Version packages with Lerna
         id: version
@@ -70,16 +63,16 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # Version packages with lerna (without publishing)
-          pnpx lerna version ${{ github.event.inputs.release_type }} --conventional-commits --yes --no-private --force-publish --ignore-scripts --no-push
+          bunx lerna version ${{ github.event.inputs.release_type }} --conventional-commits --yes --no-private --force-publish --ignore-scripts --no-push
 
           # Get the new version tag
           echo "TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
 
-      - name: Publish packages with pnpm
+      - name: Publish packages with bun
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # Find all packages and publish them using pnpm
+          # Find all packages and publish them using bun
           for package in packages/*; do
             if [ -d "$package" ] && [ -f "$package/package.json" ]; then
               # Check if package is private
@@ -87,7 +80,7 @@ jobs:
               
               if [ "$IS_PRIVATE" != "true" ]; then
                 echo "Publishing $(basename $package)..."
-                (cd "$package" && pnpm publish --no-git-checks --access public)
+                (cd "$package" && bun publish --no-git-checks --access public)
               else
                 echo "Skipping private package: $(basename $package)"
               fi
