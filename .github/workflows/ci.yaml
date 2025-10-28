@@ -13,11 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -31,10 +26,10 @@ jobs:
       - name: Install dependencies
         env:
           HUSKY: 0
-        run: pnpm install --ignore-scripts
+        run: bun install --no-scripts
 
       - name: Build core
-        run: pnpm run build:packages
+        run: bun run build:packages
 
       - name: Run tests
         run: bun test

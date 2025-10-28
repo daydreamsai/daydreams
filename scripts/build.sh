@@ -29,10 +29,10 @@ echo -e "${BLUE}Building packages...${NC}"
 echo -e "${GREEN}Building core package first...${NC}"
 if [ "$WATCH_MODE" = true ]; then
   # Run build in watch mode
-  (cd "packages/core" && pnpm run build --watch) &
+  (cd "packages/core" && bun run build --watch) &
 else
   # Run build normally
-  (cd "packages/core" && pnpm run build)
+  (cd "packages/core" && bun run build)
 fi
 
 # Get all package directories except core
@@ -52,10 +52,10 @@ for package in $PACKAGES; do
   
   if [ "$WATCH_MODE" = true ]; then
     # Run build in watch mode
-    (cd "$package" && pnpm run build --watch) &
+    (cd "$package" && bun run build --watch) &
   else
     # Run build normally
-    (cd "$package" && pnpm run build)
+    (cd "$package" && bun run build)
   fi
 done
 
