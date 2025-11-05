@@ -97,6 +97,9 @@ const agent = createDreams({
 ---
 
 #### **OpenRouter** (`@openrouter/ai-sdk-provider` v0.4.5)
+
+> **这是 OpenRouter 官方为 Vercel AI SDK 提供的 Provider**，支持数百个模型！
+
 ```typescript
 import { openrouter } from "@openrouter/ai-sdk-provider";
 
@@ -104,21 +107,49 @@ const agent = createDreams({
   model: openrouter("anthropic/claude-3-opus"),
   // model: openrouter("google/gemini-pro"),
   // model: openrouter("meta-llama/llama-3-70b"),
-  // 100+ 其他模型！
+  // model: openrouter("mistralai/mixtral-8x7b-instruct"),
+  // model: openrouter("deepseek/deepseek-chat"),
+  // 数百个其他模型！
 })
 ```
 
-**支持 100+ 模型，包括：**
-- 所有 OpenAI 模型（GPT-4, GPT-3.5 等）
-- 所有 Anthropic 模型（Claude 系列）
-- 所有 Google 模型（Gemini 系列）
-- Meta Llama 系列
-- Mistral 系列
-- 以及更多开源模型
+**支持的模型类别（200+ 模型）：**
+- ✅ **所有主流闭源模型**：
+  - OpenAI (GPT-4, GPT-4 Turbo, GPT-3.5)
+  - Anthropic (Claude 3.5, Claude 3 系列)
+  - Google (Gemini Pro, Gemini Flash)
+  - xAI (Grok)
+  - Perplexity (Sonar 系列)
 
-**特点：** 一个 API 访问所有模型，自动选择最便宜/最快的提供商
+- ✅ **开源模型**：
+  - Meta Llama 系列 (Llama 3.1, Llama 3, Llama 2)
+  - Mistral 系列 (Mixtral, Mistral 7B/8x7B/8x22B)
+  - Qwen 系列 (通义千问)
+  - DeepSeek 系列
+  - Yi 系列
+  - Nous Hermes 系列
 
-**API Key：** [openrouter.ai](https://openrouter.ai/keys)
+- ✅ **专业模型**：
+  - 代码生成模型 (CodeLlama, WizardCoder)
+  - 图像生成模型 (DALL-E, Stable Diffusion)
+  - 视觉模型 (GPT-4 Vision, LLaVA)
+
+**核心特点：**
+- 🌐 **一个 API 访问所有模型** - 无需多个 API Key
+- 💰 **智能路由** - 自动选择最便宜/最快的提供商
+- 🔄 **自动故障转移** - 主模型不可用时自动切换
+- 📊 **统一计费** - 一个账户管理所有模型费用
+- 🆓 **免费额度** - 新用户有免费试用额度
+
+**模型命名格式：** `provider/model-name`
+- `openai/gpt-4`
+- `anthropic/claude-3-opus`
+- `meta-llama/llama-3-70b-instruct`
+- `google/gemini-pro`
+
+**获取 API Key：** [openrouter.ai/keys](https://openrouter.ai/keys)
+
+**查看所有可用模型：** [openrouter.ai/models](https://openrouter.ai/models)
 
 ---
 
@@ -216,17 +247,25 @@ dreamsrouter("xai/grok-beta")
 
 ## 二、功能对比
 
-### 直接集成 vs Dreams Router
+### 三种路由方式对比
 
-| 特性 | 直接集成 (AI SDK) | Dreams Router |
-|------|-------------------|---------------|
-| **模型数量** | 依赖具体提供商 | 100+ 模型 |
-| **API Key** | 需要每个提供商的 Key | 只需一个 Key 或支付 |
-| **切换模型** | 改代码 + 换 Key | 只改模型名 |
-| **支付方式** | 月订阅/预付费 | API Key 或 x402 微支付 |
-| **故障转移** | 需自己实现 | ✅ 自动 |
-| **成本追踪** | 需自己实现 | ✅ 内置 |
-| **OpenAI 兼容** | 部分兼容 | ✅ 完全兼容 |
+| 特性 | 直接集成 (AI SDK) | OpenRouter | Dreams Router |
+|------|-------------------|-----------|---------------|
+| **模型数量** | 单一提供商 | 200+ 模型 | 100+ 模型 |
+| **API Key** | 需要每个提供商的 Key | 只需一个 OpenRouter Key | 只需一个 Key 或支付 |
+| **切换模型** | 改代码 + 换 Key | 只改模型名 | 只改模型名 |
+| **支付方式** | 各提供商单独付费 | 统一计费 | API Key 或 x402 微支付 |
+| **故障转移** | 需自己实现 | ✅ 智能路由 | ✅ 自动转移 |
+| **成本追踪** | 需自己实现 | ✅ 统一账单 | ✅ 内置追踪 |
+| **免费额度** | 各提供商单独 | ✅ 新用户有额度 | 看具体提供商 |
+| **OpenAI 兼容** | ✅ 原生 | ✅ 完全兼容 | ✅ 完全兼容 |
+| **智能选择** | ❌ 无 | ✅ 自动选最优 | ⚠️ 手动选择 |
+| **开源模型** | ❌ 有限 | ✅ 大量支持 | ⚠️ 部分支持 |
+
+**使用建议：**
+- **直接集成** - 只用 1-2 个特定模型，需要最低延迟
+- **OpenRouter** - 想试用多种模型，包括大量开源模型，自动优化成本
+- **Dreams Router** - 使用 x402 微支付，或需要 Daydreams 官方支持
 
 ---
 
@@ -419,9 +458,60 @@ const createAgentWithFallback = async () => {
 
 ---
 
-## 七、使用示例
+## 七、详细使用示例
 
-### 示例 1：简单聊天 Bot
+### 示例 1：使用 OpenRouter（推荐新手）
+
+OpenRouter 让你可以用一个 API Key 访问数百个模型，非常适合实验和对比不同模型。
+
+```typescript
+import { createDreams, context } from "@daydreamsai/core";
+import { openrouter } from "@openrouter/ai-sdk-provider";
+
+const chatContext = context({
+  type: "chat",
+  instructions: "你是一个友好的助手"
+});
+
+// ✅ OpenRouter 的优势：轻松切换不同模型
+const agent = createDreams({
+  // 尝试不同模型只需改一行！
+
+  // 闭源模型
+  model: openrouter("anthropic/claude-3-5-sonnet"),
+  // model: openrouter("openai/gpt-4"),
+  // model: openrouter("google/gemini-pro"),
+
+  // 开源模型
+  // model: openrouter("meta-llama/llama-3-70b-instruct"),
+  // model: openrouter("mistralai/mixtral-8x7b-instruct"),
+  // model: openrouter("qwen/qwen-2-72b-instruct"),  // 通义千问
+
+  contexts: [chatContext]
+});
+
+await agent.start();
+await agent.send({
+  context: chatContext,
+  input: "用中文介绍一下你自己"
+});
+```
+
+**环境变量：**
+```bash
+OPENROUTER_API_KEY=sk-or-v1-xxxxx
+```
+
+**获取 API Key：**
+1. 访问 [openrouter.ai](https://openrouter.ai)
+2. 注册账号（有免费额度）
+3. 前往 [Keys 页面](https://openrouter.ai/keys) 创建 API Key
+
+**查看所有模型：** [openrouter.ai/models](https://openrouter.ai/models)
+
+---
+
+### 示例 2：简单聊天 Bot（直接集成）
 
 ```typescript
 import { createDreams, context } from "@daydreamsai/core";
@@ -484,18 +574,40 @@ const agent = createDreams({
 
 ## 八、FAQ
 
-### Q: 应该选择直接集成还是 Dreams Router？
+### Q: OpenRouter 和 Dreams Router 有什么区别？
 
-**直接集成：**
+**OpenRouter** (`@openrouter/ai-sdk-provider`)：
+- 🌐 第三方服务（OpenRouter 公司提供）
+- 🎯 200+ 模型，包括大量开源模型
+- 💰 统一计费，自动选择最优提供商
+- 🆓 新用户有免费额度
+- 📖 官网：[openrouter.ai](https://openrouter.ai)
+
+**Dreams Router** (`@daydreamsai/ai-sdk-provider`)：
+- 🏠 Daydreams 官方网关
+- 🎯 100+ 主流模型
+- 💳 支持 x402 微支付（USDC，无需订阅）
+- 🔧 Daydreams 官方维护和支持
+- 📖 官网：[router.daydreams.systems](https://router.daydreams.systems)
+
+### Q: 应该选择哪个路由？
+
+**选择 OpenRouter 如果：**
+- ✅ 想尝试**数百个不同模型**
+- ✅ 想用**开源模型**（Llama, Mistral, Qwen 等）
+- ✅ 需要**智能路由**（自动选最优提供商）
+- ✅ 想要**统一账单**，不想管理多个 API Key
+- ✅ 是新手，想**免费试用**各种模型
+
+**选择 Dreams Router 如果：**
+- ✅ 想用 **x402 微支付**（USDC，按使用付费）
+- ✅ 需要 **Daydreams 官方支持**
+- ✅ 只关注主流闭源模型
+
+**选择直接集成如果：**
 - ✅ 已有某个提供商的 API Key
-- ✅ 只使用 1-2 个模型
+- ✅ 只使用 1-2 个特定模型
 - ✅ 需要最低延迟
-
-**Dreams Router：**
-- ✅ 想尝试多个模型
-- ✅ 需要自动故障转移
-- ✅ 想用 x402 微支付
-- ✅ 需要统一的成本追踪
 
 ### Q: Groq 为什么这么快？
 
@@ -517,14 +629,25 @@ Groq 使用专用的 LPU（Language Processing Unit）硬件加速，推理速�
 
 ## 九、总结
 
-### 支持的提供商总览
+### Daydreams 支持三种方式访问 AI 模型
 
+#### **1️⃣ 直接集成（适合固定使用 1-2 个模型）**
 ✅ **OpenAI** (GPT-4o, GPT-4o-mini, GPT-3.5-turbo)
 ✅ **Anthropic** (Claude 3.5, Claude 3 Opus/Sonnet/Haiku)
 ✅ **Google** (Gemini 2.5 Flash, Gemini 1.5 Pro)
-✅ **Groq** (Llama 3, Mixtral, Gemma)
-✅ **OpenRouter** (100+ 模型)
-✅ **xAI** (Grok, 通过 Dreams Router)
+✅ **Groq** (Llama 3, Mixtral, Gemma - 极快免费)
+
+#### **2️⃣ OpenRouter（推荐新手和实验）**
+✅ **200+ 模型** - 一个 API Key 访问所有模型
+✅ **智能路由** - 自动选择最优提供商
+✅ **开源模型丰富** - Llama, Mistral, Qwen, DeepSeek 等
+✅ **免费额度** - 新用户可免费试用
+✅ **统一计费** - 无需管理多个账户
+
+#### **3️⃣ Dreams Router（适合 x402 支付）**
+✅ **100+ 主流模型** - OpenAI, Anthropic, Google, xAI 等
+✅ **x402 微支付** - USDC 支付，无需订阅
+✅ **官方支持** - Daydreams 团队维护
 
 ### 推荐组合
 
