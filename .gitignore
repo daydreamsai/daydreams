@@ -206,3 +206,5 @@ docs/.source/
 
 # Directory created from running examples/basic/example-filesystem.ts
 file-agent-workspace/
+# Internal docs
+docs/
