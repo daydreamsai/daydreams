@@ -1,0 +1,41 @@
+{
+  "name": "@daydreamsai/x402",
+  "version": "0.3.22",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/express-serve-static-core": "^4.19.8",
+    "tsup": "catalog:",
+    "vitest": "catalog:"
+  },
+  "scripts": {
+    "test": "vitest",
+    "build": "tsup --dts-resolve",
+    "prepublishOnly": "pnpm run build"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@daydreamsai/core": "workspace:*",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.98.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.5.0",
+    "zod": "catalog:"
+  }
+}
