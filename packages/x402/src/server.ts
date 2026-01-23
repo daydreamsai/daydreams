@@ -7,6 +7,13 @@ import { USDC_MINTS } from "./types";
 import type { PaymentVerifier } from "./payment-verifier";
 import { x402PaymentGate } from "./middleware";
 
+class ServiceTimeoutError extends Error {
+  constructor() {
+    super("Service execution timeout");
+    this.name = "ServiceTimeoutError";
+  }
+}
+
 /** Slugify an action name for use in URL paths. */
 function slugify(name: string): string {
   return name
@@ -56,6 +63,11 @@ export function createX402Server(
   const serviceMap = new Map<string, X402ServiceConfig>();
   for (const svc of config.services) {
     const slug = slugify(svc.action.name);
+    if (serviceMap.has(slug)) {
+      throw new Error(
+        `Slug collision: "${svc.action.name}" and "${serviceMap.get(slug)!.action.name}" both map to "${slug}"`
+      );
+    }
     serviceMap.set(slug, svc);
   }
 
@@ -114,9 +126,15 @@ export function createX402Server(
         try {
           const result = await Promise.race([
             serviceConfig.action.handler(req.body, {} as any, {} as any),
-            new Promise((_, reject) => {
-              controller.signal.addEventListener("abort", () =>
-                reject(new Error("Service execution timeout"))
+            new Promise<never>((_, reject) => {
+              if (controller.signal.aborted) {
+                reject(new ServiceTimeoutError());
+                return;
+              }
+              controller.signal.addEventListener(
+                "abort",
+                () => reject(new ServiceTimeoutError()),
+                { once: true }
               );
             }),
           ]);
@@ -137,10 +155,11 @@ export function createX402Server(
           });
         } catch (err) {
           clearTimeout(timer);
+          const isTimeout = err instanceof ServiceTimeoutError;
+          const status = isTimeout ? 504 : 500;
           const message = err instanceof Error ? err.message : "Unknown error";
-          const status = message.includes("timeout") ? 504 : 500;
           res.status(status).json({
-            error: status === 504 ? "service_timeout" : "service_error",
+            error: isTimeout ? "service_timeout" : "service_error",
             message,
           });
         }

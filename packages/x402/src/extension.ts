@@ -50,8 +50,11 @@ export function createX402Extension(config: X402ExtensionConfig) {
         await new Promise<void>((resolve, reject) => {
           server.close((err) => (err ? reject(err) : resolve()));
         });
-      } catch {
-        // boot may not have completed
+      } catch (err) {
+        // boot may not have completed — only noisy in debug
+        if (process.env.DEBUG) {
+          console.debug("[x402] server shutdown skipped:", err);
+        }
       }
     },
   });

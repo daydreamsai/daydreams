@@ -44,15 +44,16 @@ function generateCommitmentHash(
   const aggregateQuality =
     totalFulfilled > 0 ? weightedQuality / totalFulfilled : 0;
 
+  const ts = Date.now();
   const payload = services
-    .map((s) => `${s.name}:${s.requestCount}:${s.qualityGuarantee}:${s.revenue}`)
+    .map((s) => `${s.name}:${s.requestCount}:${s.qualityGuarantee}:${s.revenue}:${ts}`)
     .join("|");
 
   const commitment = createHash("sha256").update(payload).digest("hex");
 
   return {
     commitment,
-    timestamp: Date.now(),
+    timestamp: ts,
     serviceCount: services.length,
     aggregateQuality: Math.round(aggregateQuality * 1000) / 1000,
     totalFulfilled,
@@ -118,16 +119,17 @@ export function createReputationContext(
 
         let customer = mem.customers.find((c) => c.userId === userId);
         if (!customer) {
+          // Evict before inserting so the new entry is never immediately dropped
+          if (mem.customers.length >= maxCustomers) {
+            mem.customers.sort((a, b) => b.lastRequest - a.lastRequest);
+            mem.customers = mem.customers.slice(0, maxCustomers - 1);
+          }
           customer = {
             userId, username, totalSpent: 0,
             requestCount: 0, lastRequest: Date.now(),
             disputeCount: 0, tier: "new",
           };
           mem.customers.push(customer);
-          if (mem.customers.length > maxCustomers) {
-            mem.customers.sort((a, b) => b.lastRequest - a.lastRequest);
-            mem.customers = mem.customers.slice(0, maxCustomers);
-          }
         }
 
         customer.totalSpent += amountUSDC;
@@ -166,7 +168,11 @@ export function createReputationContext(
           customer.disputeCount++;
           customer.tier = computeTier(customer, tierThresholds);
         }
-        return { recorded: true, disputeCount: customer?.disputeCount };
+        return {
+          recorded: true,
+          disputeCount: customer?.disputeCount,
+          service: data.serviceName,
+        };
       },
     }),
 

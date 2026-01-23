@@ -103,9 +103,9 @@ export class PaymentVerifier {
       return { valid: false, error: "invalid_signature_format" };
     }
 
-    // Optimistic lock: claim before verify, release on failure
-    const claimed = await this.store.add(signature, Date.now());
-    if (!claimed) {
+    // Check for replay before hitting RPC
+    const alreadyUsed = await this.store.has(signature);
+    if (alreadyUsed) {
       return { valid: false, error: "signature_already_used" };
     }
 
@@ -115,24 +115,20 @@ export class PaymentVerifier {
       });
 
       if (!tx) {
-        await this.releaseSignature(signature);
         return { valid: false, error: "transaction_not_found" };
       }
 
       if (tx.meta?.err) {
-        await this.releaseSignature(signature);
         return { valid: false, error: "transaction_failed" };
       }
 
       const blockTime = tx.blockTime;
       if (!blockTime) {
-        await this.releaseSignature(signature);
         return { valid: false, error: "transaction_not_finalized" };
       }
 
       const age = Math.floor(Date.now() / 1000) - blockTime;
       if (age > this.maxAgeSeconds) {
-        await this.releaseSignature(signature);
         return { valid: false, error: "transaction_too_old" };
       }
 
@@ -157,12 +153,17 @@ export class PaymentVerifier {
       const receivedRaw = postRaw - preRaw;
 
       if (receivedRaw < expectedRaw) {
-        await this.releaseSignature(signature);
         const receivedUSDC = Number(receivedRaw) / 10 ** USDC_DECIMALS;
         return {
           valid: false,
           error: `insufficient_amount: received ${receivedUSDC} USDC, expected ${expectedAmountUSDC}`,
         };
+      }
+
+      // Claim after all checks pass — no phantom claims on RPC failures
+      const claimed = await this.store.add(signature, Date.now());
+      if (!claimed) {
+        return { valid: false, error: "signature_already_used" };
       }
 
       const payer =
@@ -178,17 +179,11 @@ export class PaymentVerifier {
 
       return { valid: true, proof };
     } catch (err) {
-      await this.releaseSignature(signature);
       return {
         valid: false,
         error: `verification_error: ${err instanceof Error ? err.message : "unknown"}`,
       };
     }
-  }
-
-  private async releaseSignature(_signature: string): Promise<void> {
-    // No-op: failed signatures stay claimed and get cleaned up by TTL.
-    // Persistent stores can override with proper deletion.
   }
 
   /** Random payment reference for Solana Pay. */
