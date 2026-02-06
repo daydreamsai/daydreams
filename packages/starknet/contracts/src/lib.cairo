@@ -47,6 +47,14 @@ pub mod HuginnRegistry {
     impl HuginnRegistryImpl of super::IHuginnRegistry<ContractState> {
         fn register_agent(ref self: ContractState, name: felt252, metadata_url: ByteArray) {
             let caller = get_caller_address();
+            
+            // Prevent re-registration
+            let existing = self.agents.read(caller);
+            assert(existing.name == 0, 'Agent already registered');
+            
+            // Validate name is non-empty
+            assert(name != 0, 'Name cannot be empty');
+            
             let timestamp = starknet::get_block_timestamp();
 
             let profile = AgentProfile {

@@ -1,4 +1,4 @@
-import { CallData, hash, num } from "starknet";
+import { CallData, hash, num, cairo } from "starknet";
 
 export interface HuginnConfig {
   registryAddress: string;
@@ -69,7 +69,7 @@ export function createHuginn(config: HuginnConfig) {
         contractAddress: config.registryAddress,
         entrypoint: "log_thought",
         calldata: CallData.compile({
-          thought_hash: thoughtHash,
+          thought_hash: cairo.uint256(thoughtHash),
         }),
       };
 

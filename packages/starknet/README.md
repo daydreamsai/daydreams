@@ -22,13 +22,21 @@ agents to prove their reasoning on-chain.
 ## Usage
 
 ```typescript
-import { Huginn } from "@daydreamsai/starknet";
+import { createHuginn } from "@daydreamsai/starknet";
+
+// Initialize with deployed contract address
+const huginn = createHuginn({ 
+  registryAddress: "0xYOUR_DEPLOYED_ADDRESS" 
+});
 
 // Register an agent
-const registerCall = Huginn.registerAgent("MyAgent", "ipfs://metadata");
+const registerCall = huginn.registerAgent("MyAgent", "ipfs://metadata");
 
 // Log a thought
-const logCall = Huginn.logThought("My reasoning about X");
+const { starknetCall } = huginn.logThought("My reasoning about X");
+
+// Submit to Starknet
+await account.execute(starknetCall);
 ```
 
 ## Contract
