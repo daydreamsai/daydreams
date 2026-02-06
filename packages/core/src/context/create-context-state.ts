@@ -21,7 +21,7 @@ export function context<
   Events extends Record<string, z.ZodTypeAny | z.ZodRawShape> = Record<
     string,
     z.ZodTypeAny | z.ZodRawShape
-  >
+  >,
 >(
   config: ContextConfig<TMemory, Args, Ctx, Actions, Events>
 ): Context<TMemory, Args, Ctx, Actions, Events> {

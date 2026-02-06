@@ -1,6 +1,7 @@
 # @daydreamsai/cli
 
-Command-line interface context and utilities for Daydreams agents, enabling interactive terminal-based conversations.
+Command-line interface context and utilities for Daydreams agents, enabling
+interactive terminal-based conversations.
 
 ## Installation
 
@@ -11,14 +12,14 @@ npm install @daydreamsai/cli
 ## Quick Start
 
 ```typescript
-import { createDreams } from '@daydreamsai/core';
-import { cliExtension } from '@daydreamsai/cli';
-import { openai } from '@ai-sdk/openai';
+import { createDreams } from "@daydreamsai/core";
+import { cliExtension } from "@daydreamsai/cli";
+import { openai } from "@ai-sdk/openai";
 
 // Create an agent with CLI support
 const agent = createDreams({
-  model: openai('gpt-4'),
-  extensions: [cliExtension()]
+  model: openai("gpt-4"),
+  extensions: [cliExtension()],
 });
 
 await agent.start();
@@ -30,7 +31,8 @@ await agent.start();
 
 ## Features
 
-- 🖥️ **Interactive Terminal Interface**: Built-in readline interface for conversations
+- 🖥️ **Interactive Terminal Interface**: Built-in readline interface for
+  conversations
 - 📥 **CLI Input Handler**: Automatic message handling from terminal input
 - 📤 **CLI Output Handler**: Formatted responses to terminal
 - 🔄 **Session Management**: Persistent CLI sessions with context
@@ -43,7 +45,7 @@ await agent.start();
 The CLI context provides a terminal-based conversation interface:
 
 ```typescript
-import { cli } from '@daydreamsai/cli';
+import { cli } from "@daydreamsai/cli";
 
 // Use directly with an agent
 const agent = createDreams({
@@ -57,7 +59,7 @@ const agent = createDreams({
 Bundles everything needed for CLI interactions:
 
 ```typescript
-import { cliExtension } from '@daydreamsai/cli';
+import { cliExtension } from "@daydreamsai/cli";
 
 const extension = cliExtension();
 // Includes: CLI context, readline service, input/output handlers
@@ -68,7 +70,7 @@ const extension = cliExtension();
 Manages terminal I/O operations:
 
 ```typescript
-import { readlineService } from '@daydreamsai/cli';
+import { readlineService } from "@daydreamsai/cli";
 
 // Registered automatically with cliExtension
 // Provides readline interface to other components
@@ -79,29 +81,29 @@ import { readlineService } from '@daydreamsai/cli';
 ### Basic CLI Agent
 
 ```typescript
-import { createDreams, action } from '@daydreamsai/core';
-import { cliExtension } from '@daydreamsai/cli';
-import { openai } from '@ai-sdk/openai';
-import * as z from 'zod';
+import { createDreams, action } from "@daydreamsai/core";
+import { cliExtension } from "@daydreamsai/cli";
+import { openai } from "@ai-sdk/openai";
+import * as z from "zod";
 
 // Define actions for the CLI agent
 const calculateAction = action({
-  name: 'calculate',
-  description: 'Perform calculations',
+  name: "calculate",
+  description: "Perform calculations",
   schema: z.object({
-    expression: z.string()
+    expression: z.string(),
   }),
   handler: async ({ call }) => {
     // Simple eval for demo (use math library in production)
     const result = eval(call.data.expression);
     return { result };
-  }
+  },
 });
 
 const agent = createDreams({
-  model: openai('gpt-4'),
+  model: openai("gpt-4"),
   extensions: [cliExtension()],
-  actions: [calculateAction]
+  actions: [calculateAction],
 });
 
 await agent.start();
@@ -110,56 +112,57 @@ console.log('CLI Agent started. Type "exit" to quit.');
 
 ### Custom CLI Context
 
-```typescript
-import { context, input, output } from '@daydreamsai/core';
-import * as z from 'zod';
+````typescript
+import { context, input, output } from "@daydreamsai/core";
+import * as z from "zod";
 
 const customCli = context({
-  type: 'custom-cli',
+  type: "custom-cli",
   schema: z.object({
     username: z.string(),
-    sessionId: z.string()
+    sessionId: z.string(),
   }),
   inputs: {
-    'terminal:input': input({
+    "terminal:input": input({
       async subscribe(send, { args }) {
         // Custom input handling
         const rl = readline.createInterface({
           input: process.stdin,
           output: process.stdout,
-          prompt: `${args.username}> `
+          prompt: `${args.username}> `,
         });
-        
+
         // ... handle input
-      }
-    })
+      },
+    }),
   },
   outputs: {
-    'terminal:output': output({
+    "terminal:output": output({
       schema: z.object({
         message: z.string(),
-        formatting: z.enum(['plain', 'markdown', 'code'])
+        formatting: z.enum(["plain", "markdown", "code"]),
       }),
       handler({ data }) {
         // Custom output formatting
-        switch(data.formatting) {
-          case 'code':
-            console.log('```\n' + data.message + '\n```');
+        switch (data.formatting) {
+          case "code":
+            console.log("```\n" + data.message + "\n```");
             break;
           default:
             console.log(data.message);
         }
-      }
-    })
-  }
+      },
+    }),
+  },
 });
-```
+````
 
 ## API Reference
 
 ### `cli`
 
 Pre-configured CLI context with:
+
 - **Type**: `'cli'`
 - **Schema**: `{ user: z.string() }`
 - **Max Steps**: 100
@@ -169,6 +172,7 @@ Pre-configured CLI context with:
 ### `cliExtension()`
 
 Creates a CLI extension bundle containing:
+
 - CLI context
 - Readline service
 - Input/output handlers
@@ -182,15 +186,15 @@ Service that provides readline interface for terminal I/O.
 Works seamlessly with other Daydreams packages:
 
 ```typescript
-import { createDreams } from '@daydreamsai/core';
-import { cliExtension } from '@daydreamsai/cli';
-import { browserExtension } from '@daydreamsai/browser';
+import { createDreams } from "@daydreamsai/core";
+import { cliExtension } from "@daydreamsai/cli";
+import { browserExtension } from "@daydreamsai/browser";
 
 const agent = createDreams({
   extensions: [
-    cliExtension(),     // Terminal interface
-    browserExtension()  // Web automation
-  ]
+    cliExtension(), // Terminal interface
+    browserExtension(), // Web automation
+  ],
 });
 
 // Agent can now interact via CLI and control browser

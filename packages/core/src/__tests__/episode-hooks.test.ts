@@ -273,10 +273,10 @@ describe("Episode Hooks Examples", () => {
           return outcome === "win"
             ? "victory"
             : outcome === "loss"
-            ? "defeat"
-            : outcome === "draw"
-            ? "draw"
-            : "game_session";
+              ? "defeat"
+              : outcome === "draw"
+                ? "draw"
+                : "game_session";
         },
 
         extractMetadata: (episodeData, logs, ctx) => ({

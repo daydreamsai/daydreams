@@ -28,7 +28,10 @@ export interface TrendingTopic {
 }
 
 export class TwitterSearchService {
-  constructor(private scraper: Scraper, private logger: Logger) {}
+  constructor(
+    private scraper: Scraper,
+    private logger: Logger
+  ) {}
 
   /**
    * Search for tweets with advanced filtering

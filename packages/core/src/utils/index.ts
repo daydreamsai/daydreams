@@ -35,12 +35,10 @@ export { randomUUIDv7 };
  * @returns Typed input configuration
  */
 export function input<
-  Schema extends
-    | z.ZodRawShape
-    | z.ZodString
-    | z.ZodObject<any, any> = z.ZodString,
+  Schema extends z.ZodRawShape | z.ZodString | z.ZodObject<any, any> =
+    z.ZodString,
   TContext extends AnyContext = AnyContext,
-  TAgent extends AnyAgent = AnyAgent
+  TAgent extends AnyAgent = AnyAgent,
 >(config: InputConfig<Schema, TContext, TAgent>) {
   return config;
 }
@@ -59,7 +57,7 @@ export function action<
   TError = any,
   TContext extends AnyContext = AnyContext,
   TAgent extends AnyAgent = AnyAgent,
-  TMemory extends ActionState<any> = ActionState<any>
+  TMemory extends ActionState<any> = ActionState<any>,
 >(
   action: Optional<
     Action<TSchema, Result, TError, TContext, TAgent, TMemory>,
@@ -82,7 +80,7 @@ export function action<
 export function output<
   Schema extends OutputSchema = OutputSchema,
   Response extends OutputRefResponse = OutputRefResponse,
-  Context extends AnyContext = AnyContext
+  Context extends AnyContext = AnyContext,
 >(config: OutputConfig<Schema, Response, Context>) {
   return config;
 }
@@ -145,7 +143,7 @@ export function extension<
   Inputs extends Record<string, InputConfig<any, any>> = Record<
     string,
     InputConfig<any, any>
-  >
+  >,
 >(
   config: Optional<Extension<AnyContext, Contexts, Inputs>, "inputs">
 ): Extension<AnyContext, Contexts, Inputs> {
@@ -306,12 +304,15 @@ export function parseXMLContent(content: string): Record<string, string> {
     return node;
   });
 
-  const data = nodes.reduce((data, node) => {
-    if (node.type === "element") {
-      data[node.name] = node.content;
-    }
-    return data;
-  }, {} as Record<string, string>);
+  const data = nodes.reduce(
+    (data, node) => {
+      if (node.type === "element") {
+        data[node.name] = node.content;
+      }
+      return data;
+    },
+    {} as Record<string, string>
+  );
 
   return data;
 }

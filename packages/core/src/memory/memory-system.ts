@@ -114,10 +114,15 @@ export class MemorySystem implements Memory {
         if (options.key && !record.id) record.id = options.key;
         if (options.type && !record.type) record.type = options.type;
         if (options.scope && !record.scope) record.scope = options.scope;
-        if (options.contextId && !record.contextId) record.contextId = options.contextId;
-        if (options.namespace && !record.namespace) record.namespace = options.namespace;
+        if (options.contextId && !record.contextId)
+          record.contextId = options.contextId;
+        if (options.namespace && !record.namespace)
+          record.namespace = options.namespace;
         // Merge metadata with options.metadata taking precedence
-        record.metadata = { ...(record.metadata || {}), ...(options.metadata || {}) };
+        record.metadata = {
+          ...(record.metadata || {}),
+          ...(options.metadata || {}),
+        };
         if (options.ttl && !record.ttl) record.ttl = options.ttl;
       }
       await this.rememberRecord(record, { upsert: true });
@@ -125,9 +130,12 @@ export class MemorySystem implements Memory {
   }
 
   async recall(query: any, options?: RecallOptions): Promise<MemoryResult[]> {
-    const qText: string | undefined = typeof query === "string" ? query : query?.text;
-    const qEmbedding: number[] | undefined = typeof query === "object" ? query?.embedding : undefined;
-    const namespace: string | undefined = (typeof query === "object" && query?.namespace) || options?.namespace;
+    const qText: string | undefined =
+      typeof query === "string" ? query : query?.text;
+    const qEmbedding: number[] | undefined =
+      typeof query === "object" ? query?.embedding : undefined;
+    const namespace: string | undefined =
+      (typeof query === "object" && query?.namespace) || options?.namespace;
 
     const searchFilter = this.buildSearchFilter(options);
     // Merge additional filters if provided via structured query
@@ -142,7 +150,7 @@ export class MemorySystem implements Memory {
 
     // Vector search
     const vectorResults = await this.vector.search({
-      query: qEmbedding ? undefined : (qText || ""),
+      query: qEmbedding ? undefined : qText || "",
       embedding: qEmbedding,
       limit,
       filter: searchFilter,
@@ -161,10 +169,12 @@ export class MemorySystem implements Memory {
       const md = (vr.metadata || {}) as Record<string, any>;
       const timestamp = (md.timestamp as number) || undefined;
       const salience = (md.salience as number) || 0;
-      const recencyBoost = halfLife && timestamp
-        ? Math.exp(-Math.max(0, now - timestamp) / halfLife)
-        : 1;
-      const score = (vr.score || 0) * (1 + salienceWeight * salience) * recencyBoost;
+      const recencyBoost =
+        halfLife && timestamp
+          ? Math.exp(-Math.max(0, now - timestamp) / halfLife)
+          : 1;
+      const score =
+        (vr.score || 0) * (1 + salienceWeight * salience) * recencyBoost;
       const diagnostics = options?.include?.diagnostics
         ? { salience, recencyBoost, rerankDelta: 0 }
         : undefined;
@@ -192,7 +202,10 @@ export class MemorySystem implements Memory {
   }
 
   /** Return only the best match or null */
-  async recallOne(query: any, options?: RecallOptions): Promise<MemoryResult | null> {
+  async recallOne(
+    query: any,
+    options?: RecallOptions
+  ): Promise<MemoryResult | null> {
     const res = await this.recall(query, { ...(options || {}), topK: 1 });
     return res[0] || null;
   }
@@ -285,7 +298,10 @@ export class MemorySystem implements Memory {
   }
 
   /** Compute grouping key per result */
-  private computeGroupKey(metadata: Record<string, any>, options?: RecallOptions): string | null {
+  private computeGroupKey(
+    metadata: Record<string, any>,
+    options?: RecallOptions
+  ): string | null {
     switch (options?.groupBy) {
       case "docId":
         return (metadata?.docId as string) || null;
@@ -297,16 +313,20 @@ export class MemorySystem implements Memory {
   }
 
   /** Apply simple grouping and deduplication */
-  private applyGroupingAndDedupe(results: MemoryResult[], options?: RecallOptions): MemoryResult[] {
+  private applyGroupingAndDedupe(
+    results: MemoryResult[],
+    options?: RecallOptions
+  ): MemoryResult[] {
     let out = results;
 
     // Deduplication
     if (options?.dedupeBy && options.dedupeBy !== "none") {
       const seen = new Set<string>();
       out = out.filter((r) => {
-        const key = options.dedupeBy === "docId"
-          ? ((r.metadata as any)?.docId as string) || r.id
-          : r.id;
+        const key =
+          options.dedupeBy === "docId"
+            ? ((r.metadata as any)?.docId as string) || r.id
+            : r.id;
         if (!key) return true;
         if (seen.has(key)) return false;
         seen.add(key);
@@ -318,9 +338,12 @@ export class MemorySystem implements Memory {
     if (options?.groupBy && options.groupBy !== "none") {
       const bestByGroup = new Map<string, MemoryResult>();
       for (const r of out) {
-        const g = r.groupKey || this.computeGroupKey((r.metadata || {}) as any, options) || r.id;
+        const g =
+          r.groupKey ||
+          this.computeGroupKey((r.metadata || {}) as any, options) ||
+          r.id;
         const prev = bestByGroup.get(g);
-        if (!prev || ((r.score ?? 0) > (prev.score ?? 0))) {
+        if (!prev || (r.score ?? 0) > (prev.score ?? 0)) {
           bestByGroup.set(g, r);
         }
       }
@@ -342,7 +365,10 @@ export class MemorySystem implements Memory {
   }
 
   /** Store a structured record into vector memory */
-  async rememberRecord(record: any, options?: { upsert?: boolean }): Promise<{ id: string }> {
+  async rememberRecord(
+    record: any,
+    options?: { upsert?: boolean }
+  ): Promise<{ id: string }> {
     const scope: string = record.scope || "context";
     const id =
       record.id ||
@@ -367,10 +393,10 @@ export class MemorySystem implements Memory {
       typeof record.text === "string" && record.text.trim() !== ""
         ? record.text
         : typeof record.summary === "string" && record.summary.trim() !== ""
-        ? record.summary
-        : typeof record.content === "string" && record.content.trim() !== ""
-        ? record.content
-        : "";
+          ? record.summary
+          : typeof record.content === "string" && record.content.trim() !== ""
+            ? record.content
+            : "";
 
     // If we have neither text nor an explicit embedding, skip vector index
     if ((derivedText === "" || derivedText == null) && !record.embedding) {
@@ -402,20 +428,29 @@ export class MemorySystem implements Memory {
     const overlap = options?.chunk?.overlap || 0;
 
     for (const rec of records) {
-      if (chunkSize > 0 && typeof rec?.text === "string" && rec.text.length > chunkSize) {
+      if (
+        chunkSize > 0 &&
+        typeof rec?.text === "string" &&
+        rec.text.length > chunkSize
+      ) {
         // naive character-based chunking
         let start = 0;
         while (start < rec.text.length) {
           const end = Math.min(rec.text.length, start + chunkSize);
           const chunkText = rec.text.slice(start, end);
-          const { id } = await this.rememberRecord({ ...rec, text: chunkText }, { upsert: options?.upsert });
+          const { id } = await this.rememberRecord(
+            { ...rec, text: chunkText },
+            { upsert: options?.upsert }
+          );
           ids.push(id);
           if (end >= rec.text.length) break;
           start = end - overlap;
           if (start < 0) start = 0;
         }
       } else {
-        const { id } = await this.rememberRecord(rec, { upsert: options?.upsert });
+        const { id } = await this.rememberRecord(rec, {
+          upsert: options?.upsert,
+        });
         ids.push(id);
       }
     }

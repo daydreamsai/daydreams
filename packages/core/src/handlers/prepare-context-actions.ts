@@ -19,7 +19,7 @@ export async function prepareContextActions(params: {
   const actions =
     typeof context.actions === "function"
       ? await Promise.try(context.actions, state)
-      : context.actions ?? [];
+      : (context.actions ?? []);
 
   return Promise.all(
     actions.map((action) =>

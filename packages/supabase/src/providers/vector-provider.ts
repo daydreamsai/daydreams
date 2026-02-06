@@ -30,7 +30,12 @@ export class SupabaseVectorProvider implements VectorProvider {
   private embeddingDimension: number;
 
   constructor(config: SupabaseVectorProviderConfig) {
-    const { url, key, tableName = "vector_store", embeddingDimension = 1536 } = config;
+    const {
+      url,
+      key,
+      tableName = "vector_store",
+      embeddingDimension = 1536,
+    } = config;
     this.client = createClient(url, key);
     this.tableName = tableName;
     this.embeddingDimension = embeddingDimension;
@@ -62,8 +67,9 @@ export class SupabaseVectorProvider implements VectorProvider {
 
       // Test pgvector functionality
       const { error: vectorError } = await this.client.rpc("vector_test");
-      
-      if (vectorError && vectorError.code !== "42883") { // 42883 = function does not exist (expected if test function not created)
+
+      if (vectorError && vectorError.code !== "42883") {
+        // 42883 = function does not exist (expected if test function not created)
         return {
           status: "degraded",
           message: "Vector operations may not be available",
@@ -136,10 +142,7 @@ export class SupabaseVectorProvider implements VectorProvider {
     }
 
     // Use the RPC function for vector similarity search
-    const { data, error } = await this.client.rpc(
-      "match_documents",
-      rpcQuery
-    );
+    const { data, error } = await this.client.rpc("match_documents", rpcQuery);
 
     if (error) {
       throw new Error(`Vector search failed: ${error.message}`);
@@ -153,9 +156,8 @@ export class SupabaseVectorProvider implements VectorProvider {
       id: row.id,
       score: row.similarity,
       content: includeContent ? row.content : undefined,
-      metadata: includeMetadata && row.metadata 
-        ? JSON.parse(row.metadata) 
-        : undefined,
+      metadata:
+        includeMetadata && row.metadata ? JSON.parse(row.metadata) : undefined,
     }));
   }
 
@@ -316,6 +318,8 @@ export class SupabaseVectorProvider implements VectorProvider {
 /**
  * Factory function to create a Supabase Vector provider
  */
-export function createSupabaseVectorProvider(config: SupabaseVectorProviderConfig): SupabaseVectorProvider {
+export function createSupabaseVectorProvider(
+  config: SupabaseVectorProviderConfig
+): SupabaseVectorProvider {
   return new SupabaseVectorProvider(config);
 }

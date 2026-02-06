@@ -41,7 +41,11 @@ export class MongoKVProvider implements KeyValueProvider {
   private readonly collectionName: string;
 
   constructor(config: MongoKVProviderConfig) {
-    const { uri, dbName = "daydreams_memory", collectionName = "kv_store" } = config;
+    const {
+      uri,
+      dbName = "daydreams_memory",
+      collectionName = "kv_store",
+    } = config;
     this.client = new MongoClient(uri);
     this.dbName = dbName;
     this.collectionName = collectionName;
@@ -59,10 +63,7 @@ export class MongoKVProvider implements KeyValueProvider {
     );
 
     // Create index for tags
-    await this.collection.createIndex(
-      { tags: 1 },
-      { sparse: true }
-    );
+    await this.collection.createIndex({ tags: 1 }, { sparse: true });
   }
 
   async close(): Promise<void> {
@@ -162,14 +163,14 @@ export class MongoKVProvider implements KeyValueProvider {
     // This is a limitation of the hashed key approach
     // We could store original keys in a separate field if needed
     const docs = await this.collection.find({}).project({ _id: 1 }).toArray();
-    
+
     // Return hashed keys (not ideal, but maintains consistency with the interface)
-    let keys = docs.map(doc => doc._id);
+    let keys = docs.map((doc) => doc._id);
 
     if (pattern) {
       // Basic pattern matching for hashed keys - limited utility
       const regex = new RegExp(pattern.replace(/\*/g, ".*"));
-      keys = keys.filter(key => regex.test(key));
+      keys = keys.filter((key) => regex.test(key));
     }
 
     return keys;
@@ -226,7 +227,7 @@ export class MongoKVProvider implements KeyValueProvider {
       .toArray();
 
     const result = new Map<string, T>();
-    const keyMap = new Map(keys.map(k => [_hashKey(k), k]));
+    const keyMap = new Map(keys.map((k) => [_hashKey(k), k]));
 
     for (const doc of docs) {
       const originalKey = keyMap.get(doc._id);
@@ -241,7 +242,10 @@ export class MongoKVProvider implements KeyValueProvider {
     return result;
   }
 
-  async setBatch<T>(entries: Map<string, T>, options?: SetOptions): Promise<void> {
+  async setBatch<T>(
+    entries: Map<string, T>,
+    options?: SetOptions
+  ): Promise<void> {
     if (!this.collection) throw new Error("MongoDB not initialized");
 
     const now = new Date();
@@ -286,6 +290,8 @@ export class MongoKVProvider implements KeyValueProvider {
 /**
  * Factory function to create a MongoDB KeyValue provider
  */
-export function createMongoKVProvider(config: MongoKVProviderConfig): MongoKVProvider {
+export function createMongoKVProvider(
+  config: MongoKVProviderConfig
+): MongoKVProvider {
   return new MongoKVProvider(config);
 }

@@ -1,6 +1,8 @@
 # @daydreamsai/chroma
 
-ChromaDB integration for the DaydreamsAI memory system. This package provides persistent vector storage using ChromaDB while using in-memory providers for key-value and graph operations.
+ChromaDB integration for the DaydreamsAI memory system. This package provides
+persistent vector storage using ChromaDB while using in-memory providers for
+key-value and graph operations.
 
 ## Installation
 
@@ -15,23 +17,28 @@ pnpm add @daydreamsai/chroma chromadb
 Choose one of the following options to run ChromaDB:
 
 #### Option A: Docker (Recommended)
+
 ```bash
 # Run ChromaDB server
 docker run -p 8000:8000 chromadb/chroma
 ```
 
 #### Option B: Python Installation
+
 ```bash
 pip install chromadb
 chroma run --host 0.0.0.0 --port 8000
 ```
 
 #### Option C: Embedded Mode (Client-only)
-ChromaDB can run embedded within your Node.js application (no separate server needed).
+
+ChromaDB can run embedded within your Node.js application (no separate server
+needed).
 
 ### 2. Environment Variables (Optional)
 
 For OpenAI embeddings:
+
 ```bash
 export OPENAI_API_KEY="your-openai-api-key"
 ```
@@ -85,6 +92,7 @@ interface ChromaMemoryConfig {
 ## Features
 
 ### Vector Storage
+
 - ✅ **Persistent Storage**: Vectors persist between application restarts
 - ✅ **Embedding Models**: Support for OpenAI, custom, or default embeddings
 - ✅ **Similarity Search**: Semantic search with configurable parameters
@@ -94,11 +102,13 @@ interface ChromaMemoryConfig {
 - ✅ **Batch Operations**: Efficient bulk indexing and deletion
 
 ### Memory Architecture
+
 - **Vector Storage**: ChromaDB (persistent)
 - **KV Storage**: In-memory (session-only)
 - **Graph Storage**: In-memory (session-only)
 
 ### Embedding Options
+
 - **OpenAI Embeddings**: Automatic if `OPENAI_API_KEY` is set
 - **Custom Functions**: Provide your own embedding function
 - **Default Embeddings**: ChromaDB's built-in embeddings as fallback
@@ -108,6 +118,7 @@ interface ChromaMemoryConfig {
 ### Core Functions
 
 #### `createChromaMemory(config)`
+
 Creates a complete memory system with ChromaDB vector storage.
 
 ```typescript
@@ -117,12 +128,13 @@ const memory = createChromaMemory({
   embeddingFunction: myCustomEmbedder,
   metadata: {
     project: "my-ai-project",
-    version: "1.0.0"
-  }
+    version: "1.0.0",
+  },
 });
 ```
 
 #### `createChromaVectorProvider(config)`
+
 Creates just the vector provider for advanced use cases.
 
 ```typescript
@@ -130,7 +142,7 @@ import { createChromaVectorProvider } from "@daydreamsai/chroma";
 
 const vectorProvider = createChromaVectorProvider({
   path: "http://localhost:8000",
-  collectionName: "custom_collection"
+  collectionName: "custom_collection",
 });
 ```
 
@@ -152,15 +164,15 @@ await memory.vector.index([
     id: "doc1",
     content: "The quick brown fox",
     metadata: { category: "animals" },
-    namespace: "examples"
-  }
+    namespace: "examples",
+  },
 ]);
 
 const results = await memory.vector.search({
   query: "fast animals",
   namespace: "examples",
   limit: 5,
-  includeMetadata: true
+  includeMetadata: true,
 });
 
 // KV operations (in-memory)
@@ -171,25 +183,28 @@ const user = await memory.kv.get("user:123");
 ## Configuration Examples
 
 ### Embedded Mode (No Server)
+
 ```typescript
 const memory = createChromaMemory({
   // No path specified - runs embedded
-  collectionName: "my_collection"
+  collectionName: "my_collection",
 });
 ```
 
 ### Remote Server with Auth
+
 ```typescript
 const memory = createChromaMemory({
   path: "https://my-chroma-server.com",
   auth: {
     provider: "token",
-    credentials: process.env.CHROMA_TOKEN
-  }
+    credentials: process.env.CHROMA_TOKEN,
+  },
 });
 ```
 
 ### Custom Embedding Function
+
 ```typescript
 import { OpenAIEmbeddingFunction } from "chromadb";
 
@@ -197,12 +212,13 @@ const memory = createChromaMemory({
   path: "http://localhost:8000",
   embeddingFunction: new OpenAIEmbeddingFunction({
     openai_api_key: process.env.OPENAI_API_KEY!,
-    openai_model: "text-embedding-3-large" // Higher quality embeddings
-  })
+    openai_model: "text-embedding-3-large", // Higher quality embeddings
+  }),
 });
 ```
 
 ### Production Configuration
+
 ```typescript
 const memory = createChromaMemory({
   path: process.env.CHROMA_URL || "http://localhost:8000",
@@ -210,14 +226,14 @@ const memory = createChromaMemory({
   metadata: {
     environment: process.env.NODE_ENV,
     version: process.env.APP_VERSION,
-    created_by: "daydreams-ai"
+    created_by: "daydreams-ai",
   },
   options: {
     learning: {
       enabled: true,
-      model: myLanguageModel
-    }
-  }
+      model: myLanguageModel,
+    },
+  },
 });
 ```
 
@@ -241,12 +257,14 @@ The ChromaDB provider stores vectors with this structure:
 ## Performance Considerations
 
 ### ChromaDB Limits
+
 - **Collection size**: Millions of vectors supported
 - **Embedding dimensions**: Up to 2048 dimensions typically
 - **Query performance**: Sub-second for most datasets
 - **Concurrent operations**: Good support for parallel queries
 
 ### Optimization Tips
+
 1. **Batch Operations**: Use batch indexing for multiple documents
 2. **Namespace Strategy**: Use namespaces to partition data logically
 3. **Metadata Indexing**: ChromaDB automatically indexes metadata for filtering
@@ -276,18 +294,22 @@ If you're using the old ChromaVectorStore:
 ```typescript
 // Old API (deprecated)
 import { createChromaVectorStore } from "@daydreamsai/chroma";
-const store = createChromaVectorStore("collection_name", "http://localhost:8000");
+const store = createChromaVectorStore(
+  "collection_name",
+  "http://localhost:8000"
+);
 
 // New API (recommended)
 import { createChromaMemory } from "@daydreamsai/chroma";
 const memory = createChromaMemory({
   path: "http://localhost:8000",
-  collectionName: "collection_name"
+  collectionName: "collection_name",
 });
 await memory.initialize();
 ```
 
 The new API provides:
+
 - Better type safety and error handling
 - Standardized VectorProvider interface
 - Health monitoring and connection management
@@ -299,23 +321,29 @@ The new API provides:
 ### Common Issues
 
 1. **Connection Errors**
+
    ```
    Error: Failed to initialize ChromaDB collection
    ```
+
    - Ensure ChromaDB server is running on the specified port
    - Check the `path` configuration matches your server URL
 
 2. **Embedding Errors**
+
    ```
    Error: OpenAI API key not found
    ```
+
    - Set `OPENAI_API_KEY` environment variable, or
    - Provide a custom `embeddingFunction` in config
 
 3. **Collection Issues**
+
    ```
    Error: Collection already exists with different configuration
    ```
+
    - Use a different `collectionName`, or
    - Delete the existing collection in ChromaDB
 
@@ -323,6 +351,7 @@ The new API provides:
    ```
    Error: Embedding dimension mismatch
    ```
+
    - Ensure all documents use the same embedding model
    - Clear the collection if switching embedding models
 
@@ -334,8 +363,8 @@ Enable debug logging:
 const memory = createChromaMemory({
   path: "http://localhost:8000",
   metadata: {
-    debug: true // Add debug metadata
-  }
+    debug: true, // Add debug metadata
+  },
 });
 
 // Monitor health
@@ -363,7 +392,7 @@ console.log(`Collection contains ${count} vectors`);
 For development setup:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   chromadb:
     image: chromadb/chroma:latest
@@ -373,7 +402,7 @@ services:
       - CHROMA_SERVER_HOST=0.0.0.0
     volumes:
       - chroma_data:/chroma/chroma
-      
+
 volumes:
   chroma_data:
 ```

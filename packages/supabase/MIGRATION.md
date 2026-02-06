@@ -1,12 +1,15 @@
 # Migration Guide: Supabase Package v1.0
 
-This guide helps you migrate from the old Supabase package API to the new memory system.
+This guide helps you migrate from the old Supabase package API to the new memory
+system.
 
 ## Overview
 
-The Supabase package has been completely rewritten to support the new DaydreamsAI memory system. The new system provides:
+The Supabase package has been completely rewritten to support the new
+DaydreamsAI memory system. The new system provides:
 
-- **Complete Memory Interface**: Supports all memory types (working, kv, vector, facts, episodes, semantic, graph)
+- **Complete Memory Interface**: Supports all memory types (working, kv, vector,
+  facts, episodes, semantic, graph)
 - **Provider Architecture**: Modular providers for different storage types
 - **Better Performance**: Optimized queries and batch operations
 - **Type Safety**: Improved TypeScript support
@@ -17,28 +20,31 @@ The Supabase package has been completely rewritten to support the new DaydreamsA
 ### 1. Update Imports
 
 **Old API:**
+
 ```typescript
-import { 
+import {
   createSupabaseBaseMemory,
   createSupabaseMemoryStore,
   createSupabaseVectorStore,
-  createOpenAIEmbeddingProvider
+  createOpenAIEmbeddingProvider,
 } from "@daydreamsai/supabase";
 ```
 
 **New API:**
+
 ```typescript
-import { 
+import {
   createSupabaseMemory,
   createSupabaseKVProvider,
   createSupabaseVectorProvider,
-  createSupabaseGraphProvider
+  createSupabaseGraphProvider,
 } from "@daydreamsai/supabase";
 ```
 
 ### 2. Update Memory System Creation
 
 **Old API:**
+
 ```typescript
 // Old BaseMemory approach
 const memory = createSupabaseBaseMemory({
@@ -46,19 +52,20 @@ const memory = createSupabaseBaseMemory({
   key: process.env.SUPABASE_ANON_KEY!,
   memoryTableName: "memory",
   vectorTableName: "embeddings",
-  vectorModel: someEmbeddingModel
+  vectorModel: someEmbeddingModel,
 });
 ```
 
 **New API:**
+
 ```typescript
 // New MemorySystem approach
 const memory = createSupabaseMemory({
   url: process.env.SUPABASE_URL!,
   key: process.env.SUPABASE_ANON_KEY!,
-  kvTableName: "memory",        // Renamed from memoryTableName
+  kvTableName: "memory", // Renamed from memoryTableName
   vectorTableName: "embeddings", // Same name
-  embeddingDimension: 1536      // Specify dimension instead of model
+  embeddingDimension: 1536, // Specify dimension instead of model
 });
 
 // Initialize the memory system
@@ -68,17 +75,19 @@ await memory.initialize();
 ### 3. Update Agent Configuration
 
 **Old API:**
+
 ```typescript
 const agent = createDreams({
-  memory,  // BaseMemory
+  memory, // BaseMemory
   // ... other config
 });
 ```
 
 **New API:**
+
 ```typescript
 const agent = createDreams({
-  memory,  // MemorySystem
+  memory, // MemorySystem
   // ... other config
 });
 ```
@@ -86,11 +95,12 @@ const agent = createDreams({
 ### 4. Update Individual Provider Usage
 
 **Old Memory Store:**
+
 ```typescript
 const store = createSupabaseMemoryStore({
   url: process.env.SUPABASE_URL!,
   key: process.env.SUPABASE_ANON_KEY!,
-  tableName: "memory"
+  tableName: "memory",
 });
 
 await store.set("key", value);
@@ -98,11 +108,12 @@ const value = await store.get("key");
 ```
 
 **New KV Provider:**
+
 ```typescript
 const kvProvider = createSupabaseKVProvider({
   url: process.env.SUPABASE_URL!,
   key: process.env.SUPABASE_ANON_KEY!,
-  tableName: "memory"
+  tableName: "memory",
 });
 
 await kvProvider.initialize();
@@ -111,6 +122,7 @@ const value = await kvProvider.get("key");
 ```
 
 **Old Vector Store:**
+
 ```typescript
 const vectorStore = createSupabaseVectorStore(
   {
@@ -119,16 +131,19 @@ const vectorStore = createSupabaseVectorStore(
     tableName: "embeddings",
     embeddingColumnName: "embedding",
     contentColumnName: "content",
-    metadataColumnName: "metadata"
+    metadataColumnName: "metadata",
   },
   embeddingProvider
 );
 
 await vectorStore.upsert("context", data);
-const results = await vectorStore.search("context", embedding, { threshold: 0.7 });
+const results = await vectorStore.search("context", embedding, {
+  threshold: 0.7,
+});
 ```
 
 **New Vector Provider:**
+
 ```typescript
 const vectorProvider = createSupabaseVectorProvider({
   url: process.env.SUPABASE_URL!,
@@ -159,10 +174,12 @@ const results = await vectorProvider.search({
 ### Table Renames and Structure
 
 **Old Tables:**
+
 - `memory` - Simple key-value storage
 - `embeddings` - Vector storage
 
 **New Tables:**
+
 - `kv_store` - Enhanced key-value storage with TTL and tags
 - `vector_store` - Enhanced vector storage with namespaces
 - `graph_nodes` - New graph node storage
@@ -174,8 +191,8 @@ If you have existing data, you may need to migrate your tables:
 
 ```sql
 -- Migrate memory table to kv_store
-CREATE TABLE kv_store AS 
-SELECT 
+CREATE TABLE kv_store AS
+SELECT
   key,
   value,
   NULL as expires_at,
@@ -184,7 +201,7 @@ SELECT
   updated_at
 FROM memory;
 
--- Migrate embeddings table to vector_store  
+-- Migrate embeddings table to vector_store
 CREATE TABLE vector_store AS
 SELECT
   key as id,
@@ -204,15 +221,18 @@ FROM embeddings;
 ## New Features Available
 
 ### Enhanced Key-Value Storage
+
 ```typescript
 // TTL support
 await kvProvider.set("session", data, { ttl: 3600 });
 
 // Batch operations
-await kvProvider.setBatch(new Map([
-  ["key1", "value1"],
-  ["key2", "value2"]
-]));
+await kvProvider.setBatch(
+  new Map([
+    ["key1", "value1"],
+    ["key2", "value2"],
+  ])
+);
 
 // Pattern matching
 const sessionKeys = await kvProvider.keys("session:*");
@@ -224,6 +244,7 @@ for await (const [key, value] of kvProvider.scan("user:*")) {
 ```
 
 ### Enhanced Vector Storage
+
 ```typescript
 // Namespace support
 await vectorProvider.index([{
@@ -244,31 +265,33 @@ const results = await vectorProvider.search({
 ```
 
 ### New Graph Storage
+
 ```typescript
 // Store entities and relationships
 await graphProvider.addNode({
   id: "person1",
   type: "Person",
   properties: { name: "Alice" },
-  labels: ["Employee"]
+  labels: ["Employee"],
 });
 
 await graphProvider.addEdge({
   id: "edge1",
   from: "person1",
   to: "person2",
-  type: "KNOWS"
+  type: "KNOWS",
 });
 
 // Graph traversal
 const paths = await graphProvider.traverse({
   start: "person1",
   direction: "out",
-  maxDepth: 3
+  maxDepth: 3,
 });
 ```
 
 ### Health Monitoring
+
 ```typescript
 const health = await kvProvider.health();
 console.log(health.status); // "healthy" | "unhealthy" | "degraded"
@@ -277,10 +300,13 @@ console.log(health.status); // "healthy" | "unhealthy" | "degraded"
 ## Breaking Changes
 
 1. **Function Names**: Most factory functions have been renamed
-2. **Configuration Objects**: New configuration structure with different property names
-3. **Return Types**: Methods now return different types aligned with the new memory interface
+2. **Configuration Objects**: New configuration structure with different
+   property names
+3. **Return Types**: Methods now return different types aligned with the new
+   memory interface
 4. **Initialization**: Explicit `initialize()` call required for providers
-5. **Embedding Models**: No longer handled by Supabase package - use core framework models
+5. **Embedding Models**: No longer handled by Supabase package - use core
+   framework models
 
 ## Deprecation Timeline
 
@@ -313,6 +339,7 @@ console.log(health.status); // "healthy" | "unhealthy" | "degraded"
 ## Example: Complete Migration
 
 **Before (Old API):**
+
 ```typescript
 import { createSupabaseBaseMemory } from "@daydreamsai/supabase";
 import { createDreams } from "@daydreamsai/core";
@@ -321,13 +348,14 @@ const memory = createSupabaseBaseMemory({
   url: process.env.SUPABASE_URL!,
   key: process.env.SUPABASE_ANON_KEY!,
   memoryTableName: "chat_memory",
-  vectorTableName: "chat_embeddings"
+  vectorTableName: "chat_embeddings",
 });
 
 const agent = createDreams({ memory });
 ```
 
 **After (New API):**
+
 ```typescript
 import { createSupabaseMemory } from "@daydreamsai/supabase";
 import { createDreams } from "@daydreamsai/core";
@@ -336,7 +364,7 @@ const memory = createSupabaseMemory({
   url: process.env.SUPABASE_URL!,
   key: process.env.SUPABASE_ANON_KEY!,
   kvTableName: "chat_memory",
-  vectorTableName: "chat_embeddings"
+  vectorTableName: "chat_embeddings",
 });
 
 // Initialize the memory system
@@ -345,4 +373,5 @@ await memory.initialize();
 const agent = createDreams({ memory });
 ```
 
-That's it! Your Supabase memory system is now using the new architecture with enhanced capabilities. 🚀
+That's it! Your Supabase memory system is now using the new architecture with
+enhanced capabilities. 🚀

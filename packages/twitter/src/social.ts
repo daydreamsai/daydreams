@@ -24,7 +24,10 @@ export interface InteractionResult {
 }
 
 export class TwitterSocialService {
-  constructor(private scraper: Scraper, private logger: Logger) {}
+  constructor(
+    private scraper: Scraper,
+    private logger: Logger
+  ) {}
 
   /**
    * Like a tweet

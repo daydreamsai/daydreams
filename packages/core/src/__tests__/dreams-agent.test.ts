@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createDreams } from "../dreams";
 import { context } from "../context";
 import { action } from "../utils";
-import { 
-  createTestAgent, 
+import {
+  createTestAgent,
   createAgentTestHelper,
   createMockLanguageModel,
   createTestMemory,
   createTestContext,
-  createTestAction
+  createTestAction,
 } from "./test-utilities";
 import type { Agent, Extension } from "../types";
 import * as z from "zod";
@@ -26,7 +26,7 @@ describe("Agent Creation & Configuration - Tier 1", () => {
   describe("Basic Agent Creation", () => {
     it("should create agent with minimal configuration", () => {
       const helper = createAgentTestHelper();
-      
+
       helper.expectProperConfiguration();
       expect(helper.agent.isBooted()).toBe(false);
     });
@@ -56,14 +56,14 @@ describe("Agent Creation & Configuration - Tier 1", () => {
 
     it("should set default log level", () => {
       testAgent = createTestAgent();
-      
+
       expect(testAgent.logger).toBeDefined();
       // Logger should be configured with default level
     });
 
     it("should respect custom log level", () => {
       testAgent = createTestAgent({ logLevel: LogLevel.ERROR });
-      
+
       expect(testAgent.logger).toBeDefined();
     });
   });
@@ -71,8 +71,8 @@ describe("Agent Creation & Configuration - Tier 1", () => {
   describe("Context Registration", () => {
     it("should register single context correctly", () => {
       const testContext = createTestContext({ type: "single-test" });
-      const helper = createAgentTestHelper({ 
-        contexts: [testContext]
+      const helper = createAgentTestHelper({
+        contexts: [testContext],
       });
 
       helper.expectContextRegistered("single-test");
@@ -81,9 +81,9 @@ describe("Agent Creation & Configuration - Tier 1", () => {
     it("should register multiple contexts correctly", () => {
       const context1 = createTestContext({ type: "context-1" });
       const context2 = createTestContext({ type: "context-2" });
-      
-      const helper = createAgentTestHelper({ 
-        contexts: [context1, context2]
+
+      const helper = createAgentTestHelper({
+        contexts: [context1, context2],
       });
 
       helper.expectContextRegistered("context-1");
@@ -95,13 +95,13 @@ describe("Agent Creation & Configuration - Tier 1", () => {
         type: "schema-context",
         schema: z.object({
           userId: z.string(),
-          sessionId: z.string()
+          sessionId: z.string(),
         }),
-        create: () => ({ userPrefs: {} })
+        create: () => ({ userPrefs: {} }),
       });
 
-      const helper = createAgentTestHelper({ 
-        contexts: [contextWithSchema]
+      const helper = createAgentTestHelper({
+        contexts: [contextWithSchema],
       });
 
       helper.expectContextRegistered("schema-context");
@@ -113,8 +113,8 @@ describe("Agent Creation & Configuration - Tier 1", () => {
 
       // Should not throw, but second one should override first
       expect(() => {
-        testAgent = createTestAgent({ 
-          contexts: [context1, context2]
+        testAgent = createTestAgent({
+          contexts: [context1, context2],
         });
       }).not.toThrow();
     });
@@ -133,8 +133,8 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       const action1 = createTestAction({ name: "action-1" });
       const action2 = createTestAction({ name: "action-2" });
 
-      testAgent = createTestAgent({ 
-        actions: [action1, action2]
+      testAgent = createTestAgent({
+        actions: [action1, action2],
       });
 
       expect(testAgent.actions).toHaveLength(2);
@@ -147,14 +147,16 @@ describe("Agent Creation & Configuration - Tier 1", () => {
         name: "complex-action",
         schema: z.object({
           query: z.string(),
-          options: z.object({
-            limit: z.number().optional(),
-            sortBy: z.enum(["date", "relevance"]).optional()
-          }).optional()
+          options: z
+            .object({
+              limit: z.number().optional(),
+              sortBy: z.enum(["date", "relevance"]).optional(),
+            })
+            .optional(),
         }),
         handler: async ({ query, options }) => {
           return { query, options, success: true };
-        }
+        },
       });
 
       testAgent = createTestAgent({ actions: [complexAction] });
@@ -167,15 +169,17 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       const simpleExtension: Extension = {
         name: "simple-test-extension",
         inputs: {},
-        actions: [createTestAction({ name: "extension-action" })]
+        actions: [createTestAction({ name: "extension-action" })],
       };
 
-      testAgent = createTestAgent({ 
-        extensions: [simpleExtension]
+      testAgent = createTestAgent({
+        extensions: [simpleExtension],
       });
 
       // Extension action should be merged into agent actions
-      expect(testAgent.actions.some(a => a.name === "extension-action")).toBe(true);
+      expect(testAgent.actions.some((a) => a.name === "extension-action")).toBe(
+        true
+      );
     });
 
     it("should process extension with contexts", () => {
@@ -183,11 +187,11 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       const extension: Extension = {
         name: "context-extension",
         inputs: {},
-        contexts: { "extension-context": extensionContext }
+        contexts: { "extension-context": extensionContext },
       };
 
-      const helper = createAgentTestHelper({ 
-        extensions: [extension]
+      const helper = createAgentTestHelper({
+        extensions: [extension],
       });
 
       helper.expectContextRegistered("extension-context");
@@ -195,23 +199,23 @@ describe("Agent Creation & Configuration - Tier 1", () => {
 
     it("should merge extension inputs and outputs", () => {
       const extension: Extension = {
-        name: "io-extension", 
+        name: "io-extension",
         inputs: {
           "ext-input": {
             schema: z.string(),
-            handler: vi.fn()
-          }
+            handler: vi.fn(),
+          },
         },
         outputs: {
           "ext-output": {
             schema: z.string(),
-            handler: vi.fn()
-          }
-        }
+            handler: vi.fn(),
+          },
+        },
       };
 
-      testAgent = createTestAgent({ 
-        extensions: [extension]
+      testAgent = createTestAgent({
+        extensions: [extension],
       });
 
       expect(testAgent.inputs["ext-input"]).toBeDefined();
@@ -222,21 +226,25 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       const ext1: Extension = {
         name: "extension-1",
         inputs: {},
-        actions: [createTestAction({ name: "ext1-action" })]
+        actions: [createTestAction({ name: "ext1-action" })],
       };
 
       const ext2: Extension = {
-        name: "extension-2", 
+        name: "extension-2",
         inputs: {},
-        actions: [createTestAction({ name: "ext2-action" })]
+        actions: [createTestAction({ name: "ext2-action" })],
       };
 
-      testAgent = createTestAgent({ 
-        extensions: [ext1, ext2]
+      testAgent = createTestAgent({
+        extensions: [ext1, ext2],
       });
 
-      expect(testAgent.actions.some(a => a.name === "ext1-action")).toBe(true);
-      expect(testAgent.actions.some(a => a.name === "ext2-action")).toBe(true);
+      expect(testAgent.actions.some((a) => a.name === "ext1-action")).toBe(
+        true
+      );
+      expect(testAgent.actions.some((a) => a.name === "ext2-action")).toBe(
+        true
+      );
     });
   });
 
@@ -246,16 +254,16 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       const extension: Extension = {
         name: "conflicting-extension",
         inputs: {},
-        contexts: { 
-          "conflict-test": createTestContext({ type: "conflict-test" })
-        }
+        contexts: {
+          "conflict-test": createTestContext({ type: "conflict-test" }),
+        },
       };
 
       // Should not throw, later registration should take precedence
       expect(() => {
         testAgent = createTestAgent({
           contexts: [context1],
-          extensions: [extension]
+          extensions: [extension],
         });
       }).not.toThrow();
     });
@@ -265,7 +273,7 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       expect(() => {
         testAgent = createTestAgent({
           model: createMockLanguageModel(),
-          memory: createTestMemory()
+          memory: createTestMemory(),
         });
       }).not.toThrow();
     });
@@ -275,7 +283,7 @@ describe("Agent Creation & Configuration - Tier 1", () => {
         testAgent = createTestAgent({
           contexts: [],
           actions: [],
-          extensions: []
+          extensions: [],
         });
       }).not.toThrow();
     });
@@ -284,7 +292,7 @@ describe("Agent Creation & Configuration - Tier 1", () => {
   describe("Task Configuration", () => {
     it("should set default task configuration", () => {
       testAgent = createTestAgent();
-      
+
       const taskConfig = testAgent.getTaskConfig();
       expect(taskConfig.concurrency.default).toBe(3);
       expect(taskConfig.concurrency.llm).toBe(3);
@@ -295,8 +303,8 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       testAgent = createTestAgent({
         tasks: {
           concurrency: { default: 5, llm: 2 },
-          priority: { default: 20, high: 50, low: 5 }
-        }
+          priority: { default: 20, high: 50, low: 5 },
+        },
       });
 
       const taskConfig = testAgent.getTaskConfig();
@@ -308,8 +316,8 @@ describe("Agent Creation & Configuration - Tier 1", () => {
     it("should provide priority level helpers", () => {
       testAgent = createTestAgent({
         tasks: {
-          priority: { default: 10, high: 30, low: 3 }
-        }
+          priority: { default: 10, high: 30, low: 3 },
+        },
       });
 
       const priorities = testAgent.getPriorityLevels();
@@ -321,21 +329,21 @@ describe("Agent Creation & Configuration - Tier 1", () => {
     it("should calculate default priority levels when not specified", () => {
       testAgent = createTestAgent({
         tasks: {
-          priority: { default: 20 } // Only default specified
-        }
+          priority: { default: 20 }, // Only default specified
+        },
       });
 
       const priorities = testAgent.getPriorityLevels();
       expect(priorities.default).toBe(20);
       expect(priorities.high).toBe(40); // default * 2
-      expect(priorities.low).toBe(10);  // default / 2
+      expect(priorities.low).toBe(10); // default / 2
     });
   });
 
   describe("Agent State Management", () => {
     it("should track booted state correctly", () => {
       testAgent = createTestAgent();
-      
+
       expect(testAgent.isBooted()).toBe(false);
     });
 
@@ -352,13 +360,13 @@ describe("Agent Creation & Configuration - Tier 1", () => {
 
     it("should provide container access", () => {
       testAgent = createTestAgent();
-      
+
       expect(testAgent.container).toBeDefined();
     });
 
     it("should provide task runner access", () => {
       testAgent = createTestAgent();
-      
+
       expect(testAgent.taskRunner).toBeDefined();
       expect(testAgent.taskRunner.enqueueTask).toBeDefined();
     });
@@ -372,9 +380,9 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       });
 
       const faultyExtension: Extension = {
-        name: "faulty-extension", 
+        name: "faulty-extension",
         inputs: {},
-        install: mockInstall
+        install: mockInstall,
       };
 
       // Creation should succeed even if install will fail later
@@ -384,7 +392,7 @@ describe("Agent Creation & Configuration - Tier 1", () => {
 
       // Install errors will cause startup to fail (as expected for critical install failures)
       await expect(testAgent.start()).rejects.toThrow("Install failed");
-      
+
       // Verify the install method was called
       expect(mockInstall).toHaveBeenCalled();
     });
@@ -394,7 +402,7 @@ describe("Agent Creation & Configuration - Tier 1", () => {
       const invalidContext = context({
         type: "invalid-context",
         schema: {} as any, // Invalid schema
-        create: () => ({})
+        create: () => ({}),
       });
 
       expect(() => {

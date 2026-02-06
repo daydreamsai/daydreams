@@ -88,8 +88,8 @@ export function createErrorEvent(errorRef: ErrorRef) {
             errorRef.error.parsingError instanceof ZodError
               ? prettifyZodError(errorRef.error.parsingError)
               : errorRef.error.parsingError instanceof Error
-              ? errorRef.error.parsingError.message
-              : String(errorRef.error.parsingError),
+                ? errorRef.error.parsingError.message
+                : String(errorRef.error.parsingError),
         },
       },
       processed: false,

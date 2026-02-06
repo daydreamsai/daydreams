@@ -13,9 +13,7 @@ export interface MarkdownExportOptions {
 /**
  * Exports episodes to Markdown format
  */
-export class MarkdownExporter
-  implements EpisodeExporter<MarkdownExportOptions>
-{
+export class MarkdownExporter implements EpisodeExporter<MarkdownExportOptions> {
   name = "markdown";
   description = "Export episodes as Markdown documents";
   formats = ["md", "markdown"];

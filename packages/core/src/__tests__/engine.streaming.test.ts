@@ -1,8 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createEngine } from "../engine";
-import type { AnyAgent, AnyRef, ContextState, Handlers, LogChunk, OutputRef, WorkingMemory } from "../types";
+import type {
+  AnyAgent,
+  AnyRef,
+  ContextState,
+  Handlers,
+  LogChunk,
+  OutputRef,
+  WorkingMemory,
+} from "../types";
 import * as z from "zod";
-import { createSilentTestAgent, createMockContextState } from "./test-utilities";
+import {
+  createSilentTestAgent,
+  createMockContextState,
+} from "./test-utilities";
 import { createWorkingMemory } from "../memory/utils";
 
 describe("Engine Streaming - Processed Outputs", () => {
@@ -110,7 +121,12 @@ describe("Engine Streaming - Processed Outputs", () => {
 
     const chunksForOut = onChunk.mock.calls
       .map((args) => args[0] as LogChunk)
-      .filter((chunk) => chunk.type === "log" && (chunk as any).log?.ref === "output" && (chunk as any).log?.id === "out-2");
+      .filter(
+        (chunk) =>
+          chunk.type === "log" &&
+          (chunk as any).log?.ref === "output" &&
+          (chunk as any).log?.id === "out-2"
+      );
 
     // Expect both the initial stub and the processed output to be chunked
     expect(chunksForOut.length).toBeGreaterThanOrEqual(2);
@@ -160,11 +176,15 @@ describe("Engine Streaming - Processed Outputs", () => {
 
     const actionResults = onLogStream.mock.calls
       .map((a) => a[0] as AnyRef)
-      .filter((r) => r.ref === "action_result" && (r as any).name === "stream-action");
+      .filter(
+        (r) => r.ref === "action_result" && (r as any).name === "stream-action"
+      );
 
     const actionResultChunks = onChunk.mock.calls
       .map((a) => a[0] as LogChunk)
-      .filter((c) => c.type === "log" && (c as any).log?.ref === "action_result");
+      .filter(
+        (c) => c.type === "log" && (c as any).log?.ref === "action_result"
+      );
 
     expect(actionResults.length + actionResultChunks.length).toBeGreaterThan(0);
   });
@@ -210,11 +230,15 @@ describe("Engine Streaming - Processed Outputs", () => {
 
     const results = onLogStream.mock.calls
       .map((a) => a[0] as AnyRef)
-      .filter((r) => r.ref === "action_result" && (r as any).name === "bad-action");
+      .filter(
+        (r) => r.ref === "action_result" && (r as any).name === "bad-action"
+      );
 
     expect(results.length).toBeGreaterThan(0);
     const res = results[results.length - 1] as any;
-    expect(res.data?.error?.message || typeof res.data?.error === "string").toBeTruthy();
+    expect(
+      res.data?.error?.message || typeof res.data?.error === "string"
+    ).toBeTruthy();
     expect(res.processed).toBe(false);
   });
 
@@ -253,7 +277,12 @@ describe("Engine Streaming - Processed Outputs", () => {
 
     const errorEventChunks = onChunk.mock.calls
       .map((a) => a[0] as LogChunk)
-      .filter((c) => c.type === "log" && (c as any).log?.ref === "event" && (c as any).log?.name === "error");
+      .filter(
+        (c) =>
+          c.type === "log" &&
+          (c as any).log?.ref === "event" &&
+          (c as any).log?.name === "error"
+      );
 
     expect(errorEvents.length + errorEventChunks.length).toBeGreaterThan(0);
   });

@@ -33,7 +33,9 @@ export class InMemoryKeyValueProvider implements KeyValueProvider {
   async health(): Promise<HealthStatus> {
     return {
       status: this.ready ? "healthy" : "unhealthy",
-      message: this.ready ? "In-memory KV provider operational" : "Not initialized",
+      message: this.ready
+        ? "In-memory KV provider operational"
+        : "Not initialized",
       details: {
         ready: this.ready,
         size: this.store.size,
@@ -48,7 +50,7 @@ export class InMemoryKeyValueProvider implements KeyValueProvider {
 
   async set<T>(key: string, value: T, options?: SetOptions): Promise<void> {
     this.ensureReady();
-    
+
     if (options?.ifNotExists && this.store.has(key)) {
       throw new Error(`Key ${key} already exists`);
     }
@@ -102,20 +104,23 @@ export class InMemoryKeyValueProvider implements KeyValueProvider {
   async getBatch<T>(keys: string[]): Promise<Map<string, T>> {
     this.ensureReady();
     const results = new Map<string, T>();
-    
+
     for (const key of keys) {
       const value = this.store.get(key);
       if (value !== undefined) {
         results.set(key, value);
       }
     }
-    
+
     return results;
   }
 
-  async setBatch<T>(entries: Map<string, T>, options?: SetOptions): Promise<void> {
+  async setBatch<T>(
+    entries: Map<string, T>,
+    options?: SetOptions
+  ): Promise<void> {
     this.ensureReady();
-    
+
     for (const [key, value] of entries) {
       await this.set(key, value, options);
     }
@@ -124,13 +129,13 @@ export class InMemoryKeyValueProvider implements KeyValueProvider {
   async deleteBatch(keys: string[]): Promise<number> {
     this.ensureReady();
     let deleted = 0;
-    
+
     for (const key of keys) {
       if (this.store.delete(key)) {
         deleted++;
       }
     }
-    
+
     return deleted;
   }
 
@@ -160,7 +165,9 @@ export class InMemoryVectorProvider implements VectorProvider {
   async health(): Promise<HealthStatus> {
     return {
       status: this.ready ? "healthy" : "unhealthy",
-      message: this.ready ? "In-memory vector provider operational" : "Not initialized",
+      message: this.ready
+        ? "In-memory vector provider operational"
+        : "Not initialized",
       details: {
         ready: this.ready,
         documents: this.documents.size,
@@ -170,7 +177,7 @@ export class InMemoryVectorProvider implements VectorProvider {
 
   async index(documents: VectorDocument[]): Promise<void> {
     this.ensureReady();
-    
+
     for (const doc of documents) {
       this.documents.set(doc.id, doc);
     }
@@ -201,7 +208,7 @@ export class InMemoryVectorProvider implements VectorProvider {
       if (query.query && query.query.trim() !== "") {
         const contentLower = doc.content.toLowerCase();
         const queryLower = query.query.toLowerCase();
-        
+
         // Check for exact match first
         if (contentLower.includes(queryLower)) {
           const exactMatch = contentLower === queryLower;
@@ -209,16 +216,20 @@ export class InMemoryVectorProvider implements VectorProvider {
           score = exactMatch ? 1.0 : startsWith ? 0.9 : 0.7;
         } else {
           // For similarity, check if most of the query words appear as whole words in content
-          const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+          const queryWords = queryLower
+            .split(/\s+/)
+            .filter((w) => w.length > 2);
           if (queryWords.length === 0) {
             continue; // Skip if no meaningful words in query
           }
-          
-          const matchingWords = queryWords.filter(qw => {
-            const wordRegex = new RegExp(`\\b${qw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+
+          const matchingWords = queryWords.filter((qw) => {
+            const wordRegex = new RegExp(
+              `\\b${qw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`
+            );
             return wordRegex.test(contentLower);
           });
-          
+
           // Require at least half the query words to match for a valid result
           if (matchingWords.length >= Math.ceil(queryWords.length / 2)) {
             score = (matchingWords.length / queryWords.length) * 0.6;
@@ -229,7 +240,7 @@ export class InMemoryVectorProvider implements VectorProvider {
       } else {
         score = Math.random() * 0.5 + 0.5; // Random score if no query
       }
-      
+
       if (!query.minScore || score >= query.minScore) {
         results.push({
           id,
@@ -249,7 +260,7 @@ export class InMemoryVectorProvider implements VectorProvider {
 
   async delete(ids: string[]): Promise<void> {
     this.ensureReady();
-    
+
     for (const id of ids) {
       this.documents.delete(id);
     }
@@ -257,7 +268,7 @@ export class InMemoryVectorProvider implements VectorProvider {
 
   async update(id: string, updates: Partial<VectorDocument>): Promise<void> {
     this.ensureReady();
-    
+
     const doc = this.documents.get(id);
     if (!doc) throw new Error(`Document ${id} not found`);
 
@@ -266,14 +277,14 @@ export class InMemoryVectorProvider implements VectorProvider {
 
   async count(namespace?: string): Promise<number> {
     this.ensureReady();
-    
+
     if (!namespace) return this.documents.size;
 
     let count = 0;
     for (const doc of this.documents.values()) {
       if (doc.namespace === namespace) count++;
     }
-    
+
     return count;
   }
 
@@ -307,7 +318,9 @@ export class InMemoryGraphProvider implements GraphProvider {
   async health(): Promise<HealthStatus> {
     return {
       status: this.ready ? "healthy" : "unhealthy",
-      message: this.ready ? "In-memory graph provider operational" : "Not initialized",
+      message: this.ready
+        ? "In-memory graph provider operational"
+        : "Not initialized",
       details: {
         ready: this.ready,
         nodes: this.nodes.size,
@@ -318,17 +331,17 @@ export class InMemoryGraphProvider implements GraphProvider {
 
   async addNode(node: GraphNode): Promise<string> {
     this.ensureReady();
-    
+
     if (!node.id) {
       node.id = `node:${Date.now()}:${Math.random()}`;
     }
 
     this.nodes.set(node.id, node);
-    
+
     if (!this.nodeEdges.has(node.id)) {
       this.nodeEdges.set(node.id, new Set());
     }
-    
+
     return node.id;
   }
 
@@ -339,7 +352,7 @@ export class InMemoryGraphProvider implements GraphProvider {
 
   async updateNode(id: string, updates: Partial<GraphNode>): Promise<void> {
     this.ensureReady();
-    
+
     const node = this.nodes.get(id);
     if (!node) throw new Error(`Node ${id} not found`);
 
@@ -348,7 +361,7 @@ export class InMemoryGraphProvider implements GraphProvider {
 
   async deleteNode(id: string): Promise<boolean> {
     this.ensureReady();
-    
+
     if (!this.nodes.has(id)) return false;
 
     // Delete all edges connected to this node
@@ -371,13 +384,13 @@ export class InMemoryGraphProvider implements GraphProvider {
 
     this.nodes.delete(id);
     this.nodeEdges.delete(id);
-    
+
     return true;
   }
 
   async addEdge(edge: GraphEdge): Promise<string> {
     this.ensureReady();
-    
+
     if (!edge.id) {
       edge.id = `relationship:${Date.now()}:${Math.random()}`;
     }
@@ -399,9 +412,12 @@ export class InMemoryGraphProvider implements GraphProvider {
     return edge.id;
   }
 
-  async getEdges(nodeId: string, direction: "in" | "out" | "both" = "both"): Promise<GraphEdge[]> {
+  async getEdges(
+    nodeId: string,
+    direction: "in" | "out" | "both" = "both"
+  ): Promise<GraphEdge[]> {
     this.ensureReady();
-    
+
     const edgeIds = this.nodeEdges.get(nodeId) || new Set();
     const result: GraphEdge[] = [];
 
@@ -423,7 +439,7 @@ export class InMemoryGraphProvider implements GraphProvider {
 
   async deleteEdge(id: string): Promise<boolean> {
     this.ensureReady();
-    
+
     const edge = this.edges.get(id);
     if (!edge) return false;
 
@@ -432,7 +448,7 @@ export class InMemoryGraphProvider implements GraphProvider {
     this.nodeEdges.get(edge.to)?.delete(id);
 
     this.edges.delete(id);
-    
+
     return true;
   }
 
@@ -502,17 +518,20 @@ export class InMemoryGraphProvider implements GraphProvider {
       if (traversal.maxDepth && path.length >= traversal.maxDepth) continue;
 
       const edges = await this.getEdges(nodeId, traversal.direction);
-      
+
       for (const edge of edges) {
         const nextNodeId = edge.from === nodeId ? edge.to : edge.from;
         const nextNode = this.nodes.get(nextNodeId);
-        
+
         if (!nextNode) continue;
 
         // Apply filter
         if (traversal.filter) {
           let match = true;
-          if (traversal.filter.type && nextNode.type !== traversal.filter.type) {
+          if (
+            traversal.filter.type &&
+            nextNode.type !== traversal.filter.type
+          ) {
             match = false;
           }
           if (!match) continue;
@@ -534,7 +553,7 @@ export class InMemoryGraphProvider implements GraphProvider {
 
   async shortestPath(from: string, to: string): Promise<GraphPath | null> {
     this.ensureReady();
-    
+
     // Simple BFS to find shortest path
     const queue: GraphPath[] = [];
     const visited = new Set<string>();
@@ -556,10 +575,10 @@ export class InMemoryGraphProvider implements GraphProvider {
       visited.add(currentNode.id);
 
       const edges = await this.getEdges(currentNode.id, "both");
-      
+
       for (const edge of edges) {
         const nextNodeId = edge.from === currentNode.id ? edge.to : edge.from;
-        
+
         if (visited.has(nextNodeId)) continue;
 
         const nextNode = this.nodes.get(nextNodeId);

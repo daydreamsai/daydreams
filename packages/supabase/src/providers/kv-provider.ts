@@ -175,7 +175,9 @@ export class SupabaseKVProvider implements KeyValueProvider {
   }
 
   async count(pattern?: string): Promise<number> {
-    let query = this.client.from(this.tableName).select("*", { count: "exact", head: true });
+    let query = this.client
+      .from(this.tableName)
+      .select("*", { count: "exact", head: true });
 
     if (pattern) {
       query = query.ilike("key", pattern.replace("*", "%"));
@@ -243,7 +245,7 @@ export class SupabaseKVProvider implements KeyValueProvider {
     }
 
     const result = new Map<string, T>();
-    const keyMap = new Map(keys.map(k => [_hashKey(k), k]));
+    const keyMap = new Map(keys.map((k) => [_hashKey(k), k]));
 
     if (data) {
       for (const row of data) {
@@ -261,11 +263,14 @@ export class SupabaseKVProvider implements KeyValueProvider {
     return result;
   }
 
-  async setBatch<T>(entries: Map<string, T>, options?: SetOptions): Promise<void> {
+  async setBatch<T>(
+    entries: Map<string, T>,
+    options?: SetOptions
+  ): Promise<void> {
     const records = Array.from(entries.entries()).map(([key, value]) => {
       const hashedKey = _hashKey(key);
       const serializedValue = JSON.stringify(value);
-      
+
       let expiresAt: string | null = null;
       if (options?.ttl) {
         expiresAt = new Date(Date.now() + options.ttl * 1000).toISOString();
@@ -349,6 +354,8 @@ export class SupabaseKVProvider implements KeyValueProvider {
 /**
  * Factory function to create a Supabase KeyValue provider
  */
-export function createSupabaseKVProvider(config: SupabaseKVProviderConfig): SupabaseKVProvider {
+export function createSupabaseKVProvider(
+  config: SupabaseKVProviderConfig
+): SupabaseKVProvider {
   return new SupabaseKVProvider(config);
 }

@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { handleEpisodeHooks } from '../episode-hooks';
-import type { AnyRef, WorkingMemory } from '../../types';
+import { describe, it, expect } from "vitest";
+import { handleEpisodeHooks } from "../episode-hooks";
+import type { AnyRef, WorkingMemory } from "../../types";
 
-describe('Episode hooks integration (handleEpisodeHooks)', () => {
-  it('default hooks start on input and end on processed output, storing an episode', async () => {
+describe("Episode hooks integration (handleEpisodeHooks)", () => {
+  it("default hooks start on input and end on processed output, storing an episode", async () => {
     const now = Date.now();
     const workingMemory: WorkingMemory = {
       inputs: [],
@@ -17,17 +17,17 @@ describe('Episode hooks integration (handleEpisodeHooks)', () => {
     } as any;
 
     const inputRef: AnyRef = {
-      id: 'r1',
-      ref: 'input',
+      id: "r1",
+      ref: "input",
       timestamp: now,
-      content: 'Hello',
+      content: "Hello",
     } as any;
 
     const outputRef: AnyRef = {
-      id: 'r2',
-      ref: 'output',
+      id: "r2",
+      ref: "output",
       timestamp: now + 100,
-      content: 'Hi there',
+      content: "Hi there",
       processed: true,
     } as any;
 
@@ -44,7 +44,7 @@ describe('Episode hooks integration (handleEpisodeHooks)', () => {
     } as any;
 
     const contextState = {
-      id: 'ctx-ep',
+      id: "ctx-ep",
       args: {},
       context: {},
     } as any;
@@ -56,8 +56,8 @@ describe('Episode hooks integration (handleEpisodeHooks)', () => {
 
     expect(storedEpisodes.length).toBe(1);
     const ep = storedEpisodes[0];
-    expect(ep?.contextId).toBe('ctx-ep');
-    expect(ep?.type).toBe('conversation');
+    expect(ep?.contextId).toBe("ctx-ep");
+    expect(ep?.type).toBe("conversation");
     expect(Array.isArray(ep?.logs) && ep.logs.length).toBeGreaterThan(0);
   });
 });

@@ -1,2 +1,1 @@
-export * from './provider-contracts';
-
+export * from "./provider-contracts";

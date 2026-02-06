@@ -5,19 +5,17 @@ import { render } from "../parsing";
 
 export type Formatter<
   Variables extends Record<string, any> = Record<string, any>,
-  Data = any
+  Data = any,
 > = (data: Data) => Record<keyof Variables, any>;
 
-export type InferFormatter<TPrompt extends AnyPrompt> = TPrompt extends Prompt<
-  infer Data,
-  infer Variables
->
-  ? Formatter<Variables, Data>
-  : never;
+export type InferFormatter<TPrompt extends AnyPrompt> =
+  TPrompt extends Prompt<infer Data, infer Variables>
+    ? Formatter<Variables, Data>
+    : never;
 
 export type PromptVisitor<
   Output = any,
-  Attributes extends Record<string, any> = Record<string, any>
+  Attributes extends Record<string, any> = Record<string, any>,
 > = (
   output: Output,
   node: ElementNode<Attributes>,
@@ -29,7 +27,7 @@ export type GetVisitors<
   T extends Record<string, Record<string, any>> = Record<
     string,
     Record<string, any>
-  >
+  >,
 > = {
   [K in keyof T]?: PromptVisitor<Output, T[K]>;
 } & {
@@ -38,7 +36,7 @@ export type GetVisitors<
 
 export type Prompt<
   Data = any,
-  Variables extends Record<string, any> = Record<string, any>
+  Variables extends Record<string, any> = Record<string, any>,
 > = <TData extends Data>(
   data: TData,
   formatter?: Formatter<Variables, TData>
@@ -49,17 +47,14 @@ export type AnyPrompt = Prompt<any, any>;
 export type InferPromptVariables<TPrompt extends AnyPrompt> =
   TPrompt extends Prompt<any, infer Vars> ? Vars : never;
 
-export type InferPromptData<TPrompt extends AnyPrompt> = TPrompt extends Prompt<
-  infer Data
->
-  ? Data
-  : never;
+export type InferPromptData<TPrompt extends AnyPrompt> =
+  TPrompt extends Prompt<infer Data> ? Data : never;
 
 export type GeneratePromptConfig<
   TPrompt extends AnyPrompt | string = any,
   Variables extends Record<string, any> = any,
   Data = Record<string, any>,
-  TFormatter extends Formatter<Variables, Data> = Formatter<Variables, Data>
+  TFormatter extends Formatter<Variables, Data> = Formatter<Variables, Data>,
 > = {
   template: TPrompt;
   variables: Variables;
@@ -81,7 +76,7 @@ export type InferPromptComponents<TPrompt extends AnyPrompt | string> =
 export function createPrompt<
   Template extends string = string,
   Variables extends TemplateVariables<Template> = TemplateVariables<Template>,
-  Data extends Record<string, any> = Record<string, any>
+  Data extends Record<string, any> = Record<string, any>,
 >(
   prompt: Template,
   formatter?: Formatter<Variables, Data>
@@ -92,8 +87,8 @@ export function createPrompt<
       customFormatter
         ? customFormatter(data)
         : formatter
-        ? formatter(data)
-        : data
+          ? formatter(data)
+          : data
     );
   };
 }
@@ -109,7 +104,7 @@ export function createParser<
   Visitors extends GetVisitors<Output, Components> = GetVisitors<
     Output,
     Components
-  >
+  >,
 >(getOutput: () => Output, visitors: Visitors): Parser<Output> {
   return (content) => {
     const validTags = new Set(Object.keys(visitors));

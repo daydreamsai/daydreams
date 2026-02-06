@@ -1,0 +1,24 @@
+{
+  "name": "@daydreamsai/starknet",
+  "version": "0.1.0",
+  "description": "Starknet integration for Daydreams agents (Project Huginn)",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "starknet": "^9.2.1"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
