@@ -23,9 +23,18 @@ export interface X402Invoice {
 }
 
 function validateAddress(address: string): void {
-  if (!address || address === "0x123..." || address.length < 10) {
+  if (!address || !/^0x[0-9a-fA-F]{10,64}$/.test(address)) {
     throw new Error(
       "Invalid HUGINN_REGISTRY_ADDRESS. Please provide a valid deployed contract address via createHuginn({ registryAddress: '0x...' })"
+    );
+  }
+}
+
+function validateName(name: string): void {
+  const byteLength = new TextEncoder().encode(name).length;
+  if (byteLength > 31) {
+    throw new Error(
+      `Agent name exceeds felt252 limit: ${byteLength} bytes (max 31). Use shorter name or store in metadata_url.`
     );
   }
 }
@@ -49,6 +58,8 @@ export function createHuginn(config: HuginnConfig) {
      * Format call to register an agent
      */
     registerAgent: (name: string, metadataUrl: string) => {
+      validateName(name);
+
       return {
         contractAddress: config.registryAddress,
         entrypoint: "register_agent",

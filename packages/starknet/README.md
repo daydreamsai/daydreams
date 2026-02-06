@@ -31,11 +31,10 @@ const huginn = createHuginn({
 
 // Register an agent
 const registerCall = huginn.registerAgent("MyAgent", "ipfs://metadata");
+await account.execute(registerCall);
 
 // Log a thought
 const { starknetCall } = huginn.logThought("My reasoning about X");
-
-// Submit to Starknet
 await account.execute(starknetCall);
 ```
 

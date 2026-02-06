@@ -71,7 +71,7 @@ pub mod HuginnRegistry {
             let caller = get_caller_address();
             
             let profile = self.agents.read(caller);
-            assert(profile.name != '', 'Agent not registered');
+            assert(profile.name != 0, 'Agent not registered');
 
             self.emit(Event::RavenFlight(RavenFlight { agent_id: caller, thought_hash }));
         }
