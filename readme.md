@@ -2,6 +2,14 @@
 
 # Daydreams - AI Agent Framework
 
+> **Notice:** This agent framework is no longer the core focus as features are already obsolete.
+>
+> The Daydreams core focus is on Agentic Commerce and not the agent harness.
+>
+> Check out the lucid-agents repo: https://github.com/daydreamsai/lucid-agents
+>
+> We recommend the [Pi agent harness](https://github.com/badlogic/pi-mono) for building agents and incorporating [lucid-agents](https://github.com/daydreamsai/lucid-agents) in it.
+
 Finally, TypeScript agents that scale and compose
 
 🌐 [Website](https://dreams.fun) • ⚡ [Quick Start](#-quick-start) • 📖
