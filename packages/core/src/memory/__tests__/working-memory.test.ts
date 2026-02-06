@@ -99,7 +99,11 @@ describe("WorkingMemoryImpl basic behavior", () => {
     expect(initial.outputs.length).toBe(0);
 
     // Modify and persist via set
-    initial.inputs.push({ id: "i1", ref: "input", timestamp: Date.now() } as any);
+    initial.inputs.push({
+      id: "i1",
+      ref: "input",
+      timestamp: Date.now(),
+    } as any);
     await memory.working.set(cid, initial);
 
     const after = await memory.working.get(cid);
@@ -111,12 +115,20 @@ describe("WorkingMemoryImpl basic behavior", () => {
     await memory.working.clear(cid);
 
     const now = Date.now();
-    const mk = (ref: string, i: number) => ({ id: `${ref}-${i}`, ref, timestamp: now + i });
+    const mk = (ref: string, i: number) => ({
+      id: `${ref}-${i}`,
+      ref,
+      timestamp: now + i,
+    });
 
     const pushes: Promise<void>[] = [];
     for (let i = 0; i < 25; i++) {
-      pushes.push(memory.working.push(cid, mk("input", i) as any, {} as any, {} as any));
-      pushes.push(memory.working.push(cid, mk("output", i) as any, {} as any, {} as any));
+      pushes.push(
+        memory.working.push(cid, mk("input", i) as any, {} as any, {} as any)
+      );
+      pushes.push(
+        memory.working.push(cid, mk("output", i) as any, {} as any, {} as any)
+      );
     }
     await Promise.all(pushes);
 

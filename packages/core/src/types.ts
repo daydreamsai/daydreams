@@ -51,11 +51,8 @@ export type InferSchema<T> = T extends {
  * Extracts the context type from an Agent type
  * @template TAgent - The agent type to extract context from
  */
-export type InferAgentContext<TAgent extends AnyAgent> = TAgent extends Agent<
-  infer Content
->
-  ? Content
-  : never;
+export type InferAgentContext<TAgent extends AnyAgent> =
+  TAgent extends Agent<infer Content> ? Content : never;
 
 /**
  * Extracts the memory type from an Agent by inferring its context
@@ -78,15 +75,15 @@ export type InferActionArguments<TSchema = undefined> =
   TSchema extends ZodRawShape
     ? z.infer<ZodObject<TSchema>>
     : TSchema extends z.ZodObject
-    ? z.infer<TSchema>
-    : TSchema extends Schema
-    ? TSchema["_type"]
-    : undefined;
+      ? z.infer<TSchema>
+      : TSchema extends Schema
+        ? TSchema["_type"]
+        : undefined;
 
 export interface ActionContext<
   TContext extends AnyContext = AnyContext,
   AContext extends AnyContext = AnyContext,
-  ActionMemory extends ActionState = ActionState
+  ActionMemory extends ActionState = ActionState,
 > extends AgentContext<TContext> {
   actionMemory: InferActionState<ActionMemory>;
   agentMemory: InferContextMemory<AContext> | undefined;
@@ -97,8 +94,10 @@ export interface ActionCallContext<
   Schema extends ActionSchema = undefined,
   TContext extends AnyContext = AnyContext,
   AContext extends AnyContext = AnyContext,
-  ActionMemory extends ActionState = ActionState
-> extends ActionContext<TContext, AContext, ActionMemory>,
+  ActionMemory extends ActionState = ActionState,
+>
+  extends
+    ActionContext<TContext, AContext, ActionMemory>,
     ContextStateApi<TContext> {
   call: ActionCall<InferActionArguments<Schema>>;
 }
@@ -106,17 +105,17 @@ export interface ActionCallContext<
 type InferActionResult<Result> = Result extends ZodRawShape
   ? z.infer<ZodObject<Result>>
   : Result extends ZodType
-  ? z.infer<Result>
-  : Result extends Schema
-  ? Result["_type"]
-  : Result;
+    ? z.infer<Result>
+    : Result extends Schema
+      ? Result["_type"]
+      : Result;
 
 export type ActionHandler<
   Schema extends ActionSchema = undefined,
   Result = any,
   TContext extends AnyContext = AnyContext,
   TAgent extends AnyAgent = AnyAgent,
-  TMemory extends ActionState = ActionState
+  TMemory extends ActionState = ActionState,
 > = Schema extends undefined
   ? (
       ctx: ActionCallContext<
@@ -150,7 +149,7 @@ export interface Action<
   TError = unknown,
   TContext extends AnyContext = AnyContext,
   TAgent extends AnyAgent = AnyAgent,
-  TState extends ActionState = ActionState
+  TState extends ActionState = ActionState,
 > {
   name: string;
   description?: string;
@@ -256,8 +255,8 @@ type InferOutputSchemaParams<Schema extends OutputSchema> =
   Schema extends ZodRawShape
     ? z.infer<ZodObject<Schema>>
     : Schema extends z.ZodTypeAny
-    ? z.infer<Schema>
-    : unknown;
+      ? z.infer<Schema>
+      : unknown;
 
 /**
  * Response type for output references
@@ -279,7 +278,7 @@ export type Output<
   Schema extends OutputSchema = OutputSchema,
   Response extends OutputRefResponse = OutputRefResponse,
   TContext extends AnyContext = AnyContext,
-  TAgent extends AnyAgent = AnyAgent
+  TAgent extends AnyAgent = AnyAgent,
 > = {
   name: string;
   description?: string;
@@ -330,7 +329,7 @@ export type Input<
     | z.ZodString
     | z.ZodRawShape,
   TContext extends AnyContext = AnyContext,
-  TAgent extends AnyAgent = AnyAgent
+  TAgent extends AnyAgent = AnyAgent,
 > = {
   type: string;
   description?: string;
@@ -675,8 +674,9 @@ export type LogChunk =
  * @template Memory - The type of memory used by the agent.
  * @template TContext - The type of context used by the agent.
  */
-export interface Agent<TContext extends AnyContext = AnyContext>
-  extends AgentDef<TContext> {
+export interface Agent<
+  TContext extends AnyContext = AnyContext,
+> extends AgentDef<TContext> {
   registry: Registry;
 
   /** Prompt builder used to generate the model prompt */
@@ -729,7 +729,7 @@ export interface Agent<TContext extends AnyContext = AnyContext>
    */
   run: <
     TContext extends AnyContext,
-    SubContextRefs extends AnyContext[] = AnyContext[]
+    SubContextRefs extends AnyContext[] = AnyContext[],
   >(opts: {
     context: TContext;
     args: InferSchemaArguments<TContext["schema"]>;
@@ -760,7 +760,7 @@ export interface Agent<TContext extends AnyContext = AnyContext>
    */
   send: <
     SContext extends AnyContext,
-    SubContextRefs extends AnyContext[] = AnyContext[]
+    SubContextRefs extends AnyContext[] = AnyContext[],
   >(opts: {
     context: SContext;
     args: InferSchemaArguments<SContext["schema"]>;
@@ -966,7 +966,7 @@ export type InputConfig<
     | z.ZodString
     | z.ZodRawShape,
   TContext extends AnyContext = AnyContext,
-  TAgent extends AnyAgent = AnyAgent
+  TAgent extends AnyAgent = AnyAgent,
 > = Omit<Input<Schema, TContext, TAgent>, "type">;
 
 /** Configuration type for outputs without type field */
@@ -974,7 +974,7 @@ export type OutputConfig<
   Schema extends OutputSchema = OutputSchema,
   Response extends OutputRefResponse = OutputRefResponse,
   TContext extends AnyContext = AnyContext,
-  TAgent extends AnyAgent = AnyAgent
+  TAgent extends AnyAgent = AnyAgent,
 > = Omit<Output<Schema, Response, TContext, TAgent>, "name">;
 
 /** Function type for subscription cleanup */
@@ -1042,8 +1042,8 @@ export type InferSchemaArguments<Schema = undefined> =
   Schema extends ZodRawShape
     ? z.infer<ZodObject<Schema>>
     : Schema extends z.ZodTypeAny
-    ? z.infer<Schema>
-    : never;
+      ? z.infer<Schema>
+      : never;
 
 interface ContextConfigApi<
   TMemory = any,
@@ -1053,17 +1053,17 @@ interface ContextConfigApi<
   Events extends Record<string, z.ZodTypeAny | ZodRawShape> = Record<
     string,
     z.ZodTypeAny | ZodRawShape
-  >
+  >,
 > {
   setActions<
     TActions extends AnyActionWithContext<
       Context<TMemory, Schema, Ctx, any, Events>
-    >[]
+    >[],
   >(
     actions: TActions
   ): Context<TMemory, Schema, Ctx, TActions, Events>;
   setInputs<
-    TSchemas extends Record<string, z.ZodObject | z.ZodString | z.ZodRawShape>
+    TSchemas extends Record<string, z.ZodObject | z.ZodString | z.ZodRawShape>,
   >(inputs: {
     [K in keyof TSchemas]: InputConfig<
       TSchemas[K],
@@ -1072,7 +1072,7 @@ interface ContextConfigApi<
     >;
   }): Context<TMemory, Schema, Ctx, Actions, Events>;
   setOutputs<
-    TSchemas extends Record<string, z.ZodObject | z.ZodString | z.ZodRawShape>
+    TSchemas extends Record<string, z.ZodObject | z.ZodString | z.ZodRawShape>,
   >(outputs: {
     [K in keyof TSchemas]: OutputConfig<
       TSchemas[K],
@@ -1118,7 +1118,7 @@ export type ContextConfig<
   Events extends Record<string, z.ZodTypeAny | z.ZodRawShape> = Record<
     string,
     z.ZodTypeAny | z.ZodRawShape
-  >
+  >,
 > = Optional<
   Omit<Context<TMemory, Args, Ctx, Actions, Events>, keyof ContextConfigApi>,
   "actions" | "events" | "inputs" | "outputs"
@@ -1126,7 +1126,7 @@ export type ContextConfig<
 
 type ContextComposer<
   TContext extends AnyContext,
-  T extends AnyContext[] = AnyContext[]
+  T extends AnyContext[] = AnyContext[],
 > = (state: ContextState<TContext>) => ContextRefArray<T>;
 
 type BaseContextComposer<TContext extends AnyContext> = (
@@ -1148,7 +1148,7 @@ export interface Context<
   Events extends Record<string, z.ZodTypeAny | ZodRawShape> = Record<
     string,
     z.ZodTypeAny | ZodRawShape
-  >
+  >,
 > extends ContextConfigApi<TMemory, Schema, Ctx, Actions, Events> {
   /** Unique type identifier for this context */
   type: string;
@@ -1324,18 +1324,11 @@ export type ContextRefArray<T extends AnyContext[] = AnyContext[]> = {
   [K in keyof T]: ContextRef<T[K]>;
 };
 
-type InferContextEvents<TContext extends AnyContext> = TContext extends Context<
-  any,
-  any,
-  any,
-  any,
-  infer Events
->
-  ? Events
-  : never;
+type InferContextEvents<TContext extends AnyContext> =
+  TContext extends Context<any, any, any, any, infer Events> ? Events : never;
 
 type ContextEventEmitter<TContext extends AnyContext> = <
-  T extends keyof InferContextEvents<TContext>
+  T extends keyof InferContextEvents<TContext>,
 >(
   event: T,
   args: InferSchema<InferContextEvents<TContext>[T]>,
@@ -1406,7 +1399,7 @@ export type Extension<
   Inputs extends Record<string, InputConfig<any, any>> = Record<
     string,
     InputConfig<any, any>
-  >
+  >,
 > = Pick<
   Config<TContext>,
   "inputs" | "outputs" | "actions" | "services" | "events"

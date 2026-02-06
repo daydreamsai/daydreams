@@ -1,16 +1,20 @@
 # @daydreamsai/mongo
 
-A MongoDB integration package for the DaydreamsAI platform, providing persistent key-value storage capabilities.
+A MongoDB integration package for the DaydreamsAI platform, providing persistent
+key-value storage capabilities.
 
 ## Features
 
-- **Key-Value Storage**: Persistent storage using MongoDB with TTL support and batch operations
+- **Key-Value Storage**: Persistent storage using MongoDB with TTL support and
+  batch operations
 - **Health Monitoring**: Built-in health checks for MongoDB connectivity
 - **Auto-Indexing**: Automatic creation of optimized indexes for performance
 - **Fully Typed**: Complete TypeScript support with proper error handling
-- **Memory System Integration**: Works seamlessly with the DaydreamsAI memory system
+- **Memory System Integration**: Works seamlessly with the DaydreamsAI memory
+  system
 
-> **Note**: This package only provides key-value storage via MongoDB. Vector and graph operations use in-memory providers from the core framework.
+> **Note**: This package only provides key-value storage via MongoDB. Vector and
+> graph operations use in-memory providers from the core framework.
 
 ## Installation
 
@@ -24,7 +28,8 @@ pnpm add @daydreamsai/mongo
 
 ## Prerequisites
 
-- **MongoDB Instance**: You need access to a MongoDB database (local, Atlas, or self-hosted)
+- **MongoDB Instance**: You need access to a MongoDB database (local, Atlas, or
+  self-hosted)
 - **Node.js**: Version 18 or higher
 
 ## Quick Start
@@ -38,8 +43,8 @@ import { createDreams } from "@daydreamsai/core";
 // Create the memory system
 const memory = createMongoMemory({
   uri: process.env.MONGODB_URI!,
-  dbName: "daydreams_memory",        // Optional: defaults to "daydreams_memory"
-  collectionName: "kv_store",        // Optional: defaults to "kv_store"
+  dbName: "daydreams_memory", // Optional: defaults to "daydreams_memory"
+  collectionName: "kv_store", // Optional: defaults to "kv_store"
 });
 
 // Initialize the memory system
@@ -78,7 +83,8 @@ await kvProvider.set("session:abc", sessionData, { ttl: 3600 }); // Expires in 1
 
 ### Memory System
 
-The main `createMongoMemory()` function creates a memory system with MongoDB KV storage:
+The main `createMongoMemory()` function creates a memory system with MongoDB KV
+storage:
 
 ```typescript
 interface MongoMemoryConfig {
@@ -103,10 +109,12 @@ const exists = await kvProvider.exists("key");
 await kvProvider.delete("key");
 
 // Batch operations
-await kvProvider.setBatch(new Map([
-  ["key1", "value1"],
-  ["key2", "value2"]
-]));
+await kvProvider.setBatch(
+  new Map([
+    ["key1", "value1"],
+    ["key2", "value2"],
+  ])
+);
 const results = await kvProvider.getBatch(["key1", "key2"]);
 
 // Pattern operations (limited functionality with hashed keys)
@@ -138,7 +146,8 @@ MONGODB_URI=mongodb://localhost:27017/myapp
 
 ## Database Schema
 
-The package automatically creates the following collection with optimized indexes:
+The package automatically creates the following collection with optimized
+indexes:
 
 ### Key-Value Collection (`kv_store`)
 
@@ -162,7 +171,8 @@ The provider automatically creates these indexes for optimal performance:
 
 ## Memory System Architecture
 
-MongoDB provides only key-value storage. Other memory types use in-memory providers:
+MongoDB provides only key-value storage. Other memory types use in-memory
+providers:
 
 - **KV Storage**: MongoDB (persistent)
 - **Vector Storage**: In-memory (not persistent)
@@ -181,7 +191,7 @@ import { createMongoMemoryStore } from "@daydreamsai/mongo";
 const store = await createMongoMemoryStore({
   uri: process.env.MONGODB_URI!,
   dbName: "dreams_memory",
-  collectionName: "conversations"
+  collectionName: "conversations",
 });
 
 // New API (recommended)
@@ -190,7 +200,7 @@ import { createMongoMemory } from "@daydreamsai/mongo";
 const memory = createMongoMemory({
   uri: process.env.MONGODB_URI!,
   dbName: "dreams_memory",
-  collectionName: "conversations"
+  collectionName: "conversations",
 });
 
 await memory.initialize();
@@ -199,16 +209,21 @@ await memory.initialize();
 ## Key Limitations
 
 ### Hashed Keys
-For security and performance, MongoDB stores SHA-256 hashes of keys rather than original keys. This means:
+
+For security and performance, MongoDB stores SHA-256 hashes of keys rather than
+original keys. This means:
 
 - `keys()` returns hashed keys, not original keys
 - Pattern matching has limited functionality
 - You cannot reverse-lookup original keys from stored data
 
 ### No Vector/Graph Persistence
-MongoDB integration only provides key-value storage. Vector embeddings and graph data are stored in memory and will not persist between application restarts.
+
+MongoDB integration only provides key-value storage. Vector embeddings and graph
+data are stored in memory and will not persist between application restarts.
 
 For persistent vector/graph storage, consider using:
+
 - `@daydreamsai/supabase` - Full persistence (KV + Vector + Graph)
 - `@daydreamsai/chroma` - Vector storage only
 
@@ -225,14 +240,17 @@ try {
 ```
 
 Common errors:
+
 - `"MongoDB not initialized"` - Call `await provider.initialize()` first
 - Connection errors - Check your MongoDB URI and network connectivity
 - Authentication errors - Verify your MongoDB credentials
 
 ## Performance Considerations
 
-1. **Connection Pooling**: The MongoDB client uses connection pooling automatically
-2. **Batch Operations**: Use `setBatch()` and `getBatch()` for multiple operations
+1. **Connection Pooling**: The MongoDB client uses connection pooling
+   automatically
+2. **Batch Operations**: Use `setBatch()` and `getBatch()` for multiple
+   operations
 3. **TTL Cleanup**: MongoDB automatically removes expired documents
 4. **Indexing**: Indexes are created automatically for optimal query performance
 
@@ -247,7 +265,7 @@ async function setupAgent() {
   const memory = createMongoMemory({
     uri: process.env.MONGODB_URI!,
     dbName: "my_agent_memory",
-    collectionName: "agent_kv_data"
+    collectionName: "agent_kv_data",
   });
 
   // Initialize the memory system

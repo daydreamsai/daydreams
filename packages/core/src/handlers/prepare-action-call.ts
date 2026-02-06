@@ -90,15 +90,15 @@ export async function prepareActionCall({
         "parse" in action.schema || "validate" in action.schema
           ? action.schema
           : "$schema" in action.schema
-          ? jsonSchema(action.schema)
-          : z.object(action.schema);
+            ? jsonSchema(action.schema)
+            : z.object(action.schema);
 
       call.data =
         "parse" in schema
           ? (schema as z.ZodType).parse(data)
           : "validate" in schema && schema.validate
-          ? schema.validate(data)
-          : data;
+            ? schema.validate(data)
+            : data;
     } catch (error) {
       throw new ParsingError(call, error);
     }

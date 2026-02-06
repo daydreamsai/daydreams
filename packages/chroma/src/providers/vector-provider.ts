@@ -129,12 +129,16 @@ export class ChromaVectorProvider implements VectorProvider {
       // Normalize and filter out unindexable docs (no embedding and empty content)
       const normalized = documents.map((doc) => {
         const content =
-          typeof doc.content === "string" ? doc.content : String(doc.content ?? "");
+          typeof doc.content === "string"
+            ? doc.content
+            : String(doc.content ?? "");
         return { ...doc, content };
       });
 
       const indexable = normalized.filter(
-        (d) => d.embedding || (typeof d.content === "string" && d.content.trim() !== "")
+        (d) =>
+          d.embedding ||
+          (typeof d.content === "string" && d.content.trim() !== "")
       );
 
       if (indexable.length === 0) return;
@@ -251,10 +255,10 @@ export class ChromaVectorProvider implements VectorProvider {
               id: ids[i],
               score: 0,
               content: includeContent
-                ? list.documents?.[i] ?? undefined
+                ? (list.documents?.[i] ?? undefined)
                 : undefined,
               metadata: includeMetadata
-                ? list.metadatas?.[i] ?? undefined
+                ? (list.metadatas?.[i] ?? undefined)
                 : undefined,
             });
           }
@@ -280,10 +284,10 @@ export class ChromaVectorProvider implements VectorProvider {
                 id: ids[i],
                 score: 0,
                 content: includeContent
-                  ? list.documents?.[i] ?? undefined
+                  ? (list.documents?.[i] ?? undefined)
                   : undefined,
                 metadata: includeMetadata
-                  ? list.metadatas?.[i] ?? undefined
+                  ? (list.metadatas?.[i] ?? undefined)
                   : undefined,
               });
             }
@@ -323,8 +327,8 @@ export class ChromaVectorProvider implements VectorProvider {
         vectorResults.push({
           id: ids[i],
           score,
-          content: includeContent ? documents[i] ?? undefined : undefined,
-          metadata: includeMetadata ? metadatas[i] ?? undefined : undefined,
+          content: includeContent ? (documents[i] ?? undefined) : undefined,
+          metadata: includeMetadata ? (metadatas[i] ?? undefined) : undefined,
         });
       }
 

@@ -9,7 +9,8 @@ required_tokens: [ETH, USDC]
 
 # Huginn Onboarding Skill
 
-**Goal**: Enable any agent on any EVM chain to onboard to Starknet and register their identity with the HuginnRegistry.
+**Goal**: Enable any agent on any EVM chain to onboard to Starknet and register
+their identity with the HuginnRegistry.
 
 ## Prerequisites
 

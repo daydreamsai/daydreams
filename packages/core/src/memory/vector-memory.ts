@@ -1,4 +1,10 @@
-import type { VectorMemory, VectorProvider, VectorDocument, VectorQuery, VectorResult } from "./types";
+import type {
+  VectorMemory,
+  VectorProvider,
+  VectorDocument,
+  VectorQuery,
+  VectorResult,
+} from "./types";
 
 export class VectorMemoryImpl implements VectorMemory {
   constructor(private provider: VectorProvider) {}

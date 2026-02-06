@@ -41,9 +41,16 @@ export class GraphMemoryImpl implements GraphMemory {
     const node = await this.provider.getNode(id);
     if (!node) return null;
 
-    const name = typeof node.properties.name === 'string' ? node.properties.name : '';
-    const contextIds = Array.isArray(node.properties.contextIds) ? node.properties.contextIds as string[] : [];
-    const { name: _name, contextIds: _contextIds, ...otherProperties } = node.properties;
+    const name =
+      typeof node.properties.name === "string" ? node.properties.name : "";
+    const contextIds = Array.isArray(node.properties.contextIds)
+      ? (node.properties.contextIds as string[])
+      : [];
+    const {
+      name: _name,
+      contextIds: _contextIds,
+      ...otherProperties
+    } = node.properties;
 
     return {
       id: node.id,

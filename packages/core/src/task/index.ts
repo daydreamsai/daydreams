@@ -26,18 +26,10 @@ export type Task<Params = any, Result = any, TError = any> = {
   timeoutMs?: number;
 };
 
-type InferTaskParams<T extends Task<any, any>> = T extends Task<
-  infer Params,
-  any
->
-  ? Params
-  : unknown;
-type InferTaskResult<T extends Task<any, any>> = T extends Task<
-  any,
-  infer Result
->
-  ? Result
-  : unknown;
+type InferTaskParams<T extends Task<any, any>> =
+  T extends Task<infer Params, any> ? Params : unknown;
+type InferTaskResult<T extends Task<any, any>> =
+  T extends Task<any, infer Result> ? Result : unknown;
 
 type TaskInstance<TTask extends Task<any, any> = Task<any, any>> = {
   id: string;

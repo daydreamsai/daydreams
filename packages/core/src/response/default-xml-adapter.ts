@@ -14,7 +14,7 @@ export const defaultXmlResponseAdapter: ResponseAdapter = {
     const cfg = modelsResponseConfig[modelId] || {};
     const prefix =
       cfg.prefix ??
-      (isReasoningModel ? cfg.thinkTag ?? "<think>" : "<response>");
+      (isReasoningModel ? (cfg.thinkTag ?? "<think>") : "<response>");
     const suffix = "</response>";
 
     return {

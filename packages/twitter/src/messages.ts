@@ -35,7 +35,10 @@ export interface SendDMResult {
 }
 
 export class TwitterMessagesService {
-  constructor(private scraper: Scraper, private logger: Logger) {}
+  constructor(
+    private scraper: Scraper,
+    private logger: Logger
+  ) {}
 
   /**
    * Get all DM conversations for a user

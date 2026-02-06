@@ -119,7 +119,7 @@ export const runGenerate = task({
       messages.push({
         role: "assistant",
         content: isReasoningModel
-          ? modelsResponseConfig[modelId]?.thinkTag ?? "<think>"
+          ? (modelsResponseConfig[modelId]?.thinkTag ?? "<think>")
           : "<response>",
       });
 

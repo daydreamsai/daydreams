@@ -1,13 +1,18 @@
 # @daydreamsai/supabase
 
-A Supabase integration package for the DaydreamsAI platform, providing comprehensive memory storage capabilities including key-value storage, vector embeddings, and graph relationships.
+A Supabase integration package for the DaydreamsAI platform, providing
+comprehensive memory storage capabilities including key-value storage, vector
+embeddings, and graph relationships.
 
 ## Features
 
 - **Complete Memory System**: Implements the full DaydreamsAI memory interface
-- **Key-Value Storage**: Persistent storage with TTL support and batch operations
-- **Vector Storage**: Store and retrieve vector embeddings using pgvector with similarity search
-- **Graph Storage**: Store and query entity relationships with graph traversal capabilities
+- **Key-Value Storage**: Persistent storage with TTL support and batch
+  operations
+- **Vector Storage**: Store and retrieve vector embeddings using pgvector with
+  similarity search
+- **Graph Storage**: Store and query entity relationships with graph traversal
+  capabilities
 - **Health Monitoring**: Built-in health checks for all storage providers
 - **Fully Typed**: Complete TypeScript support with Zod schema validation
 - **Auto-Initialization**: Automatic table creation and setup
@@ -58,11 +63,11 @@ import { createDreams } from "@daydreamsai/core";
 const memory = createSupabaseMemory({
   url: process.env.SUPABASE_URL!,
   key: process.env.SUPABASE_ANON_KEY!,
-  kvTableName: "kv_store",           // Optional: defaults to "kv_store"
-  vectorTableName: "vector_store",    // Optional: defaults to "vector_store"
-  nodesTableName: "graph_nodes",      // Optional: defaults to "graph_nodes"
-  edgesTableName: "graph_edges",      // Optional: defaults to "graph_edges"
-  embeddingDimension: 1536,           // Optional: defaults to 1536
+  kvTableName: "kv_store", // Optional: defaults to "kv_store"
+  vectorTableName: "vector_store", // Optional: defaults to "vector_store"
+  nodesTableName: "graph_nodes", // Optional: defaults to "graph_nodes"
+  edgesTableName: "graph_edges", // Optional: defaults to "graph_edges"
+  embeddingDimension: 1536, // Optional: defaults to 1536
 });
 
 // Initialize the memory system
@@ -80,10 +85,10 @@ const agent = createDreams({
 You can also use individual storage providers:
 
 ```typescript
-import { 
+import {
   createSupabaseKVProvider,
   createSupabaseVectorProvider,
-  createSupabaseGraphProvider 
+  createSupabaseGraphProvider
 } from "@daydreamsai/supabase";
 
 // Key-Value storage only
@@ -128,7 +133,8 @@ const results = await vectorProvider.search({
 
 ### Memory System
 
-The main `createSupabaseMemory()` function creates a complete memory system with all storage types:
+The main `createSupabaseMemory()` function creates a complete memory system with
+all storage types:
 
 ```typescript
 interface SupabaseMemoryConfig {
@@ -160,10 +166,12 @@ const value = await kvProvider.get("key");
 await kvProvider.delete("key");
 
 // Batch operations
-await kvProvider.setBatch(new Map([
-  ["key1", "value1"],
-  ["key2", "value2"]
-]));
+await kvProvider.setBatch(
+  new Map([
+    ["key1", "value1"],
+    ["key2", "value2"],
+  ])
+);
 const results = await kvProvider.getBatch(["key1", "key2"]);
 
 // Pattern matching
@@ -202,7 +210,7 @@ const results = await vectorProvider.search({
 });
 
 // Update and delete
-await vectorProvider.update("doc1", { 
+await vectorProvider.update("doc1", {
   content: "Updated content",
   metadata: { category: "updated" }
 });
@@ -217,7 +225,7 @@ await graphProvider.addNode({
   id: "person1",
   type: "Person",
   properties: { name: "Alice", age: 30 },
-  labels: ["Employee", "Developer"]
+  labels: ["Employee", "Developer"],
 });
 
 await graphProvider.addEdge({
@@ -225,19 +233,19 @@ await graphProvider.addEdge({
   from: "person1",
   to: "person2",
   type: "KNOWS",
-  properties: { since: "2020" }
+  properties: { since: "2020" },
 });
 
 // Find and traverse
 const nodes = await graphProvider.findNodes({
   type: "Person",
-  properties: { age: 30 }
+  properties: { age: 30 },
 });
 
 const paths = await graphProvider.traverse({
   start: "person1",
   direction: "out",
-  maxDepth: 3
+  maxDepth: 3,
 });
 
 const shortestPath = await graphProvider.shortestPath("person1", "person2");
@@ -267,6 +275,7 @@ SUPABASE_ANON_KEY=your-anon-key
 The package automatically creates the following tables:
 
 ### Key-Value Store (`kv_store`)
+
 ```sql
 CREATE TABLE kv_store (
   key TEXT PRIMARY KEY,
@@ -279,6 +288,7 @@ CREATE TABLE kv_store (
 ```
 
 ### Vector Store (`vector_store`)
+
 ```sql
 CREATE TABLE vector_store (
   id TEXT PRIMARY KEY,
@@ -292,6 +302,7 @@ CREATE TABLE vector_store (
 ```
 
 ### Graph Nodes (`graph_nodes`)
+
 ```sql
 CREATE TABLE graph_nodes (
   id TEXT PRIMARY KEY,
@@ -304,6 +315,7 @@ CREATE TABLE graph_nodes (
 ```
 
 ### Graph Edges (`graph_edges`)
+
 ```sql
 CREATE TABLE graph_edges (
   id TEXT PRIMARY KEY,
@@ -329,7 +341,7 @@ const memory = createSupabaseBaseMemory({
   url: process.env.SUPABASE_URL!,
   key: process.env.SUPABASE_ANON_KEY!,
   memoryTableName: "memory",
-  vectorTableName: "embeddings"
+  vectorTableName: "embeddings",
 });
 
 // New API
@@ -338,8 +350,8 @@ import { createSupabaseMemory } from "@daydreamsai/supabase";
 const memory = createSupabaseMemory({
   url: process.env.SUPABASE_URL!,
   key: process.env.SUPABASE_ANON_KEY!,
-  kvTableName: "memory",        // Renamed from memoryTableName
-  vectorTableName: "embeddings" // Same name
+  kvTableName: "memory", // Renamed from memoryTableName
+  vectorTableName: "embeddings", // Same name
 });
 ```
 

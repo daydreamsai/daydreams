@@ -219,7 +219,7 @@ export function createContextStreamHandler({
   };
 
   function getOrCreateRef<
-    TLog extends Omit<PartialLog, "id" | "timestamp" | "processed">
+    TLog extends Omit<PartialLog, "id" | "timestamp" | "processed">,
   >(
     index: number,
     ref: TLog

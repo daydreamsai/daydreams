@@ -40,7 +40,10 @@ export class KeyValueMemoryImpl implements KeyValueMemory {
     return this.provider.getBatch<T>(keys);
   }
 
-  async setBatch<T>(entries: Map<string, T>, options?: SetOptions): Promise<void> {
+  async setBatch<T>(
+    entries: Map<string, T>,
+    options?: SetOptions
+  ): Promise<void> {
     return this.provider.setBatch(entries, options);
   }
 

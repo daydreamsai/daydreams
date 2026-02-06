@@ -131,10 +131,13 @@ export class FirebaseKVProvider implements KeyValueProvider {
     }
 
     if (value !== null && typeof value === "object") {
-      return Object.entries(value).reduce((acc, [k, v]) => {
-        acc[k] = this.processValue(v);
-        return acc;
-      }, {} as Record<string, any>);
+      return Object.entries(value).reduce(
+        (acc, [k, v]) => {
+          acc[k] = this.processValue(v);
+          return acc;
+        },
+        {} as Record<string, any>
+      );
     }
 
     return value;

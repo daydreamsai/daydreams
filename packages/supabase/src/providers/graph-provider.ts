@@ -32,11 +32,11 @@ export class SupabaseGraphProvider implements GraphProvider {
   private edgesTable: string;
 
   constructor(config: SupabaseGraphProviderConfig) {
-    const { 
-      url, 
-      key, 
-      nodesTableName = "graph_nodes", 
-      edgesTableName = "graph_edges" 
+    const {
+      url,
+      key,
+      nodesTableName = "graph_nodes",
+      edgesTableName = "graph_edges",
     } = config;
     this.client = createClient(url, key);
     this.nodesTable = nodesTableName;
@@ -63,7 +63,7 @@ export class SupabaseGraphProvider implements GraphProvider {
         return {
           status: "unhealthy",
           message: `Database error: ${nodesResult.error?.message || edgesResult.error?.message}`,
-          details: { 
+          details: {
             nodesError: nodesResult.error?.code,
             edgesError: edgesResult.error?.code,
           },
@@ -210,7 +210,9 @@ export class SupabaseGraphProvider implements GraphProvider {
     const { data, error } = await query;
 
     if (error) {
-      throw new Error(`Failed to get edges for node ${nodeId}: ${error.message}`);
+      throw new Error(
+        `Failed to get edges for node ${nodeId}: ${error.message}`
+      );
     }
 
     return (data || []).map((row: any) => ({
@@ -291,7 +293,7 @@ export class SupabaseGraphProvider implements GraphProvider {
       if (!currentNode) return;
 
       const newPath = [...currentPath, currentNode];
-      
+
       // If we have a meaningful path, add it
       if (newPath.length > 1) {
         paths.push({
@@ -303,10 +305,10 @@ export class SupabaseGraphProvider implements GraphProvider {
 
       // Get connected edges
       const edges = await this.getEdges(currentNodeId, traversal.direction);
-      
+
       for (const edge of edges) {
         const nextNodeId = edge.from === currentNodeId ? edge.to : edge.from;
-        
+
         // Apply filter if provided
         if (traversal.filter) {
           const nextNode = await this.getNode(nextNodeId);
@@ -315,12 +317,7 @@ export class SupabaseGraphProvider implements GraphProvider {
           }
         }
 
-        await traverse(
-          nextNodeId,
-          newPath,
-          [...currentEdges, edge],
-          depth + 1
-        );
+        await traverse(nextNodeId, newPath, [...currentEdges, edge], depth + 1);
       }
 
       visited.delete(currentNodeId);
@@ -333,9 +330,11 @@ export class SupabaseGraphProvider implements GraphProvider {
   async shortestPath(from: string, to: string): Promise<GraphPath | null> {
     // This would typically be implemented using Dijkstra's algorithm
     // For now, we'll use a simple BFS approach
-    const queue: Array<{ nodeId: string; path: GraphNode[]; edges: GraphEdge[] }> = [
-      { nodeId: from, path: [], edges: [] }
-    ];
+    const queue: Array<{
+      nodeId: string;
+      path: GraphNode[];
+      edges: GraphEdge[];
+    }> = [{ nodeId: from, path: [], edges: [] }];
     const visited = new Set<string>();
 
     while (queue.length > 0) {
@@ -380,7 +379,7 @@ export class SupabaseGraphProvider implements GraphProvider {
     }
 
     if (filter.labels && filter.labels.length > 0) {
-      const hasMatchingLabel = filter.labels.some(label => 
+      const hasMatchingLabel = filter.labels.some((label) =>
         node.labels?.includes(label)
       );
       if (!hasMatchingLabel) {
@@ -402,12 +401,23 @@ export class SupabaseGraphProvider implements GraphProvider {
   private async initializeTables(): Promise<void> {
     // Check if tables exist
     const [nodesError, edgesError] = await Promise.all([
-      this.client.from(this.nodesTable).select("id").limit(1).then(r => r.error),
-      this.client.from(this.edgesTable).select("id").limit(1).then(r => r.error),
+      this.client
+        .from(this.nodesTable)
+        .select("id")
+        .limit(1)
+        .then((r) => r.error),
+      this.client
+        .from(this.edgesTable)
+        .select("id")
+        .limit(1)
+        .then((r) => r.error),
     ]);
 
     // Create tables if they don't exist
-    if ((nodesError && nodesError.code === "42P01") || (edgesError && edgesError.code === "42P01")) {
+    if (
+      (nodesError && nodesError.code === "42P01") ||
+      (edgesError && edgesError.code === "42P01")
+    ) {
       const createTablesQuery = `
         -- Create nodes table
         CREATE TABLE IF NOT EXISTS ${this.nodesTable} (
@@ -458,7 +468,9 @@ export class SupabaseGraphProvider implements GraphProvider {
         await this.client.rpc("execute_sql", {
           query: createTablesQuery,
         });
-        console.log(`Created graph tables: ${this.nodesTable}, ${this.edgesTable}`);
+        console.log(
+          `Created graph tables: ${this.nodesTable}, ${this.edgesTable}`
+        );
       } catch (e) {
         console.error(`Failed to create graph tables:`, e);
         throw e;
@@ -470,6 +482,8 @@ export class SupabaseGraphProvider implements GraphProvider {
 /**
  * Factory function to create a Supabase Graph provider
  */
-export function createSupabaseGraphProvider(config: SupabaseGraphProviderConfig): SupabaseGraphProvider {
+export function createSupabaseGraphProvider(
+  config: SupabaseGraphProviderConfig
+): SupabaseGraphProvider {
   return new SupabaseGraphProvider(config);
 }

@@ -1,8 +1,18 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as z from "zod";
 import { createEngine } from "../engine";
-import type { AnyAgent, AnyRef, ContextState, LogChunk, OutputRef, WorkingMemory } from "../types";
-import { createSilentTestAgent, createMockContextState } from "./test-utilities";
+import type {
+  AnyAgent,
+  AnyRef,
+  ContextState,
+  LogChunk,
+  OutputRef,
+  WorkingMemory,
+} from "../types";
+import {
+  createSilentTestAgent,
+  createMockContextState,
+} from "./test-utilities";
 import { createWorkingMemory } from "../memory/utils";
 
 describe("Action template resolvers", () => {

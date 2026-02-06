@@ -169,18 +169,18 @@ export function createTestAgent<TContext extends AnyContext = AnyContext>(
         schema: z.string(),
         handler: async (content: string) => ({
           data: content,
-          params: {}
-        })
-      }
+          params: {},
+        }),
+      },
     },
     outputs: {
       text: {
-        schema: z.string(), 
+        schema: z.string(),
         handler: async (data: string) => ({
           data,
-          processed: true
-        })
-      }
+          processed: true,
+        }),
+      },
     },
     logLevel: LogLevel.ERROR, // Suppress logs during testing
     ...agentConfig,
@@ -200,7 +200,7 @@ export function createSilentTestAgent<TContext extends AnyContext = AnyContext>(
 ): Agent<TContext> {
   return createTestAgent({
     logLevel: LogLevel.ERROR,
-    ...config
+    ...config,
   });
 }
 

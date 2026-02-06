@@ -238,7 +238,11 @@ export function createEngine({
           pushLogToSubscribers(eventRef, true);
         } catch {}
         try {
-          __pushLogChunkToSubscribers({ type: "log", done: true, log: eventRef });
+          __pushLogChunkToSubscribers({
+            type: "log",
+            done: true,
+            log: eventRef,
+          });
         } catch {}
         // Optionally persist the error event
         try {
@@ -473,14 +477,22 @@ export function createEngine({
         }
 
         try {
-          __pushLogChunkToSubscribers({ type: "log", done: true, log: ref as any });
-        } catch (error) {
-          agent.logger.error("engine:chunk", "Failed to emit chunk for output", {
-            error: error instanceof Error ? error.message : String(error),
-            logRef: (ref as any).ref,
-            logId: (ref as any).id,
-            contextId: ctxState.id,
+          __pushLogChunkToSubscribers({
+            type: "log",
+            done: true,
+            log: ref as any,
           });
+        } catch (error) {
+          agent.logger.error(
+            "engine:chunk",
+            "Failed to emit chunk for output",
+            {
+              error: error instanceof Error ? error.message : String(error),
+              logRef: (ref as any).ref,
+              logId: (ref as any).id,
+              contextId: ctxState.id,
+            }
+          );
         }
       }
 
