@@ -30,8 +30,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           STARKNET_RPC_URL: https://starknet-sepolia.public.blastapi.io
         run: |
-          # Create a fresh agent with NO prior Starknet knowledge
-          cat > agent_test.js << 'EOF'
+          cat > agent_test.js << 'TESTEOF'
           const Anthropic = require("@anthropic-ai/sdk");
           const fs = require("fs");
           
@@ -40,7 +39,6 @@ jobs:
           });
           
           async function testAgentOnboarding() {
-            // Read the SKILL.md (ONLY information agent has)
             const skill = fs.readFileSync(
               "packages/starknet/skills/onboard/SKILL.md",
               "utf-8"
@@ -52,7 +50,7 @@ jobs:
               messages: [{
                 role: "user",
                 content: `You are a fresh AI agent who has NEVER used Starknet before.
-                
+
 Your ONLY source of information is this skill guide:
 
 ${skill}
@@ -69,7 +67,6 @@ Report:
             
             console.log(message.content[0].text);
             
-            // Parse response to determine if test passed
             const response = message.content[0].text.toLowerCase();
             if (response.includes("successfully") || response.includes("completed")) {
               console.log("✅ Agent test PASSED");
@@ -81,7 +78,7 @@ Report:
           }
           
           testAgentOnboarding();
-          EOF
+          TESTEOF
           
           node agent_test.js
 
