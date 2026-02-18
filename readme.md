@@ -538,3 +538,14 @@ reports and feature requests
 
 **[MIT Licensed](./licence.md)** • Built with ❤️ by the
 [Daydreams](https://dreams.fun) team
+
+## RunLedger CI gate
+
+This repo includes a deterministic CI gate for tool-using agents:
+
+```bash
+runledger run evals/runledger --mode replay --baseline baselines/runledger-demo.json
+```
+
+It replays recorded tool calls and fails the PR on schema/tool/budget regressions.
+
