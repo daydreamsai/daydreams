@@ -1,5 +1,6 @@
 {
   "name": "x402",
+  "license": "MIT",
   "module": "index.ts",
   "type": "module",
   "private": true,
