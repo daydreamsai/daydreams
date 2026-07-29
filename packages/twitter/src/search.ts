@@ -21,6 +21,13 @@ export interface SearchResult<T> {
   hasMore: boolean;
 }
 
+export interface TweetSearchBackend {
+  searchTweets(
+    query: string,
+    options?: SearchOptions
+  ): Promise<SearchResult<Tweet>>;
+}
+
 export interface TrendingTopic {
   name: string;
   query: string;
@@ -28,7 +35,11 @@ export interface TrendingTopic {
 }
 
 export class TwitterSearchService {
-  constructor(private scraper: Scraper, private logger: Logger) {}
+  constructor(
+    private scraper: Scraper,
+    private logger: Logger,
+    private tweetSearchBackend?: TweetSearchBackend
+  ) {}
 
   /**
    * Search for tweets with advanced filtering
@@ -38,6 +49,10 @@ export class TwitterSearchService {
     options: SearchOptions = {}
   ): Promise<SearchResult<Tweet>> {
     try {
+      if (this.tweetSearchBackend) {
+        return this.tweetSearchBackend.searchTweets(query, options);
+      }
+
       const { maxResults = 20, mode = SearchMode.Latest, cursor } = options;
 
       this.logger.debug(

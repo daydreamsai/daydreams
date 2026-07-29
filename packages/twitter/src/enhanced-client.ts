@@ -5,8 +5,11 @@ import {
   type Profile,
 } from "agent-twitter-client";
 import { Logger, LogLevel } from "@daydreamsai/core";
-import * as z from "zod";
 import { TwitterClient, type TwitterCredentials, type TweetData } from "./io";
+import {
+  parseEnhancedEnvironment,
+  type EnhancedEnvironment,
+} from "./enhanced-env";
 import {
   TwitterSearchService,
   type SearchOptions,
@@ -22,19 +25,7 @@ import {
   type DMConversation,
   type SendDMResult,
 } from "./messages";
-
-const enhancedEnvSchema = z.object({
-  TWITTER_USERNAME: z.string(),
-  TWITTER_PASSWORD: z.string(),
-  TWITTER_EMAIL: z.string(),
-  DRY_RUN: z
-    .preprocess((val) => val === "1" || val === "true", z.boolean())
-    .default(true),
-  TWITTER_AUTO_ENGAGE: z
-    .preprocess((val) => val === "1" || val === "true", z.boolean())
-    .default(false),
-  TWITTER_RATE_LIMIT_DELAY: z.number().default(1000),
-});
+import { XquikSearchClient } from "./xquik";
 
 export interface MediaData {
   data: Buffer;
@@ -75,7 +66,7 @@ export class EnhancedTwitterClient extends TwitterClient {
   private searchService: TwitterSearchService;
   private socialService: TwitterSocialService;
   private messagesService: TwitterMessagesService;
-  private enhancedEnv: z.infer<typeof enhancedEnvSchema>;
+  private enhancedEnv: EnhancedEnvironment;
   private rateLimitQueue: Array<() => Promise<any>> = [];
   private processing = false;
 
@@ -85,10 +76,20 @@ export class EnhancedTwitterClient extends TwitterClient {
   ) {
     super(credentials, logLevel);
 
+    this.enhancedEnv = parseEnhancedEnvironment(process.env);
+    const tweetSearchBackend =
+      this.enhancedEnv.TWITTER_SEARCH_BACKEND === "xquik"
+        ? new XquikSearchClient({
+            apiKey: this.enhancedEnv.XQUIK_API_KEY,
+            baseUrl: this.enhancedEnv.XQUIK_BASE_URL,
+          })
+        : undefined;
+
     // Initialize services with access to the scraper
     this.searchService = new TwitterSearchService(
       this.getScraper(),
-      this.getLogger()
+      this.getLogger(),
+      tweetSearchBackend
     );
     this.socialService = new TwitterSocialService(
       this.getScraper(),
@@ -98,8 +99,6 @@ export class EnhancedTwitterClient extends TwitterClient {
       this.getScraper(),
       this.getLogger()
     );
-
-    this.enhancedEnv = enhancedEnvSchema.parse(process.env);
   }
 
   // Access scraper from parent class

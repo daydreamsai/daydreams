@@ -57,8 +57,6 @@ export class TwitterClient {
 
         const cookies = await this.scraper.getCookies();
 
-        console.log("cookies", cookies);
-
         await this.scraper.setCookies(cookies);
         this.cookies = cookies;
       } catch (error) {

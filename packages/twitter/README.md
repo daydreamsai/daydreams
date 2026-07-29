@@ -73,6 +73,9 @@ npm install @daydreamsai/twitter
 TWITTER_USERNAME=your_username
 TWITTER_PASSWORD=your_password
 TWITTER_EMAIL=your_email
+TWITTER_SEARCH_BACKEND=native  # Set to xquik to route tweet searches through Xquik
+XQUIK_API_KEY=your_xquik_api_key  # Required only for the Xquik search backend
+XQUIK_BASE_URL=https://xquik.com  # Optional Xquik API base URL
 DRY_RUN=true  # Set to false for production
 TWITTER_AUTO_ENGAGE=false
 TWITTER_RATE_LIMIT_DELAY=1000  # milliseconds
@@ -138,6 +141,31 @@ const agent = createAgent({
 });
 ```
 
+### Optional Xquik Search Backend
+
+Use Xquik to route tweet search through its typed REST client:
+
+```typescript
+import { SearchMode, XquikSearchClient } from "@daydreamsai/twitter";
+
+const search = new XquikSearchClient({
+  apiKey: process.env.XQUIK_API_KEY!,
+});
+
+const results = await search.searchTweets("AI agents", {
+  maxResults: 25,
+  mode: SearchMode.Latest,
+});
+```
+
+Existing `EnhancedTwitterClient` users can set `TWITTER_SEARCH_BACKEND=xquik` to
+route `searchTweets` and advanced tweet queries through Xquik. Profile search,
+trends, social actions, and messages continue using the existing client and its
+configured X account credentials.
+
+Xquik is an independent third-party service. Not affiliated with X Corp.
+"Twitter" and "X" are trademarks of X Corp.
+
 ## API Reference
 
 ### Core Classes
@@ -166,6 +194,11 @@ Main client class that provides all Twitter functionality.
 #### `TwitterSearchService`
 
 Specialized service for search functionality.
+
+#### `XquikSearchClient`
+
+Opt-in Xquik REST client for tweet search with cursor pagination and media
+search modes. Requires `XQUIK_API_KEY`.
 
 #### `TwitterSocialService`
 
