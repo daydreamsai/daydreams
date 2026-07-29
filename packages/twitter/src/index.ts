@@ -5,3 +5,4 @@ export * from "./social";
 export * from "./messages";
 export * from "./enhanced-client";
 export * from "./enhanced-extension";
+export * from "./xquik";
