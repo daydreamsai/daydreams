@@ -9,10 +9,7 @@ quickly fix the problem.
 
 ## 📧 How to Report
 
-Please **DO NOT** file a public issue for security vulnerabilities. Instead,
-please report them privately by emailing:
-
-📧 **security@dreams.fun**
+Please **DO NOT** file a public issue for security vulnerabilities.
 
 ### What to Include
 
