@@ -12,12 +12,12 @@
 
 Finally, TypeScript agents that scale and compose
 
-🌐 [Website](https://dreams.fun) • ⚡ [Quick Start](#-quick-start) • 📖
-[Documentation](https://docs.dreams.fun) • 💬
+🌐 [Website](https://www.daydreams.systems/) • ⚡ [Quick Start](#-quick-start) • 📖
+[Documentation](https://docs.daydreams.systems/) • 💬
 [Discord](https://discord.gg/rt8ajxQvXh)
 
 <p align="center">
-  <a href="https://docs.dreams.fun"><img src="https://img.shields.io/badge/docs-dreams.fun-blue?style=flat-square" alt="Documentation"></a>
+  <a href="https://docs.daydreams.systems/"><img src="https://img.shields.io/badge/docs-daydreams.systems-blue?style=flat-square" alt="Documentation"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://github.com/daydreamsai/daydreams/stargazers"><img src="https://img.shields.io/github/stars/daydreamsai/daydreams?style=flat-square" alt="GitHub stars"></a>
@@ -73,8 +73,8 @@ const { dreamsRouter } = await createDreamsRouterAuth(account, {
 
 🌐 **Live Service**:
 [router.daydreams.systems](https://router.daydreams.systems) • 📖
-**[Router Docs](https://docs.dreams.fun/docs/router)** • ⚡
-**[Router Quickstart](https://docs.dreams.fun/docs/router/quickstart)**
+**[Router Docs](./docs/content/docs/router/index.mdx)** • ⚡
+**[Router Quickstart](./docs/content/docs/router/quickstart.mdx)**
 
 ## 🌟 The Power of Context Composition
 
@@ -367,7 +367,7 @@ const smartAssistant = context({
 ]);
 ```
 
-**[📖 Learn More About Contexts →](https://docs.dreams.fun/docs/core/concepts/contexts)**
+**[📖 Learn More About Contexts →](./docs/content/docs/core/concepts/contexts.mdx)**
 
 ## 🔌 MCP Integration
 
@@ -399,41 +399,41 @@ createMcpExtension([
 - **Developer Tools**: Code execution, testing, deployment
 - **Specialized**: 3D rendering, image processing, analytics
 
-**[📖 Learn More About MCP →](https://docs.dreams.fun/docs/core/concepts/mcp)**
+**[📖 Learn More About MCP →](./docs/content/docs/core/concepts/mcp.mdx)**
 
 ## 📚 Documentation & Learning
 
-**🏠 [Complete Documentation](https://docs.dreams.fun)** - Everything you need
+**🏠 [Complete Documentation](https://docs.daydreams.systems/)** - Everything you need
 to build production agents
 
 ### 🏃‍♂️ Quick Start Paths
 
 🎯 **I want to test it myself** →
-[5-minute quickstart](https://docs.dreams.fun/docs/core/first-agent)  
+[5-minute quickstart](./docs/content/docs/core/first-agent.mdx)\
 🛠️ **I want to see examples** → [Working examples](#-examples)  
 🚀 **I want to build something** → [Tutorials](#tutorials)  
 💬 **I need help** → [Join our Discord](https://discord.gg/rt8ajxQvXh)
 
 ### Essential Guides
 
-- **[First Agent](https://docs.dreams.fun/docs/core/first-agent)** - Build your
+- **[First Agent](./docs/content/docs/core/first-agent.mdx)** - Build your
   first agent in 5 minutes
-- **[Context System](https://docs.dreams.fun/docs/core/concepts/contexts)** -
+- **[Context System](./docs/content/docs/core/concepts/contexts.mdx)** -
   Master stateful conversations
-- **[MCP Integration](https://docs.dreams.fun/docs/core/concepts/mcp)** -
+- **[MCP Integration](./docs/content/docs/core/concepts/mcp.mdx)** -
   Connect to external tools
-- **[Extensions](https://docs.dreams.fun/docs/core/concepts/extensions)** -
+- **[Extensions](./docs/content/docs/core/concepts/extensions.mdx)** -
   Platform integrations
 
 ### Tutorials
 
-- **[Basic Agent](https://docs.dreams.fun/docs/tutorials/basic/single-context)** -
+- **[Basic Agent](./docs/content/docs/tutorials/basic/single-context.mdx)** -
   Simple conversational bot
-- **[Multi-Context Agent](https://docs.dreams.fun/docs/tutorials/basic/multi-context-agent)** -
+- **[Multi-Context Agent](./docs/content/docs/tutorials/basic/multi-context-agent.mdx)** -
   Handle multiple workflows
-- **[MCP Setup](https://docs.dreams.fun/docs/tutorials/mcp/mcp-guide)** -
+- **[MCP Setup](./docs/content/docs/core/concepts/mcp.mdx)** -
   Connect external servers
-- **[x402 Nanoservice](https://docs.dreams.fun/docs/tutorials/x402/server)** -
+- **[x402 Nanoservice](./docs/content/docs/tutorials/x402/server.mdx)** -
   Paid AI services
 
 ## 🚀 Extensions & Ecosystem
@@ -522,7 +522,7 @@ tools
 
 💬 **[Discord Community](https://discord.gg/rt8ajxQvXh)** - Get help from the
 team and community  
-📖 **[Documentation](https://docs.dreams.fun)** - Comprehensive guides and
+📖 **[Documentation](https://docs.daydreams.systems/)** - Comprehensive guides and
 examples  
 🐛 **[GitHub Issues](https://github.com/daydreamsai/daydreams/issues)** - Bug
 reports and feature requests  
@@ -531,10 +531,10 @@ reports and feature requests
 ## ✨ Ready to Build AI Agents That Actually Work?
 
 **⭐ Star this repo** • **🚀
-[Try Daydreams now](https://docs.dreams.fun/docs/core/first-agent)** • **💬
+[Try Daydreams now](./docs/content/docs/core/first-agent.mdx)** • **💬
 [Join Discord](https://discord.gg/rt8ajxQvXh)**
 
 ---
 
 **[MIT Licensed](./licence.md)** • Built with ❤️ by the
-[Daydreams](https://dreams.fun) team
+[Daydreams](https://www.daydreams.systems/) team
