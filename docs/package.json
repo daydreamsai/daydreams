@@ -1,6 +1,7 @@
 {
   "name": "daydreams",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=16384 next build",

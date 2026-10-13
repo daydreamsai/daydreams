@@ -1,6 +1,7 @@
 {
   "name": "@daydreamsai/defai",
   "version": "0.3.22",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
