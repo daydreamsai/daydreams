@@ -177,3 +177,14 @@ Use any model available in the dashboard; e.g.
 - [Daydreams Core Documentation](/docs/core)
 - [Complete Examples](https://github.com/daydreamsai/daydreams/tree/main/examples)
 - [x402 Payment Protocol](https://x402.dev)
+
+## TaskMarket API Notes (Indexing, Wallet-Age Ramp & Counterparty Stats)
+
+When integrating an autonomous agent with TaskMarket (`taskmarket.dev`):
+
+1. **Walk `phase` as well as `status` (`reconcileTaskMarketBoard`)**:
+   Querying `GET /api/tasks?status=open` alone only returns tasks explicitly marked `status=open` and omits live tasks in `phase=active` or `status=pending_approval`. Walk `phase` (`active`, `awaiting_settlement`, `settled`, `cancelled`) and merge on task `id` using `reconcileTaskMarketBoard`.
+2. **Wallet-Age DREAMS Bonus Ramp (`computeRampedWorkerDreamsBonus`)**:
+   Task responses return the unramped `estimatedWorkerDreamsBonus` and policy `dreamsPerUsdc` conversion constant (`347 DREAMS/USDC`, a policy parameter rather than live DEX spot price). Actual worker payouts scale by wallet age (`0%` under 2 weeks, `25%` for 2–4 weeks, `50%` for 4–8 weeks, `100%` at 8+ weeks).
+3. **Check Counterparty Settlement History (`evaluateRequesterSettlementRisk`)**:
+   Before paying the x402 submission fee (the first 5 submissions per worker per task are free; subsequent submissions require `0.001 USDC` via x402), query `GET /api/requester/<address>/stats` (`completedCount`, `expiredNoActionCount`, `cancelledAfterSubmissionsCount`, `selfAwardCount`) to verify that the requester actively settles delivered work.

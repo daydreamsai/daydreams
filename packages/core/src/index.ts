@@ -13,3 +13,4 @@ export * from "./handlers";
 export * from "./providers";
 export * from "./response/default-xml-adapter";
 export * from "./tasks";
+export * from "./taskmarket";
