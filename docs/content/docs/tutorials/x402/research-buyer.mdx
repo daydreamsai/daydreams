@@ -1,0 +1,86 @@
+---
+title: Buying Services with x402
+description:
+  A Daydreams research agent that pays for web utilities mid-task over x402,
+  under a hard per-task spend cap.
+---
+
+The [nanoservice tutorial](/docs/tutorials/x402/nanoservice) shows an agent
+_charging_ for requests. This tutorial shows the other side: an agent _paying_
+for generic web utilities while it works, using the full example in
+`examples/x402/research-buyer`.
+
+The agent buys two pay-per-call utilities from
+[StallRow](https://stall-row-production.up.railway.app) — no API key or account,
+payment is the auth:
+
+- **Page metadata** (`POST /v1/page-metadata`, $0.005 USDC) — a page's title,
+  description, canonical URL, OpenGraph fields, and heading outline, fetched
+  before deciding whether the full page is worth reading.
+- **Video transcript** (`POST /v1/video-transcript`, $0.01 USDC) — a YouTube
+  video's caption text with timed segments.
+
+## Step 1: The spend contract comes first
+
+An agent that signs payments needs its guardrails in code, not in a prompt. The
+example's buyer (`stallrow.ts`) enforces, before anything is signed:
+
+- the challenge's asset is USDC on Base and its amount is at or under the
+  route's known price (a payment policy on the x402 client, plus the SDK's spend
+  controls);
+- the payment's validity window is at most 300 seconds — enforced by an
+  `onBeforePaymentCreation` hook that aborts before the signature exists when a
+  challenge asks for longer;
+- a per-task cap (default $0.05) tracks settled spend across calls;
+- with no wallet configured, every call fails closed and pays nothing.
+
+## Step 2: Configure the buyer
+
+```typescript title="Create a guarded buyer"
+import { StallRowBuyer } from "./stallrow";
+
+// Reads STALLROW_WALLET_PRIVATE_KEY and STALLROW_MAX_TASK_USDC
+// from the environment. The key is never logged.
+const buyer = StallRowBuyer.fromEnv();
+
+const metadata = await buyer.pageMetadata("https://www.x402.org/");
+const transcript = await buyer.videoTranscript("dQw4w9WgXcQ", "en");
+```
+
+Under the hood the buyer registers the Base network on an `x402Client` with the
+official `@x402/fetch` / `@x402/evm` packages (x402 v2) and wraps fetch, so a
+402 challenge is answered with a signed payment and the request is retried
+automatically.
+
+## Step 3: Give the agent buying actions
+
+```typescript title="Research actions"
+// Inside a context's setActions([...]):
+action({
+  name: "check-page-metadata",
+  description: "Fetch a page's metadata for $0.005 USDC over x402.",
+  schema: z.object({ url: z.string() }),
+  handler: async ({ url }, ctx) => {
+    try {
+      return await buyer.pageMetadata(url);
+    } catch (error) {
+      // Spend-contract refusals come back as data the model can
+      // reason about, not as crashes.
+      if (error instanceof StallRowError) return { error: error.message };
+      throw error;
+    }
+  },
+});
+```
+
+## Run it
+
+```bash
+cd examples/x402/research-buyer
+cp .env.example .env   # add your wallet key + model key
+bun run agent.ts my-research-task
+```
+
+Offline tests (`bun test`) fake the HTTP layer and sign locally with a public
+test account, covering the paid path and every refusal: no wallet, over-price,
+non-USDC asset, excessive validity window, and the per-task cap.
