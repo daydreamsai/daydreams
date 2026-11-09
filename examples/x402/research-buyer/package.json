@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "@ai-sdk/openai": "catalog:",
+    "@daydreamsai/cli": "workspace:*",
+    "@daydreamsai/core": "workspace:*",
+    "@x402/evm": "^2.30.0",
+    "@x402/fetch": "^2.30.0",
+    "dotenv": "catalog:",
+    "viem": "2.33.3",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  },
+  "name": "x402-research-buyer",
+  "private": true,
+  "scripts": {
+    "dev": "bun run agent.ts",
+    "start": "bun run agent.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "version": "1.0.0"
+}
