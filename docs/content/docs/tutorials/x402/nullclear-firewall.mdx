@@ -1,0 +1,105 @@
+---
+title: Pre-Execution Security Firewall with NullClear
+description:
+  Protect Daydreams on-chain agents from honeypots, Permit2/approval drainers,
+  and reverted transactions across Base, Ethereum, and Solana using NullClear's
+  1-call Pre-Sign Firewall and Guarded JSON-RPC.
+---
+
+Autonomous Daydreams agents that hold live Base USDC or Solana keys face two
+runtime threats: **malicious tokens** (honeypots, 100% sell-tax traps, Solana
+Token-2022 transfer hooks) and **malicious calldata** (Permit2 / Seaport
+drainers, fake routers, and reverting bundles).
+
+The full runnable example in `examples/x402/nullclear-firewall` equips a
+Daydreams agent with the [NullClear Pre-Execution Firewall](https://nullclear.dev)
+(`Check → Enforce → Monitor`) across 7 chains (`base`, `eth`, `arbitrum`,
+`optimism`, `polygon`, `bsc`, `solana`):
+
+- **1-Call Pre-Sign Guard (`POST /v1/guard` & `/v1/bazaar/guard`)** —
+  Recursively unwraps Multicall3 / UniversalRouter / Safe calldata, audits
+  EIP-712 Permit2/Seaport signatures, runs stateful `eth_simulateV1` /
+  `simulateTransaction` asset-diff preflight, and scans every touched token in a
+  single call.
+- **Drop-In Guarded JSON-RPC (`https://api.nullclear.dev/rpc/:chain/:apiKey`)** —
+  Replaces your standard `RPC_URL` so read calls pass through at `0` credits
+  (`<5ms` edge KV auth) while every `eth_sendRawTransaction` / `sendTransaction`
+  broadcast is screened automatically before reaching the mempool.
+- **Zero-Key Free Tier + x402 Prepaid Passes (`POST /v1/pass/buy`)** — Works out
+  of the box with zero API keys (`10` free live scans/day/IP, cached scans
+  free), or via `$0.005 USDC` x402 micro-settlement and self-serve `nc_live_...`
+  Prepaid Passes (`$5 / $25 / $100 USDC` on Base).
+
+## Step 1: Configure the Pre-Sign Guard
+
+```typescript title="Initialize NullClearFirewall"
+import { NullClearFirewall } from "./nullclear";
+
+// Works with zero env vars on the free tier, or reads NULLCLEAR_API_KEY (nc_live_...)
+const firewall = NullClearFirewall.fromEnv();
+
+// 1-call pre-sign validation before broadcasting a Base swap or approval
+const decision = await firewall.guardTransaction({
+  chain: "base",
+  from: "0xYourAgentWallet",
+  to: "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD", // Universal Router
+  tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  data: "0x...",
+  value: "0",
+});
+
+if (!decision.allowed) {
+  throw new Error(`Blocked by NullClear: ${decision.recommendedAgentAction}`);
+}
+```
+
+## Step 2: Drop-In Guarded JSON-RPC for Viem / Base Wallets
+
+If your Daydreams agent uses `viem` on Base, you can route its transport through
+NullClear's Guarded JSON-RPC endpoint so even direct wallet broadcasts are
+protected at the RPC boundary:
+
+```typescript title="Guarded Viem HTTP Transport"
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
+import { NullClearFirewall } from "./nullclear";
+
+const firewall = NullClearFirewall.fromEnv();
+const rpcUrl = firewall.getGuardedRpcUrl("base", {
+  failMode: "closed",
+  timeoutMs: 4000,
+});
+
+const client = createPublicClient({
+  chain: base,
+  transport: http(rpcUrl),
+});
+```
+
+## Step 3: Wire Pre-Execution Actions into a Daydreams Context
+
+```typescript title="Daydreams Firewall Actions"
+action({
+  name: "guard-transaction",
+  description:
+    "Run NullClear's 1-call Pre-Sign Firewall before signing or broadcasting an EVM or Solana transaction.",
+  schema: z.object({
+    chain: z.enum(["base", "eth", "arbitrum", "optimism", "polygon", "bsc", "solana"]),
+    tokenAddress: z.string().optional(),
+    to: z.string().optional(),
+    data: z.string().optional(),
+  }),
+  handler: async (input, ctx) => {
+    return await firewall.guardTransaction(input);
+  },
+});
+```
+
+## Run the Example & Tests
+
+```bash
+cd examples/x402/nullclear-firewall
+cp .env.example .env
+bun test
+bun run agent.ts
+```
